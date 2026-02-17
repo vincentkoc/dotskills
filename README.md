@@ -1,29 +1,25 @@
 <div align="center">
 
-# .skills
+  ![.skills banner](banner.jpg)
+
+# dotskills (.skills)
 
 [![CI](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/validate.yml?label=CI)](https://github.com/vincentkoc/dotskills/actions/workflows/validate.yml)
 [![Release](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/release.yml?label=Release)](https://github.com/vincentkoc/dotskills/actions/workflows/release.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-![.skills banner](banner.jpg)
-
 </div>
 
-A personal **.skills** repository for Codex, Cursor, and agent-first tooling.
+We are moving from "prompt as text" to **skill as runtime module**. Each skill acts like a lightweight, containerized application for AI work: a stable interface, opinionated workflow, and bundled resources that can be installed, versioned, tested, and reused across projects.
 
-`.skills` is the dotfiles mindset applied to AI execution: instead of one-off prompts, this repo stores reusable skill units that bundle:
+This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent-first tooling. `.skills` is the dotfiles mindset applied to AI execution: instead of one-off prompts, this repo stores reusable skill units that bundle:
 
 - prompt logic (`SKILL.md` / `AGENT.md` / `AGENTS.md`)
 - references and knowledge assets
 - scripts for deterministic execution
 - repeatable validation + publishing workflows
-
-## Ethos
-
-We are moving from "prompt as text" to **skill as runtime module**.
-
-Each skill acts like a lightweight, containerized application for AI work: a stable interface, opinionated workflow, and bundled resources that can be installed, versioned, tested, and reused across projects.
+- support external skills through submodules
+- git managed personal registry and github action hooks
 
 ## Public skills
 
@@ -31,16 +27,7 @@ Each skill acts like a lightweight, containerized application for AI work: a sta
 - `technical-documentation` — brownfield + evergreen docs build/review workflows.
 - `technical-integrations` — vendor/framework-agnostic API, RFC, SDK, and integration planning.
 
-## Internal skills
-
-Internal/private workflow skills can live in this repo with:
-
-```yaml
-metadata:
-  internal: true
-```
-
-Internal skills are excluded from public marketplace/release artifacts.
+Internal/private workflow skills can live in this repo and are marked in the metadata as `internal: true` and excluded from public marketplace/release artifacts.
 
 ## Install
 
@@ -58,25 +45,7 @@ List available public skills:
 npx skills add vincentkoc/dotskills --list
 ```
 
-## Local development
-
-```bash
-make ci
-make validate
-make marketplace
-make releases-index
-```
-
-Local runtime sync:
-
-```bash
-make sync
-```
-
-Default sync targets:
-
-- Codex: `${CODEX_HOME:-$HOME/.codex}/skills`
-- Cursor: `${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}`
+Default sync targets are managed automatically by vercel skills.
 
 ## Repository layout
 
@@ -92,28 +61,6 @@ scripts/                     # Validation + publishing automation
 catalog.yaml                 # Skill metadata catalog
 .claude-plugin/marketplace.json
 releases/skills.json
-```
-
-## Publishing workflow
-
-PR checks:
-
-- regenerate marketplace/index artifacts
-- validate skill structure
-- run pre-commit checks
-- enforce generated-file drift checks
-
-Release flow:
-
-```bash
-make release VERSION=v0.5.0
-git push origin v0.5.0
-```
-
-Per-skill publish helper:
-
-```bash
-make publish-skill SKILL=technical-deslop TAG=v0.5.0
 ```
 
 ## Why .skills
