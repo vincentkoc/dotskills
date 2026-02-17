@@ -30,6 +30,14 @@ jobs:
         with:
           node-version: "22.12.0"
 
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: skills-npm-${{ runner.os }}-node-22-${{ hashFiles('.github/workflows/verify-install.yml') }}
+          restore-keys: |
+            skills-npm-${{ runner.os }}-node-22-
+
       - name: Mock home and tool dirs
         shell: bash
         run: |
@@ -41,10 +49,13 @@ jobs:
           echo "CLAUDE_CODE_HOME=$mock_home/.claudecode" >> "$GITHUB_ENV"
           echo "OPENCLAW_HOME=$mock_home/.openclaw" >> "$GITHUB_ENV"
           echo "CURSOR_SKILLS_DIR=$mock_home/.cursor/skills" >> "$GITHUB_ENV"
+          echo "INSTALL_INTERNAL_SKILLS=0" >> "$GITHUB_ENV"
           mkdir -p \
+            "$mock_home/.agents/skills" \
             "$mock_home/.codex/skills" \
+            "$mock_home/.claude/skills" \
             "$mock_home/.claudecode/skills" \
-            "$mock_home/.openclaw/skills" \
+            "$mock_home/.moltbot/skills" \
             "$mock_home/.cursor/skills"
 
       - name: Install public skills
@@ -62,21 +73,15 @@ jobs:
           PY
           )"
           base_url="https://github.com/${repo}/tree/${ref}"
-          python3 - <<'PY' "$base_url"
-          import json
-          import subprocess
-          import sys
-
-          base_url = sys.argv[1]
-          with open("releases/skills.json", "r", encoding="utf-8") as f:
-              data = json.load(f)
-          for item in data.get("skills", []):
-              name = item["name"]
-              cmd = ["npx", "-y", "skills", "add", base_url, "--skill", name, "-y", "--global"]
-              print("::group::install", name)
-              subprocess.run(cmd, check=True)
-              print("::endgroup::")
-          PY
+          npx -y skills add "$base_url" \
+            --skill '*' \
+            --agent codex \
+            --agent cursor \
+            --agent claude-code \
+            --agent openclaw \
+            --agent github-copilot \
+            --global \
+            --yes
 
       - name: List public skills
         shell: bash
