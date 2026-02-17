@@ -25,6 +25,12 @@
       "source": "./skills/technical-integrations",
       "skills": "./",
       "description": "Design and review external-vendor integrations using existing internal patterns, with vendor/framework-agnostic workflows for API, RFC, SDK, and rollout planning."
+    },
+    {
+      "name": "technical-skill-finder",
+      "source": "./skills/technical-skill-finder",
+      "skills": "./",
+      "description": "Find recurring pain points from local agent logs and convert them into actionable skill candidates, reuse opportunities, or existing skill updates."
     }
   ]
 }

@@ -18,6 +18,12 @@
       "source": "./skills/technical-integrations",
       "description": "Design and review external-vendor integrations using existing internal patterns, with vendor/framework-agnostic workflows for API, RFC, SDK, and rollout planning.",
       "install": "npx skills add vincentkoc/dotskills --skill technical-integrations -y"
+    },
+    {
+      "name": "technical-skill-finder",
+      "source": "./skills/technical-skill-finder",
+      "description": "Find recurring pain points from local agent logs and convert them into actionable skill candidates, reuse opportunities, or existing skill updates.",
+      "install": "npx skills add vincentkoc/dotskills --skill technical-skill-finder -y"
     }
   ]
 }
