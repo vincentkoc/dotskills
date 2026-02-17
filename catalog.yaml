@@ -48,6 +48,20 @@ skills:
     tags: [integrations, api, rfc, sdk, vendor-agnostic]
     version: 0.1.0
 
+  - id: technical-skill-finder
+    name: Technical Skill Finder
+    path: skills/technical-skill-finder
+    source: local
+    tags: [discovery, logs, mining, skills]
+    version: 0.1.0
+
+  - id: opik-optimizer
+    name: Opik Optimizer
+    path: skills/opik-optimizer
+    source: local
+    tags: [opik, optimization, internal]
+    version: 0.1.0
+
   - id: opik-integrations-auditor
     name: Opik Integrations Auditor
     path: skills/opik-integrations-auditor

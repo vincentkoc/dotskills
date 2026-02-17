@@ -1,0 +1,4 @@
+interface:
+  display_name: "Opik Optimizer"
+  short_description: "LLM prompt and agent optimization workflows"
+  default_prompt: "Optimize prompts and agents with Opik by choosing the right optimizer class and running optimize_prompt/optimize_parameter."
