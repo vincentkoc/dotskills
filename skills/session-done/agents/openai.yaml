@@ -1,0 +1,10 @@
+interface:
+  display_name: "Session Done"
+  short_description: "Capture atomic post-session teardown notes with session metadata and structured handoff outputs."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Capture session teardown in structured markdown for continuation, shared memory, and PKM workflows."
+
+policy:
+  allow_implicit_invocation: true
