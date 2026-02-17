@@ -58,13 +58,29 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           prev="${{ steps.changed.outputs.prev_tag }}"
           changed="${{ steps.changed.outputs.changed }}"
+          repo="$(python3 - <<'PY'
+          import json
+          with open("releases/skills.json", "r", encoding="utf-8") as f:
+              data = json.load(f)
+          print(data["repo"])
+          PY
+          )"
+          install_lines="$(python3 - "$tag" "$repo" <<'PY'
+          import json
+          import sys
+          tag = sys.argv[1]
+          repo = sys.argv[2]
+          with open("releases/skills.json", "r", encoding="utf-8") as f:
+              data = json.load(f)
+          for item in data.get("skills", []):
+              print(f"`npx skills add {repo}#{tag} --skill {item['name']} -y`")
+              print()
+          PY
+          )"
           {
             echo "## Install"
             echo
-            echo "\`npx skills add vincentkoc/agent-skills#${tag} --skill deslop -y\`"
-            echo
-            echo "\`npx skills add vincentkoc/agent-skills#${tag} --skill technical-documentation -y\`"
-            echo
+            printf "%s\n" "$install_lines"
             echo "## Delta"
             echo
             if [[ -n "$prev" ]]; then
@@ -81,7 +97,17 @@ jobs:
           } > release-notes.md
 
       - name: Smoke test install list
-        run: npx -y skills add vincentkoc/agent-skills#${GITHUB_REF_NAME} --list
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="$(python3 - <<'PY'
+          import json
+          with open("releases/skills.json", "r", encoding="utf-8") as f:
+              data = json.load(f)
+          print(data["repo"])
+          PY
+          )"
+          npx -y skills add "${repo}#${GITHUB_REF_NAME}" --list
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
