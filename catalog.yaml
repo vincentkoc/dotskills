@@ -15,3 +15,14 @@ skills:
       type: webpage
       url: https://skills.sh/anthropics/skills/skill-creator
     tags: [upstream, reference]
+
+  - id: anthropics-skill-creator
+    name: anthropics/skill-creator
+    path: vendor/anthropics/skill-creator
+    source: upstream
+    upstream:
+      type: git
+      repo: https://github.com/anthropics/skills.git
+      ref: main
+      commit: 1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563
+    tags: [upstream, imported]
