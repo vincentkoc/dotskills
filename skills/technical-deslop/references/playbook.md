@@ -1,4 +1,4 @@
-# Deslop Playbook
+# Technical Deslop Playbook
 
 Use this execution order for behavior-preserving cleanup.
 

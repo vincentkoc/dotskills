@@ -27,9 +27,9 @@ skills:
       commit: 1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563
     tags: [upstream, imported]
 
-  - id: deslop
-    name: Deslop
-    path: skills/deslop
+  - id: technical-deslop
+    name: Technical Deslop
+    path: skills/technical-deslop
     source: local
     tags: [quality, cleanup, style]
     version: 0.1.0

@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_FILE="$ROOT_DIR/.claude-plugin/marketplace.json"
+MARKETPLACE_NAME="${SKILLS_MARKETPLACE_NAME:-dotskills}"
+MARKETPLACE_OWNER="${SKILLS_MARKETPLACE_OWNER:-vincentkoc}"
 
 entry_file_for_dir() {
   local dir="$1"
@@ -92,12 +94,14 @@ trap "rm -f '$tmp_rows'" EXIT
   done < <(collect_dirs | sort -u)
 } > "$tmp_rows"
 
-python3 - "$OUTPUT_FILE" "$tmp_rows" <<'PY'
+python3 - "$OUTPUT_FILE" "$tmp_rows" "$MARKETPLACE_NAME" "$MARKETPLACE_OWNER" <<'PY'
 import json
 import sys
 
 out_path = sys.argv[1]
 rows_path = sys.argv[2]
+marketplace_name = sys.argv[3]
+marketplace_owner = sys.argv[4]
 plugins = []
 seen = set()
 
@@ -124,10 +128,10 @@ with open(rows_path, "r", encoding="utf-8") as rows:
         )
 
 payload = {
-    "name": "vincentkoc-skills",
-    "owner": {"name": "vincentkoc"},
+    "name": marketplace_name,
+    "owner": {"name": marketplace_owner},
     "metadata": {
-        "description": "Personal agent skills marketplace for local and vendored skills.",
+        "description": "A .skills collection: prompts with resources and scripts as reusable AI runtime modules.",
         "version": "1.0.0",
     },
     "plugins": plugins,

@@ -1,10 +1,10 @@
 # Contributing
 
-Thanks for contributing to `agent-skills`.
+Thanks for contributing to `.skills`.
 
 ## Code of Conduct
 
-Participation in this project is governed by `/Users/vincentkoc/GIT/_Perso/agent-skills/CODE_OF_CONDUCT.md`.
+Participation in this project is governed by `CODE_OF_CONDUCT.md`.
 
 ## Contribution workflow
 

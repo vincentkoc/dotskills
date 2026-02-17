@@ -1,173 +1,128 @@
-# agent-skills
+<div align="center">
 
-Central source-of-truth for reusable agent skills across tools (Codex, Cursor, and others).
+# .skills
 
-## Goals
+[![CI](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/validate.yml?label=CI)](https://github.com/vincentkoc/dotskills/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/release.yml?label=Release)](https://github.com/vincentkoc/dotskills/actions/workflows/release.yml)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-- Keep authored skills versioned in one repo.
-- Vendor or pin upstream skills without losing provenance.
-- Sync skills into local agent runtimes from one command.
-- Enforce a minimum quality bar for skill structure.
+![.skills banner](banner.jpg)
 
-## Repository layout
+</div>
 
-```text
-skills/                     # Your first-party skills
-  <skill-name>/
-    SKILL.md|AGENT.md|AGENTS.md
-    assets/
-    scripts/
-vendor/                     # Third-party or mirrored skills
-  <source>/<skill-name>/
-    SKILL.md|AGENT.md|AGENTS.md
-bin/
-  agent-skills              # CLI for sync/list/validate/import
-scripts/
-  validate.sh               # Structural checks
-  generate_marketplace.sh   # Build Claude marketplace manifest
-  generate_releases_index.sh # Build release/install index for public skills
-  changed_skills.sh         # Diff-aware changed skill detection
-catalog.yaml                # Metadata catalog (source, version, tags)
-.pre-commit-config.yaml     # Local + CI hooks
-.claude-plugin/
-  marketplace.json          # Claude plugin marketplace manifest
-```
+A personal **.skills** repository for Codex, Cursor, and agent-first tooling.
 
-## Quick start
+`.skills` is the dotfiles mindset applied to AI execution: instead of one-off prompts, this repo stores reusable skill units that bundle:
 
-```bash
-# From this repo
-./bin/agent-skills list
-./bin/agent-skills validate
+- prompt logic (`SKILL.md` / `AGENT.md` / `AGENTS.md`)
+- references and knowledge assets
+- scripts for deterministic execution
+- repeatable validation + publishing workflows
 
-# Dry-run sync
-./bin/agent-skills sync --profile codex --dry-run
+## Ethos
 
-# Real sync with symlinks (best for local dev)
-./bin/agent-skills sync --profile codex,cursor --mode symlink
+We are moving from "prompt as text" to **skill as runtime module**.
 
-# Dry-run import from an upstream skills repo
-./bin/agent-skills import --source anthropics --repo https://github.com/anthropics/skills.git --ref main --subdir skills --skills skill-creator --dry-run
-```
+Each skill acts like a lightweight, containerized application for AI work: a stable interface, opinionated workflow, and bundled resources that can be installed, versioned, tested, and reused across projects.
 
-## Targets and profiles
+## Public skills
 
-The sync command uses these defaults unless overridden:
+- `technical-deslop` — behavior-preserving cleanup of AI-style code noise.
+- `technical-documentation` — brownfield + evergreen docs build/review workflows.
+- `technical-integrations` — vendor/framework-agnostic API, RFC, SDK, and integration planning.
 
-- `codex` -> `${CODEX_HOME:-$HOME/.codex}/skills`
-- `cursor` -> `${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}`
+## Internal skills
 
-Override destinations with environment variables:
-
-```bash
-CODEX_HOME="$HOME/.codex" CURSOR_SKILLS_DIR="$HOME/.cursor/skills" ./bin/agent-skills sync --profile codex,cursor
-```
-
-By default, the template skill `example-skill` is excluded from sync.
-
-## Skill authoring conventions
-
-Local first-party skills should include:
-
-- `SKILL.md` file
-- `## Purpose`
-- `## When to use`
-- `## Workflow`
-- `## Inputs`
-- `## Outputs`
-
-For upstream vendor skills, `SKILL.md`, `AGENT.md`, or `AGENTS.md` are accepted as-is.
-
-Use `./bin/agent-skills validate` to enforce these checks.
-
-## Upstream/default skills
-
-Track upstream skills in `vendor/<source>/<skill-name>` and record provenance in `catalog.yaml`.
-
-Import and pin upstream skill content:
-
-```bash
-./bin/agent-skills import --source anthropics --repo https://github.com/anthropics/skills.git --ref main --subdir skills --skills skill-creator
-```
-
-The import command:
-
-- clones the repo at a pinned ref
-- copies selected skills into `vendor/<source>/`
-- appends catalog metadata with pinned commit SHA + `format` (if id does not already exist)
-
-Example entries include:
-
-- Anthropic skills mirror
-- Links to external skill pages (for reference-only skills)
-
-## Dotfiles integration
-
-In your dotfiles bootstrap:
-
-1. Clone/update this repo.
-2. Run `./bin/agent-skills sync --profile codex,cursor --mode symlink`.
-3. Optionally run `./bin/agent-skills validate` before sync in CI.
-
-## Development
-
-```bash
-make ci
-make validate
-make sync
-make precommit-install
-make precommit-run
-make marketplace
-make releases-index
-```
-
-## Claude Marketplace
-
-Generate a marketplace manifest compatible with `.claude-plugin/marketplace.json` layouts:
-
-```bash
-make marketplace
-```
-
-This scans local and vendor skills and writes:
-
-- `/Users/vincentkoc/GIT/_Perso/agent-skills/.claude-plugin/marketplace.json`
-
-Only first-party non-internal skills under `skills/` are published to this manifest.
-
-To hide a skill from publishing, set in frontmatter:
+Internal/private workflow skills can live in this repo with:
 
 ```yaml
 metadata:
   internal: true
 ```
 
-## CI
+Internal skills are excluded from public marketplace/release artifacts.
 
-PR validation runs on GitHub Actions using `/Users/vincentkoc/GIT/_Perso/agent-skills/.github/workflows/validate.yml`:
+## Install
 
-- `make ci` (marketplace + release index + validate + pre-commit + generated drift check)
-- changed-skill reporting against `origin/main`
-
-Tagged releases (`v*`) run `/Users/vincentkoc/GIT/_Perso/agent-skills/.github/workflows/release.yml` and publish:
-
-- GitHub release notes with install commands
-- artifacts:
-  - `/Users/vincentkoc/GIT/_Perso/agent-skills/.claude-plugin/marketplace.json`
-  - `/Users/vincentkoc/GIT/_Perso/agent-skills/releases/skills.json`
-
-## Publishing
-
-Generate per-skill install commands:
+Install one skill:
 
 ```bash
-make publish-skill SKILL=deslop
-make publish-skill SKILL=technical-documentation TAG=v0.4.0
+npx skills add vincentkoc/dotskills --skill technical-deslop -y
+npx skills add vincentkoc/dotskills --skill technical-documentation -y
+npx skills add vincentkoc/dotskills --skill technical-integrations -y
 ```
 
-Create a release tag locally:
+List available public skills:
 
 ```bash
-make release VERSION=v0.4.0
-git push origin v0.4.0
+npx skills add vincentkoc/dotskills --list
 ```
+
+## Local development
+
+```bash
+make ci
+make validate
+make marketplace
+make releases-index
+```
+
+Local runtime sync:
+
+```bash
+make sync
+```
+
+Default sync targets:
+
+- Codex: `${CODEX_HOME:-$HOME/.codex}/skills`
+- Cursor: `${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}`
+
+## Repository layout
+
+```text
+skills/                      # First-party skills
+  <skill-name>/
+    SKILL.md|AGENT.md|AGENTS.md
+    references/
+    scripts/
+vendor/                      # Third-party mirrored/imported skills
+bin/agent-skills             # List/validate/sync/import
+scripts/                     # Validation + publishing automation
+catalog.yaml                 # Skill metadata catalog
+.claude-plugin/marketplace.json
+releases/skills.json
+```
+
+## Publishing workflow
+
+PR checks:
+
+- regenerate marketplace/index artifacts
+- validate skill structure
+- run pre-commit checks
+- enforce generated-file drift checks
+
+Release flow:
+
+```bash
+make release VERSION=v0.5.0
+git push origin v0.5.0
+```
+
+Per-skill publish helper:
+
+```bash
+make publish-skill SKILL=technical-deslop TAG=v0.5.0
+```
+
+## Why .skills
+
+Dotfiles configure machines.
+`.skills` configures AI execution quality.
+
+This repo is meant to be composable, auditable, and practical: skills should be testable artifacts, not throwaway prompt snippets.
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

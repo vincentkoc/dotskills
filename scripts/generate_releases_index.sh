@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_FILE="$ROOT_DIR/releases/skills.json"
+REPO_SLUG="${SKILLS_REPO:-vincentkoc/dotskills}"
 
 entry_file_for_dir() {
   local dir="$1"
@@ -81,12 +82,13 @@ if [[ -d "$ROOT_DIR/skills" ]]; then
   done < <(find "$ROOT_DIR/skills" -mindepth 1 -maxdepth 1 -type d -print | sort)
 fi > "$tmp_rows"
 
-python3 - "$OUTPUT_FILE" "$tmp_rows" <<'PY'
+python3 - "$OUTPUT_FILE" "$tmp_rows" "$REPO_SLUG" <<'PY'
 import json
 import sys
 
 out_path = sys.argv[1]
 rows_path = sys.argv[2]
+repo_slug = sys.argv[3]
 skills = []
 
 with open(rows_path, "r", encoding="utf-8") as rows:
@@ -100,12 +102,12 @@ with open(rows_path, "r", encoding="utf-8") as rows:
                 "name": name,
                 "source": source,
                 "description": description,
-                "install": f"npx skills add vincentkoc/agent-skills --skill {name} -y",
+                "install": f"npx skills add {repo_slug} --skill {name} -y",
             }
         )
 
 payload = {
-    "repo": "vincentkoc/agent-skills",
+    "repo": repo_slug,
     "skills": skills,
 }
 

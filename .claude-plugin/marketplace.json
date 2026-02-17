@@ -1,16 +1,16 @@
 {
-  "name": "vincentkoc-skills",
+  "name": "dotskills",
   "owner": {
     "name": "vincentkoc"
   },
   "metadata": {
-    "description": "Personal agent skills marketplace for local and vendored skills.",
+    "description": "A .skills collection: prompts with resources and scripts as reusable AI runtime modules.",
     "version": "1.0.0"
   },
   "plugins": [
     {
-      "name": "deslop",
-      "source": "./skills/deslop",
+      "name": "technical-deslop",
+      "source": "./skills/technical-deslop",
       "skills": "./",
       "description": "Clean branch/staged diffs by removing AI-style slop and restoring repo-consistent style without changing behavior."
     },

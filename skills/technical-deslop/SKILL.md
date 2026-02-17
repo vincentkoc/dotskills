@@ -1,9 +1,9 @@
 ---
-name: deslop
+name: technical-deslop
 description: Remove AI-style noise from staged and branch diffs while preserving behavior and repository style.
 ---
 
-# Deslop
+# Technical Deslop
 
 ## Purpose
 

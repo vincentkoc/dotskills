@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL="${1:-}"
 TAG="${2:-}"
 REPO="${3:-}"
+DEFAULT_REPO="${SKILLS_REPO:-vincentkoc/dotskills}"
 
 if [[ -z "$SKILL" ]]; then
   echo "Usage: $0 <skill-name> [tag] [owner/repo]" >&2
@@ -17,8 +18,7 @@ if [[ ! -d "$ROOT_DIR/skills/$SKILL" ]]; then
 fi
 
 if [[ -z "$REPO" ]]; then
-  remote_url="$(git -C "$ROOT_DIR" config --get remote.origin.url || true)"
-  REPO="$(echo "$remote_url" | sed -E 's#^https://github.com/##; s#^git@github.com:##; s#\.git$##')"
+  REPO="$DEFAULT_REPO"
 fi
 
 if [[ -z "$REPO" ]]; then
