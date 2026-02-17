@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT_FILE="$ROOT_DIR/.claude-plugin/marketplace.json"
+OUTPUT_FILE="$ROOT_DIR/releases/skills.json"
 
 entry_file_for_dir() {
   local dir="$1"
@@ -15,9 +15,21 @@ entry_file_for_dir() {
   return 1
 }
 
-plugin_name_for_dir() {
-  local dir="$1"
-  basename "$dir"
+is_internal_entry() {
+  local entry_file="$1"
+  awk '
+    BEGIN { in_frontmatter = 0; found = 0 }
+    NR == 1 && /^[[:space:]]*---[[:space:]]*$/ { in_frontmatter = 1; next }
+    in_frontmatter == 1 {
+      if ($0 ~ /^[[:space:]]*---[[:space:]]*$/) { exit }
+      if ($0 ~ /^[[:space:]]*internal:[[:space:]]*true([[:space:]]|$)/) { print "true"; found = 1; exit }
+    }
+    END {
+      if (!found) {
+        print "false"
+      }
+    }
+  ' "$entry_file"
 }
 
 description_for_entry() {
@@ -46,91 +58,59 @@ description_for_entry() {
   ' "$entry_file"
 }
 
-collect_dirs() {
-  if [[ -d "$ROOT_DIR/skills" ]]; then
-    find "$ROOT_DIR/skills" -mindepth 1 -maxdepth 1 -type d -print
-  fi
-}
-
-is_internal_entry() {
-  local entry_file="$1"
-  awk '
-    BEGIN { in_frontmatter = 0; found = 0 }
-    NR == 1 && /^[[:space:]]*---[[:space:]]*$/ { in_frontmatter = 1; next }
-    in_frontmatter == 1 {
-      if ($0 ~ /^[[:space:]]*---[[:space:]]*$/) { exit }
-      if ($0 ~ /^[[:space:]]*internal:[[:space:]]*true([[:space:]]|$)/) { print "true"; found = 1; exit }
-    }
-    END {
-      if (!found) {
-        print "false"
-      }
-    }
-  ' "$entry_file"
-}
-
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 tmp_rows="$(mktemp)"
 trap "rm -f '$tmp_rows'" EXIT
 
-{
+if [[ -d "$ROOT_DIR/skills" ]]; then
   while IFS= read -r skill_dir; do
-    [[ -n "$skill_dir" ]] || continue
-
     entry_file="$(entry_file_for_dir "$skill_dir" || true)"
     [[ -n "$entry_file" ]] || continue
-    if [[ "$(is_internal_entry "$entry_file")" == "true" ]]; then
+
+    internal="$(is_internal_entry "$entry_file")"
+    if [[ "$internal" == "true" ]]; then
       continue
     fi
 
-    plugin_name="$(plugin_name_for_dir "$skill_dir")"
+    skill_name="$(basename "$skill_dir")"
     rel_source="./${skill_dir#"$ROOT_DIR"/}"
     description="$(description_for_entry "$entry_file")"
 
-    printf '%s\t%s\t%s\n' "$plugin_name" "$rel_source" "$description"
-  done < <(collect_dirs | sort -u)
-} > "$tmp_rows"
+    printf '%s\t%s\t%s\n' "$skill_name" "$rel_source" "$description"
+  done < <(find "$ROOT_DIR/skills" -mindepth 1 -maxdepth 1 -type d -print | sort)
+fi > "$tmp_rows"
 
-python3 - "$OUTPUT_FILE" "$tmp_rows" <<'PY'
+generated_at="$(git -C "$ROOT_DIR" log -1 --format=%cI)"
+
+python3 - "$OUTPUT_FILE" "$tmp_rows" "$generated_at" <<'PY'
 import json
 import sys
 
 out_path = sys.argv[1]
 rows_path = sys.argv[2]
-plugins = []
-seen = set()
+generated_at = sys.argv[3]
+skills = []
 
 with open(rows_path, "r", encoding="utf-8") as rows:
     for line in rows:
         line = line.rstrip("\n")
         if not line:
             continue
-        parts = line.split("\t")
-        if len(parts) != 3:
-            continue
-        name, source, description = parts
-        key = (name, source)
-        if key in seen:
-            continue
-        seen.add(key)
-        plugins.append(
+        name, source, description = line.split("\t", 2)
+        skills.append(
             {
                 "name": name,
                 "source": source,
-                "skills": "./",
                 "description": description,
+                "install": f"npx skills add vincentkoc/agent-skills --skill {name} -y",
             }
         )
 
 payload = {
-    "name": "vincentkoc-skills",
-    "owner": {"name": "vincentkoc"},
-    "metadata": {
-        "description": "Personal agent skills marketplace for local and vendored skills.",
-        "version": "1.0.0",
-    },
-    "plugins": plugins,
+    "generatedAt": generated_at,
+    "repo": "vincentkoc/agent-skills",
+    "skills": skills,
 }
 
 with open(out_path, "w", encoding="utf-8") as f:

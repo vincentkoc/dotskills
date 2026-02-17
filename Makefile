@@ -1,4 +1,4 @@
-.PHONY: list validate sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry marketplace
+.PHONY: list validate sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry marketplace releases-index check-generated changed-skills ci publish-skill release
 
 list:
 	./bin/agent-skills list
@@ -29,3 +29,24 @@ import-huggingface-dry:
 
 marketplace:
 	./scripts/generate_marketplace.sh
+
+releases-index:
+	./scripts/generate_releases_index.sh
+
+check-generated:
+	./scripts/check_generated.sh
+
+changed-skills:
+	./scripts/changed_skills.sh $(BASE) $(HEAD)
+
+ci: marketplace releases-index validate precommit-run check-generated
+
+publish-skill:
+	./scripts/publish_skill.sh $(SKILL) $(TAG) $(REPO)
+
+release:
+	@test -n "$(VERSION)" || (echo "VERSION is required (example: VERSION=v0.4.0)" && exit 1)
+	@git diff --quiet || (echo "Working tree is not clean" && exit 1)
+	$(MAKE) ci
+	git tag -a "$(VERSION)" -m "Release $(VERSION)"
+	@echo "Created tag $(VERSION). Push with: git push origin $(VERSION)"

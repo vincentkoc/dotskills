@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-02-16T21:39:42-08:00",
+  "repo": "vincentkoc/agent-skills",
+  "skills": [
+    {
+      "name": "deslop",
+      "source": "./skills/deslop",
+      "description": "Clean branch/staged diffs by removing AI-style slop and restoring repo-consistent style without changing behavior.",
+      "install": "npx skills add vincentkoc/agent-skills --skill deslop -y"
+    },
+    {
+      "name": "technical-documentation",
+      "source": "./skills/technical-documentation",
+      "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents.",
+      "install": "npx skills add vincentkoc/agent-skills --skill technical-documentation -y"
+    }
+  ]
+}

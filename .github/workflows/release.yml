@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pre-commit
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pre-commit
+
+      - name: CI checks
+        run: make ci
+
+      - name: Generate changed skills since previous tag
+        id: changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_tag="${GITHUB_REF_NAME}"
+          prev_tag="$(git tag --sort=-creatordate | grep '^v' | grep -v "^${current_tag}$" | head -n1 || true)"
+          if [[ -n "$prev_tag" ]]; then
+            changed="$(./scripts/changed_skills.sh "$prev_tag" HEAD | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
+          else
+            changed="$(./scripts/changed_skills.sh "$(git rev-list --max-parents=0 HEAD)" HEAD | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
+          fi
+          echo "prev_tag=$prev_tag" >> "$GITHUB_OUTPUT"
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+      - name: Build release notes
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          prev="${{ steps.changed.outputs.prev_tag }}"
+          changed="${{ steps.changed.outputs.changed }}"
+          {
+            echo "## Install"
+            echo
+            echo "\`npx skills add vincentkoc/agent-skills#${tag} --skill deslop -y\`"
+            echo
+            echo "\`npx skills add vincentkoc/agent-skills#${tag} --skill technical-documentation -y\`"
+            echo
+            echo "## Delta"
+            echo
+            if [[ -n "$prev" ]]; then
+              echo "Compared to \`$prev\`."
+            else
+              echo "First tagged release."
+            fi
+            echo
+            if [[ -n "$changed" ]]; then
+              echo "Changed skill paths: \`$changed\`"
+            else
+              echo "No skill-path changes detected."
+            fi
+          } > release-notes.md
+
+      - name: Smoke test install list
+        run: npx -y skills add vincentkoc/agent-skills#${GITHUB_REF_NAME} --list
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          files: |
+            .claude-plugin/marketplace.json
+            releases/skills.json

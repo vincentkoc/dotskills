@@ -5,19 +5,28 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate:
+  validate-and-publish-readiness:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Validate skills
-        run: make validate
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install pre-commit
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install pre-commit
 
-      - name: Run pre-commit
-        run: pre-commit run --all-files
+      - name: CI checks
+        run: make ci
+
+      - name: Changed skills
+        run: |
+          echo "Changed skills against origin/main:"
+          ./scripts/changed_skills.sh origin/main HEAD || true

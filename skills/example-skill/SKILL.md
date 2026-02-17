@@ -1,3 +1,10 @@
+---
+name: example-skill
+description: Template skill for repository authors; excluded from public publishing.
+metadata:
+  internal: true
+---
+
 # Example Skill
 
 ## Purpose

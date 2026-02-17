@@ -25,6 +25,8 @@ bin/
 scripts/
   validate.sh               # Structural checks
   generate_marketplace.sh   # Build Claude marketplace manifest
+  generate_releases_index.sh # Build release/install index for public skills
+  changed_skills.sh         # Diff-aware changed skill detection
 catalog.yaml                # Metadata catalog (source, version, tags)
 .pre-commit-config.yaml     # Local + CI hooks
 .claude-plugin/
@@ -110,11 +112,13 @@ In your dotfiles bootstrap:
 ## Development
 
 ```bash
+make ci
 make validate
 make sync
 make precommit-install
 make precommit-run
 make marketplace
+make releases-index
 ```
 
 ## Claude Marketplace
@@ -129,9 +133,41 @@ This scans local and vendor skills and writes:
 
 - `/Users/vincentkoc/GIT/_Perso/agent-skills/.claude-plugin/marketplace.json`
 
+Only first-party non-internal skills under `skills/` are published to this manifest.
+
+To hide a skill from publishing, set in frontmatter:
+
+```yaml
+metadata:
+  internal: true
+```
+
 ## CI
 
-PR validation runs on GitHub Actions using `.github/workflows/validate.yml`:
+PR validation runs on GitHub Actions using `/Users/vincentkoc/GIT/_Perso/agent-skills/.github/workflows/validate.yml`:
 
-- `make validate`
-- `pre-commit run --all-files`
+- `make ci` (marketplace + release index + validate + pre-commit + generated drift check)
+- changed-skill reporting against `origin/main`
+
+Tagged releases (`v*`) run `/Users/vincentkoc/GIT/_Perso/agent-skills/.github/workflows/release.yml` and publish:
+
+- GitHub release notes with install commands
+- artifacts:
+  - `/Users/vincentkoc/GIT/_Perso/agent-skills/.claude-plugin/marketplace.json`
+  - `/Users/vincentkoc/GIT/_Perso/agent-skills/releases/skills.json`
+
+## Publishing
+
+Generate per-skill install commands:
+
+```bash
+make publish-skill SKILL=deslop
+make publish-skill SKILL=technical-documentation TAG=v0.4.0
+```
+
+Create a release tag locally:
+
+```bash
+make release VERSION=v0.4.0
+git push origin v0.4.0
+```
