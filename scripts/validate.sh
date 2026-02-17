@@ -75,3 +75,5 @@ if [[ $failures -gt 0 ]]; then
 fi
 
 echo "Validation passed. Checked $checked skill(s) ($strict_checked strict, $flex_checked flexible)."
+
+"$ROOT_DIR/scripts/validate_spec.py"

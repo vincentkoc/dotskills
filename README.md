@@ -67,6 +67,19 @@ catalog.yaml                 # Skill metadata catalog
 releases/skills.json
 ```
 
+## Validation
+
+`make validate` now runs:
+
+1. repo policy checks (`Purpose/When to use/Workflow/Inputs/Outputs`, entry-file checks)
+2. AgentSkills spec checks for local `SKILL.md` skills (`name`/`description` constraints, frontmatter validity, relative resource references, one-level reference depth)
+
+If installed, the external reference validator is also used:
+
+```bash
+skills-ref validate ./skills/<skill-name>
+```
+
 ## Why .skills
 
 Dotfiles configure machines.

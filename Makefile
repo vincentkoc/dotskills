@@ -1,10 +1,13 @@
-.PHONY: list validate sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry marketplace releases-index check-generated changed-skills ci publish-skill release
+.PHONY: list validate validate-spec sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry marketplace releases-index check-generated changed-skills ci publish-skill release
 
 list:
 	./bin/agent-skills list
 
 validate:
 	./bin/agent-skills validate
+
+validate-spec:
+	./scripts/validate_spec.py
 
 sync:
 	./bin/agent-skills sync --profile codex,cursor --mode symlink
