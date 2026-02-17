@@ -89,6 +89,7 @@ import sys
 out_path = sys.argv[1]
 rows_path = sys.argv[2]
 repo_slug = sys.argv[3]
+repo_url = f"https://github.com/{repo_slug}"
 skills = []
 
 with open(rows_path, "r", encoding="utf-8") as rows:
@@ -102,7 +103,7 @@ with open(rows_path, "r", encoding="utf-8") as rows:
                 "name": name,
                 "source": source,
                 "description": description,
-                "install": f"npx skills add {repo_slug} --skill {name} -y",
+                "install": f"npx skills add {repo_url} --skill {name} -y",
             }
         )
 

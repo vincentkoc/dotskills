@@ -28,7 +28,7 @@ fi
 
 ref_repo="$REPO"
 if [[ -n "$TAG" ]]; then
-  ref_repo="$REPO#$TAG"
+  ref_repo="https://github.com/$REPO/tree/$TAG"
 fi
 
 echo "Install command:"

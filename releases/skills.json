@@ -5,25 +5,25 @@
       "name": "technical-deslop",
       "source": "./skills/technical-deslop",
       "description": "Clean branch/staged diffs by removing AI-style slop and restoring repo-consistent style without changing behavior.",
-      "install": "npx skills add vincentkoc/dotskills --skill technical-deslop -y"
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-deslop -y"
     },
     {
       "name": "technical-documentation",
       "source": "./skills/technical-documentation",
       "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents.",
-      "install": "npx skills add vincentkoc/dotskills --skill technical-documentation -y"
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-documentation -y"
     },
     {
       "name": "technical-integrations",
       "source": "./skills/technical-integrations",
       "description": "Design and review external-vendor integrations using existing internal patterns, with vendor/framework-agnostic workflows for API, RFC, SDK, and rollout planning.",
-      "install": "npx skills add vincentkoc/dotskills --skill technical-integrations -y"
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-integrations -y"
     },
     {
       "name": "technical-skill-finder",
       "source": "./skills/technical-skill-finder",
       "description": "Find recurring pain points from local agent logs and convert them into actionable skill candidates, reuse opportunities, or existing skill updates.",
-      "install": "npx skills add vincentkoc/dotskills --skill technical-skill-finder -y"
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-skill-finder -y"
     }
   ]
 }
