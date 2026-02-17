@@ -27,10 +27,10 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 
 | Skill | What it does | Install |
 |---|---|---|
-| `technical-deslop` | Behavior-preserving cleanup of AI-style code noise. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
-| `technical-documentation` | Brownfield + evergreen docs build/review workflows. | `npx skills add vincentkoc/dotskills --skill technical-documentation -y` |
-| `technical-integrations` | Vendor/framework-agnostic API, RFC, SDK, and integration planning. | `npx skills add vincentkoc/dotskills --skill technical-integrations -y` |
-| `technical-skill-finder` | Mine agent logs to identify new skill opportunities. | `npx skills add vincentkoc/dotskills --skill technical-skill-finder -y` |
+| `technical-deslop` | Ship clean diffs fast: remove AI noise and keep behavior unchanged. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
+| `technical-documentation` | Produce dev‑ready docs: clear, structured build/review for brownfield + evergreen. | `npx skills add vincentkoc/dotskills --skill technical-documentation -y` |
+| `technical-integrations` | Design integrations that land: vendor‑agnostic API/RFC/SDK plans with rollout safety. | `npx skills add vincentkoc/dotskills --skill technical-integrations -y` |
+| `technical-skill-finder` | Turn real agent pain into new skills: mine logs, rank wins, draft next steps. | `npx skills add vincentkoc/dotskills --skill technical-skill-finder -y` |
 
 Internal/private workflow skills can live in this repo and are marked in the metadata as `internal: true` and excluded from public marketplace/release artifacts.
 
