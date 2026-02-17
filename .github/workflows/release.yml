@@ -70,10 +70,11 @@ jobs:
           import sys
           tag = sys.argv[1]
           repo = sys.argv[2]
+          repo_url = f"https://github.com/{repo}/tree/{tag}"
           with open("releases/skills.json", "r", encoding="utf-8") as f:
               data = json.load(f)
           for item in data.get("skills", []):
-              print(f"`npx skills add {repo}#{tag} --skill {item['name']} -y`")
+              print(f"`npx skills add {repo_url} --skill {item['name']} -y`")
               print()
           PY
           )"
@@ -107,7 +108,7 @@ jobs:
           print(data["repo"])
           PY
           )"
-          npx -y skills add "${repo}#${GITHUB_REF_NAME}" --list
+          npx -y skills add "https://github.com/${repo}/tree/${GITHUB_REF_NAME}" --list
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
