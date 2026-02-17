@@ -19,6 +19,12 @@
       "source": "./skills/technical-documentation",
       "skills": "./",
       "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents."
+    },
+    {
+      "name": "technical-integrations",
+      "source": "./skills/technical-integrations",
+      "skills": "./",
+      "description": "Design and review external-vendor integrations using existing internal patterns, with vendor/framework-agnostic workflows for API, RFC, SDK, and rollout planning."
     }
   ]
 }

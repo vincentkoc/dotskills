@@ -41,6 +41,13 @@ skills:
     tags: [docs, writing, review, evergreen, brownfield]
     version: 0.1.0
 
+  - id: technical-integrations
+    name: Technical Integrations
+    path: skills/technical-integrations
+    source: local
+    tags: [integrations, api, rfc, sdk, vendor-agnostic]
+    version: 0.1.0
+
   - id: opik-integrations-auditor
     name: Opik Integrations Auditor
     path: skills/opik-integrations-auditor
