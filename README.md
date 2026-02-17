@@ -14,12 +14,12 @@ Central source-of-truth for reusable agent skills across tools (Codex, Cursor, a
 ```text
 skills/                     # Your first-party skills
   <skill-name>/
-    SKILL.md
+    SKILL.md|AGENT.md|AGENTS.md
     assets/
     scripts/
 vendor/                     # Third-party or mirrored skills
   <source>/<skill-name>/
-    SKILL.md
+    SKILL.md|AGENT.md|AGENTS.md
 bin/
   agent-skills              # CLI for sync/list/validate/import
 scripts/
@@ -60,7 +60,7 @@ CODEX_HOME="$HOME/.codex" CURSOR_SKILLS_DIR="$HOME/.cursor/skills" ./bin/agent-s
 
 ## Skill authoring conventions
 
-Each skill should include at least:
+Local first-party skills should include:
 
 - `SKILL.md` file
 - `## Purpose`
@@ -68,6 +68,8 @@ Each skill should include at least:
 - `## Workflow`
 - `## Inputs`
 - `## Outputs`
+
+For upstream vendor skills, `SKILL.md`, `AGENT.md`, or `AGENTS.md` are accepted as-is.
 
 Use `./bin/agent-skills validate` to enforce these checks.
 
@@ -85,7 +87,7 @@ The import command:
 
 - clones the repo at a pinned ref
 - copies selected skills into `vendor/<source>/`
-- appends catalog metadata with pinned commit SHA (if id does not already exist)
+- appends catalog metadata with pinned commit SHA + `format` (if id does not already exist)
 
 Example entries include:
 

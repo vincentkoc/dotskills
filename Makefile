@@ -1,4 +1,4 @@
-.PHONY: list validate sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry
+.PHONY: list validate sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry
 
 list:
 	./bin/agent-skills list
@@ -23,3 +23,6 @@ import-anthropic:
 
 import-anthropic-dry:
 	./bin/agent-skills import --source anthropics --repo https://github.com/anthropics/skills.git --ref main --subdir skills --skills skill-creator --dry-run
+
+import-huggingface-dry:
+	./bin/agent-skills import --source huggingface --repo https://github.com/huggingface/skills.git --ref main --dry-run

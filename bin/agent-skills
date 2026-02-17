@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS_DIR="$ROOT_DIR/skills"
 VENDOR_DIR="$ROOT_DIR/vendor"
 CATALOG_FILE="$ROOT_DIR/catalog.yaml"
+ENTRY_FILES=("SKILL.md" "AGENT.md" "AGENTS.md")
 
 usage() {
   cat <<USAGE
@@ -13,6 +14,9 @@ Usage:
   agent-skills validate
   agent-skills sync [--profile codex,cursor] [--mode symlink|copy] [--dry-run]
   agent-skills import --source <name> --repo <url> [--ref <git-ref>] [--subdir <path>] [--skills a,b] [--dry-run]
+
+Supported skill entry files:
+  SKILL.md, AGENT.md, AGENTS.md
 
 Profiles:
   codex  -> \
@@ -30,13 +34,50 @@ cursor_target() {
   echo "${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}"
 }
 
+detect_entry_file() {
+  local dir="$1"
+  for entry in "${ENTRY_FILES[@]}"; do
+    if [[ -f "$dir/$entry" ]]; then
+      echo "$entry"
+      return 0
+    fi
+  done
+  return 1
+}
+
+detect_format_from_dir() {
+  local dir="$1"
+  local entry=""
+  entry="$(detect_entry_file "$dir" || true)"
+  case "$entry" in
+    SKILL.md) echo "skill_md" ;;
+    AGENT.md) echo "agent_md" ;;
+    AGENTS.md) echo "agents_md" ;;
+    *) echo "unknown" ;;
+  esac
+}
+
+find_skill_dirs_under() {
+  local base="$1"
+  if [[ ! -d "$base" ]]; then
+    return 0
+  fi
+
+  find "$base" -type f \( -name "SKILL.md" -o -name "AGENT.md" -o -name "AGENTS.md" \) -print \
+    | sed -E 's#/(SKILL|AGENT|AGENTS)\.md$##' \
+    | sort -u
+}
+
 list_skills() {
   if [[ -d "$SKILLS_DIR" ]]; then
-    find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -print | sort
+    while IFS= read -r dir; do
+      if detect_entry_file "$dir" >/dev/null; then
+        echo "$dir"
+      fi
+    done < <(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -print | sort)
   fi
-  if [[ -d "$VENDOR_DIR" ]]; then
-    find "$VENDOR_DIR" -type f -name SKILL.md -print | sed 's|/SKILL.md$||' | sort
-  fi
+
+  find_skill_dirs_under "$VENDOR_DIR"
 }
 
 skill_dest_name() {
@@ -94,7 +135,7 @@ sync_profile() {
   esac
 
   while IFS= read -r skill_path; do
-    [[ -f "$skill_path/SKILL.md" ]] || continue
+    detect_entry_file "$skill_path" >/dev/null || continue
     link_or_copy_skill "$skill_path" "$target" "$mode" "$dry_run"
   done < <(list_skills)
 }
@@ -111,6 +152,7 @@ append_catalog_entry() {
   local repo="$4"
   local ref="$5"
   local commit="$6"
+  local format="$7"
 
   if catalog_has_id "$id"; then
     echo "[catalog] id '$id' already exists, skipped"
@@ -122,6 +164,7 @@ append_catalog_entry() {
   - id: $id
     name: $name
     path: $path
+    format: $format
     source: upstream
     upstream:
       type: git
@@ -167,7 +210,7 @@ import_repo_skills() {
     exit 1
   fi
 
-  mapfile -t candidates < <(find "$import_base" -type f -name SKILL.md -print | sed 's|/SKILL.md$||' | sort)
+  mapfile -t candidates < <(find_skill_dirs_under "$import_base")
   if [[ "${#candidates[@]}" -eq 0 ]]; then
     echo "No skills found under: $import_base" >&2
     exit 1
@@ -202,9 +245,12 @@ import_repo_skills() {
     skill_name="$(basename "$src")"
     local target_dir="$target_root/$skill_name"
     local catalog_id="${source_name}-${skill_name}"
+    local format
+    format="$(detect_format_from_dir "$src")"
 
     if [[ "$dry_run" == "true" ]]; then
       echo "[dry-run] import $src -> $target_dir"
+      echo "[dry-run] format: $format"
       echo "[dry-run] catalog id: $catalog_id"
       continue
     fi
@@ -220,7 +266,8 @@ import_repo_skills() {
       "vendor/$source_name/$skill_name" \
       "$repo" \
       "$ref" \
-      "$commit"
+      "$commit" \
+      "$format"
   done
 }
 
