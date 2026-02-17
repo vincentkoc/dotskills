@@ -18,6 +18,8 @@ Skills are managed using vercel-labs/agent-skills (skills.sh/docs).
 - Prefer deterministic commands and repeatable workflows.
 - Prefer concise, evidence-backed SKILL.md guidance.
 - Put operational details in `references/` when they are verbose.
+- Public skills under `skills/` must include `license: AGPL-3.0-only` and `metadata.source: https://github.com/vincentkoc/dotskills`.
+- Validators must enforce public-skill license and source metadata.
 
 ## PR/Issue Hygiene
 

@@ -18,6 +18,10 @@ from typing import Dict, List, Sequence, Tuple
 ROOT_DIR = Path(__file__).resolve().parents[1]
 LOCAL_SKILL_ROOTS = [ROOT_DIR / "skills", ROOT_DIR / "private-skills"]
 SECTION_ROOTS = ("references", "scripts", "assets")
+PUBLIC_SKILLS_ROOT = ROOT_DIR / "skills"
+PUBLIC_SKILL_LICENSE = "AGPL-3.0-only"
+PUBLIC_SKILL_SOURCE = "https://github.com/vincentkoc/dotskills"
+REPO_LICENSE_FILE = ROOT_DIR / "LICENSE"
 
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 TOP_KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):\s*(.*)$")
@@ -173,6 +177,58 @@ def validate_optional_frontmatter(
             )
 
 
+def is_internal_skill(front: Dict[str, object]) -> bool:
+    metadata = front.get("metadata")
+    if not isinstance(metadata, dict):
+        return False
+    internal = str(metadata.get("internal", "")).strip().lower()
+    return internal in {"1", "true", "yes", "y", "on"}
+
+
+def is_public_skill(skill_dir: Path, front: Dict[str, object]) -> bool:
+    return skill_dir.parent == PUBLIC_SKILLS_ROOT and not is_internal_skill(front)
+
+
+def validate_repo_license(errors: List[str]) -> None:
+    if not REPO_LICENSE_FILE.is_file():
+        errors.append(
+            f"{REPO_LICENSE_FILE}: missing repository license file (expected AGPL-3.0 text)"
+        )
+        return
+
+    text = REPO_LICENSE_FILE.read_text(encoding="utf-8", errors="replace")
+    if "GNU AFFERO GENERAL PUBLIC LICENSE" not in text:
+        errors.append(f"{REPO_LICENSE_FILE}: does not look like AGPL-3.0 license text")
+    if "Version 3, 19 November 2007" not in text:
+        errors.append(f"{REPO_LICENSE_FILE}: expected AGPLv3 version marker is missing")
+
+
+def validate_public_skill_policy(
+    skill_dir: Path, skill_file: Path, front: Dict[str, object], errors: List[str]
+) -> None:
+    if not is_public_skill(skill_dir, front):
+        return
+
+    license_value = str(front.get("license", "")).strip()
+    if license_value != PUBLIC_SKILL_LICENSE:
+        errors.append(
+            f"{skill_file}: public skill must set license: {PUBLIC_SKILL_LICENSE}"
+        )
+
+    metadata = front.get("metadata")
+    if not isinstance(metadata, dict):
+        errors.append(
+            f"{skill_file}: public skill must define metadata.source: {PUBLIC_SKILL_SOURCE}"
+        )
+        return
+
+    source_value = str(metadata.get("source", "")).strip()
+    if source_value != PUBLIC_SKILL_SOURCE:
+        errors.append(
+            f"{skill_file}: public skill metadata.source must be {PUBLIC_SKILL_SOURCE}"
+        )
+
+
 def normalize_ref(raw_ref: str) -> str:
     ref = raw_ref.strip().strip("`'\"")
     ref = ref.split("#", 1)[0]
@@ -256,6 +312,7 @@ def main() -> int:
     errors: List[str] = []
     warnings: List[str] = []
     validated = 0
+    validate_repo_license(errors)
 
     for skill_dir in skill_dirs:
         skill_file = skill_dir / "SKILL.md"
@@ -269,6 +326,7 @@ def main() -> int:
         validate_name(skill_dir, skill_file, front, errors)
         validate_description(skill_file, front, errors)
         validate_optional_frontmatter(skill_file, front, errors, warnings)
+        validate_public_skill_policy(skill_dir, skill_file, front, errors)
         validate_body(skill_file, body, errors, warnings)
         validate_refs(skill_dir, skill_file, body, errors, warnings)
         validated += 1

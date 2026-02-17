@@ -1,6 +1,9 @@
 ---
 name: technical-documentation
 description: Build and review high-quality technical docs for brownfield and evergreen documentation systems.
+license: AGPL-3.0-only
+metadata:
+  source: "https://github.com/vincentkoc/dotskills"
 ---
 
 # Technical Documentation
