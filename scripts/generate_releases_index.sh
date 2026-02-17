@@ -81,15 +81,12 @@ if [[ -d "$ROOT_DIR/skills" ]]; then
   done < <(find "$ROOT_DIR/skills" -mindepth 1 -maxdepth 1 -type d -print | sort)
 fi > "$tmp_rows"
 
-generated_at="$(git -C "$ROOT_DIR" log -1 --format=%cI)"
-
-python3 - "$OUTPUT_FILE" "$tmp_rows" "$generated_at" <<'PY'
+python3 - "$OUTPUT_FILE" "$tmp_rows" <<'PY'
 import json
 import sys
 
 out_path = sys.argv[1]
 rows_path = sys.argv[2]
-generated_at = sys.argv[3]
 skills = []
 
 with open(rows_path, "r", encoding="utf-8") as rows:
@@ -108,7 +105,6 @@ with open(rows_path, "r", encoding="utf-8") as rows:
         )
 
 payload = {
-    "generatedAt": generated_at,
     "repo": "vincentkoc/agent-skills",
     "skills": skills,
 }

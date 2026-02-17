@@ -40,3 +40,10 @@ skills:
     source: local
     tags: [docs, writing, review, evergreen, brownfield]
     version: 0.1.0
+
+  - id: opik-integrations-auditor
+    name: Opik Integrations Auditor
+    path: skills/opik-integrations-auditor
+    source: local
+    tags: [opik, integrations, audit, internal]
+    version: 0.1.0
