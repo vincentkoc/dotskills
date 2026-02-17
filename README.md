@@ -4,8 +4,12 @@
 
 # dotskills (.skills)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/validate.yml?label=CI)](https://github.com/vincentkoc/dotskills/actions/workflows/validate.yml)
-[![Release](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/release.yml?label=Release)](https://github.com/vincentkoc/dotskills/actions/workflows/release.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/validate.yml?branch=main&label=CI)](https://github.com/vincentkoc/dotskills/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/release.yml?branch=main&label=Release)](https://github.com/vincentkoc/dotskills/actions/workflows/release.yml)
+[![Verify installs](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/verify-install.yml?branch=main&label=Install%20verify)](https://github.com/vincentkoc/dotskills/actions/workflows/verify-install.yml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/codeql.yml?branch=main&label=CodeQL)](https://github.com/vincentkoc/dotskills/actions/workflows/codeql.yml)
+[![License](https://img.shields.io/github/license/vincentkoc/dotskills?label=License)](LICENSE)
+[![Latest tag](https://img.shields.io/github/v/tag/vincentkoc/dotskills?label=Release)](https://github.com/vincentkoc/dotskills/tags)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 </div>
