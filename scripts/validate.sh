@@ -9,6 +9,12 @@ checked=0
 strict_checked=0
 flex_checked=0
 
+if command -v rg >/dev/null 2>&1; then
+  section_search=(rg -q)
+else
+  section_search=(grep -Eq)
+fi
+
 local_skill_dirs() {
   for base in "$ROOT_DIR/skills" "$ROOT_DIR/private-skills"; do
     [[ -d "$base" ]] || continue
@@ -41,7 +47,7 @@ while IFS= read -r skill_dir; do
     strict_checked=$((strict_checked + 1))
     skill_file="$skill_dir/$local_entry"
     for section in "${required_sections[@]}"; do
-      if ! rg -q "^${section}$" "$skill_file"; then
+      if ! "${section_search[@]}" "^${section}$" "$skill_file"; then
         echo "[FAIL] $skill_file missing section: $section"
         failures=$((failures + 1))
       fi

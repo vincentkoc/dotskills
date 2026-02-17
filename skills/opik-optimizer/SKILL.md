@@ -128,13 +128,11 @@ result.display()
   - `apply_segment_updates(ChatPrompt, updates)` for deterministic edits.
 - Tool optimization is distinct from prompt optimization.
 
-Use the examples in `scripts/` as runnable references:
+Runnable examples live upstream in the Opik repo:
 
-- `scripts/optimize_user_only_example.py`
-- `scripts/prompt_customization_example.py`
-- `scripts/multimodal_example.py`
-- `scripts/validation_dataset.py`
-- `scripts/litellm_metaprompt_context7_remote_example.py`
+- https://github.com/comet-ml/opik/tree/main/sdks/opik_optimizer/src/opik_optimizer
+
+If you need local runnable scripts, vendor the upstream examples into a `scripts/` folder and keep references one level deep.
 
 ## Common mistakes to avoid
 
