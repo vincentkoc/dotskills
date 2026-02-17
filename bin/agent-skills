@@ -6,6 +6,7 @@ SKILLS_DIR="$ROOT_DIR/skills"
 VENDOR_DIR="$ROOT_DIR/vendor"
 CATALOG_FILE="$ROOT_DIR/catalog.yaml"
 ENTRY_FILES=("SKILL.md" "AGENT.md" "AGENTS.md")
+DEFAULT_SYNC_EXCLUDE=("example-skill")
 
 usage() {
   cat <<USAGE
@@ -136,6 +137,12 @@ sync_profile() {
 
   while IFS= read -r skill_path; do
     detect_entry_file "$skill_path" >/dev/null || continue
+    local skill_name
+    skill_name="$(basename "$skill_path")"
+    if [[ " ${DEFAULT_SYNC_EXCLUDE[*]} " == *" ${skill_name} "* ]]; then
+      echo "[skip] excluded from sync: $skill_path"
+      continue
+    fi
     link_or_copy_skill "$skill_path" "$target" "$mode" "$dry_run"
   done < <(list_skills)
 }

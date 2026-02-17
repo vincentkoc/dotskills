@@ -61,6 +61,8 @@ Override destinations with environment variables:
 CODEX_HOME="$HOME/.codex" CURSOR_SKILLS_DIR="$HOME/.cursor/skills" ./bin/agent-skills sync --profile codex,cursor
 ```
 
+By default, the template skill `example-skill` is excluded from sync.
+
 ## Skill authoring conventions
 
 Local first-party skills should include:
