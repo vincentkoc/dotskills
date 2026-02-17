@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm install -g @openclaw/cli
+          npm install -g openclaw/openclaw
           openclaw --version
 
       - name: Install public skills
@@ -65,7 +65,6 @@ jobs:
           base_url="https://github.com/${repo}/tree/${ref}"
           python3 - <<'PY' "$base_url"
           import json
-          import os
           import subprocess
           import sys
 
