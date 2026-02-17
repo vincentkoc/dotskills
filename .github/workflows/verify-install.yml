@@ -40,13 +40,12 @@ jobs:
           echo "CODEX_HOME=$mock_home/.codex" >> "$GITHUB_ENV"
           echo "CLAUDE_CODE_HOME=$mock_home/.claudecode" >> "$GITHUB_ENV"
           echo "OPENCLAW_HOME=$mock_home/.openclaw" >> "$GITHUB_ENV"
-
-      - name: Install OpenClaw CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install -g openclaw/openclaw
-          openclaw --version
+          echo "CURSOR_SKILLS_DIR=$mock_home/.cursor/skills" >> "$GITHUB_ENV"
+          mkdir -p \
+            "$mock_home/.codex/skills" \
+            "$mock_home/.claudecode/skills" \
+            "$mock_home/.openclaw/skills" \
+            "$mock_home/.cursor/skills"
 
       - name: Install public skills
         shell: bash
