@@ -7,7 +7,7 @@ skills:
     tags: [template, starter]
     version: 0.1.0
 
-  - id: anthropics-skill-creator
+  - id: anthropics-skill-creator-reference
     name: Anthropic Skill Creator (reference)
     path: vendor/anthropics/skill-creator
     source: upstream
@@ -15,4 +15,3 @@ skills:
       type: webpage
       url: https://skills.sh/anthropics/skills/skill-creator
     tags: [upstream, reference]
-

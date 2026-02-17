@@ -21,10 +21,11 @@ vendor/                     # Third-party or mirrored skills
   <source>/<skill-name>/
     SKILL.md
 bin/
-  agent-skills              # CLI for sync/list/validate
+  agent-skills              # CLI for sync/list/validate/import
 scripts/
   validate.sh               # Structural checks
 catalog.yaml                # Metadata catalog (source, version, tags)
+.pre-commit-config.yaml     # Local + CI hooks
 ```
 
 ## Quick start
@@ -39,6 +40,9 @@ catalog.yaml                # Metadata catalog (source, version, tags)
 
 # Real sync with symlinks (best for local dev)
 ./bin/agent-skills sync --profile codex,cursor --mode symlink
+
+# Dry-run import from an upstream skills repo
+./bin/agent-skills import --source anthropics --repo https://github.com/anthropics/skills.git --ref main --subdir skills --skills skill-creator --dry-run
 ```
 
 ## Targets and profiles
@@ -71,7 +75,19 @@ Use `./bin/agent-skills validate` to enforce these checks.
 
 Track upstream skills in `vendor/<source>/<skill-name>` and record provenance in `catalog.yaml`.
 
-Example entries:
+Import and pin upstream skill content:
+
+```bash
+./bin/agent-skills import --source anthropics --repo https://github.com/anthropics/skills.git --ref main --subdir skills --skills skill-creator
+```
+
+The import command:
+
+- clones the repo at a pinned ref
+- copies selected skills into `vendor/<source>/`
+- appends catalog metadata with pinned commit SHA (if id does not already exist)
+
+Example entries include:
 
 - Anthropic skills mirror
 - Links to external skill pages (for reference-only skills)
@@ -89,5 +105,13 @@ In your dotfiles bootstrap:
 ```bash
 make validate
 make sync
+make precommit-install
+make precommit-run
 ```
 
+## CI
+
+PR validation runs on GitHub Actions using `.github/workflows/validate.yml`:
+
+- `make validate`
+- `pre-commit run --all-files`

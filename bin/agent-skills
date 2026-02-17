@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS_DIR="$ROOT_DIR/skills"
 VENDOR_DIR="$ROOT_DIR/vendor"
+CATALOG_FILE="$ROOT_DIR/catalog.yaml"
 
 usage() {
   cat <<USAGE
@@ -11,6 +12,7 @@ Usage:
   agent-skills list
   agent-skills validate
   agent-skills sync [--profile codex,cursor] [--mode symlink|copy] [--dry-run]
+  agent-skills import --source <name> --repo <url> [--ref <git-ref>] [--subdir <path>] [--skills a,b] [--dry-run]
 
 Profiles:
   codex  -> \
@@ -33,7 +35,20 @@ list_skills() {
     find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -print | sort
   fi
   if [[ -d "$VENDOR_DIR" ]]; then
-    find "$VENDOR_DIR" -mindepth 2 -maxdepth 2 -type d -print | sort
+    find "$VENDOR_DIR" -type f -name SKILL.md -print | sed 's|/SKILL.md$||' | sort
+  fi
+}
+
+skill_dest_name() {
+  local src="$1"
+  if [[ "$src" == "$VENDOR_DIR"/*/* ]]; then
+    local rel="${src#"$VENDOR_DIR"/}"
+    local source_name="${rel%%/*}"
+    local skill_name="${rel#*/}"
+    skill_name="${skill_name%%/*}"
+    echo "${source_name}--${skill_name}"
+  else
+    basename "$src"
   fi
 }
 
@@ -43,7 +58,7 @@ link_or_copy_skill() {
   local mode="$3"
   local dry_run="$4"
   local name
-  name="$(basename "$src")"
+  name="$(skill_dest_name "$src")"
   local dest="$dest_root/$name"
 
   if [[ "$dry_run" == "true" ]]; then
@@ -82,6 +97,131 @@ sync_profile() {
     [[ -f "$skill_path/SKILL.md" ]] || continue
     link_or_copy_skill "$skill_path" "$target" "$mode" "$dry_run"
   done < <(list_skills)
+}
+
+catalog_has_id() {
+  local id="$1"
+  rg -q "^[[:space:]]*- id: ${id}$" "$CATALOG_FILE"
+}
+
+append_catalog_entry() {
+  local id="$1"
+  local name="$2"
+  local path="$3"
+  local repo="$4"
+  local ref="$5"
+  local commit="$6"
+
+  if catalog_has_id "$id"; then
+    echo "[catalog] id '$id' already exists, skipped"
+    return 0
+  fi
+
+  cat >> "$CATALOG_FILE" <<__CATALOG__
+
+  - id: $id
+    name: $name
+    path: $path
+    source: upstream
+    upstream:
+      type: git
+      repo: $repo
+      ref: $ref
+      commit: $commit
+    tags: [upstream, imported]
+__CATALOG__
+
+  echo "[catalog] added id '$id'"
+}
+
+import_repo_skills() {
+  local source_name="$1"
+  local repo="$2"
+  local ref="$3"
+  local subdir="$4"
+  local skills_csv="$5"
+  local dry_run="$6"
+
+  command -v git >/dev/null || {
+    echo "git is required for import" >&2
+    exit 1
+  }
+
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  trap "rm -rf '$tmp_dir'" EXIT
+
+  echo "Cloning $repo@$ref ..."
+  git clone --depth 1 --branch "$ref" "$repo" "$tmp_dir/repo" >/dev/null
+
+  local commit
+  commit="$(git -C "$tmp_dir/repo" rev-parse HEAD)"
+
+  local import_base="$tmp_dir/repo"
+  if [[ -n "$subdir" ]]; then
+    import_base="$import_base/$subdir"
+  fi
+
+  if [[ ! -d "$import_base" ]]; then
+    echo "Import base does not exist: $import_base" >&2
+    exit 1
+  fi
+
+  mapfile -t candidates < <(find "$import_base" -type f -name SKILL.md -print | sed 's|/SKILL.md$||' | sort)
+  if [[ "${#candidates[@]}" -eq 0 ]]; then
+    echo "No skills found under: $import_base" >&2
+    exit 1
+  fi
+
+  local selected=()
+  if [[ -n "$skills_csv" ]]; then
+    IFS=',' read -r -a wanted_skills <<< "$skills_csv"
+    for wanted in "${wanted_skills[@]}"; do
+      local matched=""
+      for candidate in "${candidates[@]}"; do
+        if [[ "$(basename "$candidate")" == "$wanted" ]]; then
+          matched="$candidate"
+          break
+        fi
+      done
+      if [[ -z "$matched" ]]; then
+        echo "Skill '$wanted' not found in repo import set" >&2
+        exit 1
+      fi
+      selected+=("$matched")
+    done
+  else
+    selected=("${candidates[@]}")
+  fi
+
+  local target_root="$VENDOR_DIR/$source_name"
+  mkdir -p "$target_root"
+
+  for src in "${selected[@]}"; do
+    local skill_name
+    skill_name="$(basename "$src")"
+    local target_dir="$target_root/$skill_name"
+    local catalog_id="${source_name}-${skill_name}"
+
+    if [[ "$dry_run" == "true" ]]; then
+      echo "[dry-run] import $src -> $target_dir"
+      echo "[dry-run] catalog id: $catalog_id"
+      continue
+    fi
+
+    rm -rf "$target_dir"
+    mkdir -p "$target_dir"
+    cp -R "$src"/. "$target_dir"
+    echo "imported $src -> $target_dir"
+
+    append_catalog_entry \
+      "$catalog_id" \
+      "$source_name/$skill_name" \
+      "vendor/$source_name/$skill_name" \
+      "$repo" \
+      "$ref" \
+      "$commit"
+  done
 }
 
 command="${1:-}"
@@ -130,6 +270,56 @@ case "$command" in
     for p in "${profile_arr[@]}"; do
       sync_profile "$p" "$mode" "$dry_run"
     done
+    ;;
+  import)
+    source_name=""
+    repo=""
+    ref="main"
+    subdir=""
+    skills_csv=""
+    dry_run="false"
+
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --source)
+          source_name="${2:-}"
+          shift 2
+          ;;
+        --repo)
+          repo="${2:-}"
+          shift 2
+          ;;
+        --ref)
+          ref="${2:-}"
+          shift 2
+          ;;
+        --subdir)
+          subdir="${2:-}"
+          shift 2
+          ;;
+        --skills)
+          skills_csv="${2:-}"
+          shift 2
+          ;;
+        --dry-run)
+          dry_run="true"
+          shift
+          ;;
+        *)
+          echo "Unknown option: $1" >&2
+          usage
+          exit 1
+          ;;
+      esac
+    done
+
+    if [[ -z "$source_name" || -z "$repo" ]]; then
+      echo "import requires --source and --repo" >&2
+      usage
+      exit 1
+    fi
+
+    import_repo_skills "$source_name" "$repo" "$ref" "$subdir" "$skills_csv" "$dry_run"
     ;;
   *)
     usage

@@ -32,4 +32,3 @@ Provide a template for creating consistent, reusable skills.
 - Keep instructions concrete and testable.
 - Avoid unnecessary context loading.
 - Prefer deterministic commands over manual steps.
-
