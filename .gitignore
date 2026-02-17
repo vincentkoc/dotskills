@@ -137,3 +137,7 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Private local-only skills (keep folder scaffolded)
+private-skills/*
+!private-skills/.gitkeep
