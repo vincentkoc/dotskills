@@ -61,6 +61,11 @@ skills/                      # First-party skills
     SKILL.md|AGENT.md|AGENTS.md
     references/
     scripts/
+private-skills/              # Private/local-only skills (not published)
+  <skill-name>/
+    SKILL.md|AGENT.md|AGENTS.md
+    references/
+    scripts/
 vendor/                      # Third-party mirrored/imported skills
 .assets/                     # Shared visual assets (banner/icon)
 bin/agent-skills             # List/validate/sync/import
