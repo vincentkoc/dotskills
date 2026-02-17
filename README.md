@@ -12,6 +12,8 @@
 
 We are moving from "prompt as text" to **skill as runtime module**. Each skill acts like a lightweight, containerized application for AI work: a stable interface, opinionated workflow, and bundled resources that can be installed, versioned, tested, and reused across projects.
 
+## How this repo works
+
 This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent-first tooling. `.skills` is the dotfiles mindset applied to AI execution: instead of one-off prompts, this repo stores reusable skill units that bundle:
 
 - prompt logic (`SKILL.md` / `AGENT.md` / `AGENTS.md`)
