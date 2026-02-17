@@ -2,7 +2,7 @@
 
   ![.skills banner](.assets/banner.jpg)
 
-# dotskills (.skills)
+# .skills (dotskills)
 
 [![CI](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/validate.yml?event=pull_request&label=CI)](https://github.com/vincentkoc/dotskills/actions/workflows/validate.yml)
 [![Release](https://img.shields.io/github/actions/workflow/status/vincentkoc/dotskills/release.yml?label=Release)](https://github.com/vincentkoc/dotskills/actions/workflows/release.yml)
