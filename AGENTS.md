@@ -1,13 +1,9 @@
 # AGENTS.md
 
-- allways read CONTRIBUTING.md when contributing to a repository including third-party and thier isssue and PR templates to ensure you match the style, link issues like "Fixes: xxx" if you have an issue link
-- utilize gh (github) cli for things like PRs, opt for draft prs first and review
-- prefer using worktrees and sub-agents to speed up work
-- when contributing to external repos try to at least run unittests and formatters to ensure it all matches up
-
 ## Repository Purpose
 
-This repository contains Codex skills and supporting references. Changes are scoped to skill definitions and lightweight workflow artifacts.
+This repository contains Codex, OpenClaw and other agentic AI skills and supporting references. Changes are scoped to skill definitions and lightweight workflow artifacts.
+Skills are managed using vercel-labs/agent-skills (skills.sh/docs).
 
 ## Mandatory Contribution Flow
 
