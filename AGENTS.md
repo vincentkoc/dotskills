@@ -33,6 +33,16 @@ openai_yaml_defaults:
     brand_color: "#111827"
 ```
 
+## New/Updated Skills Checklist
+
+- Update `SKILL.md` to keep required sections and concise workflow guidance.
+- Add or update `references/`, `scripts/`, and `assets/` only when needed for reuse.
+- Public skills must include `agents/openai.yaml` with required interface fields and the defaults above.
+- Store per-skill icons in `skills/<skill>/assets/icon.jpg` and reference them via `./assets/icon.jpg`.
+- If a public skill is added or renamed, update `README.md` public skills and install list.
+- If a public skill is added or renamed, update `catalog.yaml` entry.
+- Regenerate published indexes when public skills change: `make marketplace` and `make releases-index`.
+
 ## PR/Issue Hygiene
 
 - Include issue references when available (for example `Fixes: 123`).
