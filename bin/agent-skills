@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS_DIR="$ROOT_DIR/skills"
+PRIVATE_SKILLS_DIR="$ROOT_DIR/private-skills"
 VENDOR_DIR="$ROOT_DIR/vendor"
 CATALOG_FILE="$ROOT_DIR/catalog.yaml"
 ENTRY_FILES=("SKILL.md" "AGENT.md" "AGENTS.md")
@@ -70,13 +71,14 @@ find_skill_dirs_under() {
 }
 
 list_skills() {
-  if [[ -d "$SKILLS_DIR" ]]; then
+  for base in "$SKILLS_DIR" "$PRIVATE_SKILLS_DIR"; do
+    [[ -d "$base" ]] || continue
     while IFS= read -r dir; do
       if detect_entry_file "$dir" >/dev/null; then
         echo "$dir"
       fi
-    done < <(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -print | sort)
-  fi
+    done < <(find "$base" -mindepth 1 -maxdepth 1 -type d -print | sort)
+  done
 
   find_skill_dirs_under "$VENDOR_DIR"
 }

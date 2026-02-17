@@ -9,6 +9,13 @@ checked=0
 strict_checked=0
 flex_checked=0
 
+local_skill_dirs() {
+  for base in "$ROOT_DIR/skills" "$ROOT_DIR/private-skills"; do
+    [[ -d "$base" ]] || continue
+    find "$base" -mindepth 1 -maxdepth 1 -type d -print
+  done | sort
+}
+
 entry_file_for_dir() {
   local dir="$1"
   for entry in SKILL.md AGENT.md AGENTS.md; do
@@ -46,7 +53,7 @@ while IFS= read -r skill_dir; do
       failures=$((failures + 1))
     fi
   fi
-done < <(find "$ROOT_DIR/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+done < <(local_skill_dirs)
 
 while IFS= read -r entry_file; do
   checked=$((checked + 1))
@@ -59,7 +66,7 @@ while IFS= read -r entry_file; do
 done < <(find "$ROOT_DIR/vendor" -type f \( -name SKILL.md -o -name AGENT.md -o -name AGENTS.md \) 2>/dev/null | sort)
 
 if [[ $checked -eq 0 ]]; then
-  echo "[WARN] No skill entry files found under skills/ or vendor/."
+  echo "[WARN] No skill entry files found under skills/, private-skills/, or vendor/."
 fi
 
 if [[ $failures -gt 0 ]]; then
