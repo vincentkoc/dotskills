@@ -23,9 +23,11 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 
 ## Public skills
 
-- `technical-deslop` — behavior-preserving cleanup of AI-style code noise.
-- `technical-documentation` — brownfield + evergreen docs build/review workflows.
-- `technical-integrations` — vendor/framework-agnostic API, RFC, SDK, and integration planning.
+| Skill | What it does | Install |
+|---|---|---|
+| `technical-deslop` | Behavior-preserving cleanup of AI-style code noise. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
+| `technical-documentation` | Brownfield + evergreen docs build/review workflows. | `npx skills add vincentkoc/dotskills --skill technical-documentation -y` |
+| `technical-integrations` | Vendor/framework-agnostic API, RFC, SDK, and integration planning. | `npx skills add vincentkoc/dotskills --skill technical-integrations -y` |
 
 Internal/private workflow skills can live in this repo and are marked in the metadata as `internal: true` and excluded from public marketplace/release artifacts.
 
