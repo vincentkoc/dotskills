@@ -28,8 +28,8 @@ Default values for `agents/openai.yaml` in public skills:
 ```yaml
 openai_yaml_defaults:
   interface:
-    icon_small: "../../.assets/icon.jpg"
-    icon_large: "../../.assets/icon.jpg"
+    icon_small: "./assets/icon.jpg"
+    icon_large: "./assets/icon.jpg"
     brand_color: "#111827"
 ```
 

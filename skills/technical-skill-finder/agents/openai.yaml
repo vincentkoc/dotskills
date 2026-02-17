@@ -1,8 +1,8 @@
 interface:
   display_name: "Technical Skill Finder"
   short_description: "Mine agent logs to identify high-value skill creation and update opportunities."
-  icon_small: "../../.assets/icon.jpg"
-  icon_large: "../../.assets/icon.jpg"
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
   brand_color: "#111827"
   default_prompt: "Analyze coding-agent logs and rank the highest-value skill opportunities with evidence and recommended next actions."
 

@@ -1,8 +1,8 @@
 interface:
   display_name: "Technical Deslop"
   short_description: "Behavior-preserving cleanup of AI-style code noise."
-  icon_small: "../../.assets/icon.jpg"
-  icon_large: "../../.assets/icon.jpg"
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
   brand_color: "#111827"
   default_prompt: "Clean this diff to remove AI-style slop while preserving behavior and repository style."
 

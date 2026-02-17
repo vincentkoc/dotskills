@@ -26,6 +26,7 @@ Provide a spec-aligned template for creating consistent, reusable skills.
 4. Load deeper context only when needed:
    - `references/REFERENCE.md`
    - `assets/output-template.md`
+   - `agents/openai.yaml`
 5. Return output in a stable format.
 6. Use `scripts/example-check.sh` for a deterministic preflight check.
 

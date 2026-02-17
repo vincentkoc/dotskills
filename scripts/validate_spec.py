@@ -15,11 +15,6 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
-try:
-    import yaml
-except Exception:  # pragma: no cover
-    yaml = None
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 LOCAL_SKILL_ROOTS = [ROOT_DIR / "skills", ROOT_DIR / "private-skills"]
 SECTION_ROOTS = ("references", "scripts", "assets")
@@ -243,20 +238,55 @@ def validate_public_skill_policy(
         )
 
 
-def parse_yaml_mapping(payload: str, context: str, errors: List[str]) -> Dict[str, object]:
-    if yaml is None:
-        errors.append(f"{context}: PyYAML is required for metadata validation")
-        return {}
+def parse_scalar(value: str) -> object:
+    value = strip_quotes(value.strip())
+    if value.lower() == "true":
+        return True
+    if value.lower() == "false":
+        return False
+    return value
 
-    try:
-        data = yaml.safe_load(payload) or {}
-    except Exception as exc:  # pragma: no cover
-        errors.append(f"{context}: invalid YAML ({exc})")
-        return {}
 
-    if not isinstance(data, dict):
-        errors.append(f"{context}: expected a YAML mapping at top level")
-        return {}
+def parse_simple_yaml_mapping(payload: str, context: str, errors: List[str]) -> Dict[str, object]:
+    data: Dict[str, object] = {}
+    stack: list[tuple[int, Dict[str, object]]] = [(0, data)]
+
+    for raw_line in payload.splitlines():
+        line = raw_line.rstrip()
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+
+        indent = len(line) - len(line.lstrip(" "))
+        if indent % 2 != 0:
+            errors.append(f"{context}: unsupported indentation level: {line}")
+            continue
+
+        while indent < stack[-1][0]:
+            stack.pop()
+
+        if indent > stack[-1][0] and indent != stack[-1][0] + 2:
+            errors.append(f"{context}: unsupported indentation level: {line}")
+            continue
+
+        target = stack[-1][1]
+        if ":" not in line:
+            errors.append(f"{context}: invalid line (expected key: value): {line}")
+            continue
+
+        key, value = line.strip().split(":", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            errors.append(f"{context}: empty key in line: {line}")
+            continue
+
+        if value == "":
+            new_map: Dict[str, object] = {}
+            target[key] = new_map
+            stack.append((indent + 2, new_map))
+        else:
+            target[key] = parse_scalar(value)
+
     return data
 
 
@@ -285,7 +315,7 @@ def parse_openai_defaults_from_agents(errors: List[str]) -> Dict[str, str]:
         )
         return {}
 
-    defaults_payload = parse_yaml_mapping(
+    defaults_payload = parse_simple_yaml_mapping(
         block_match.group(1), f"{AGENTS_DOC_FILE} openai defaults", errors
     )
     openai_defaults = defaults_payload.get("openai_yaml_defaults")
@@ -357,7 +387,7 @@ def validate_public_skill_openai_metadata(
         return
 
     payload = openai_path.read_text(encoding="utf-8", errors="replace")
-    openai_data = parse_yaml_mapping(payload, str(openai_path), errors)
+    openai_data = parse_simple_yaml_mapping(payload, str(openai_path), errors)
     if not openai_data:
         return
 
