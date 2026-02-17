@@ -9,10 +9,22 @@
   },
   "plugins": [
     {
+      "name": "deslop",
+      "source": "./skills/deslop",
+      "skills": "./",
+      "description": "Clean branch/staged diffs by removing AI-style slop and restoring repo-consistent style without changing behavior."
+    },
+    {
       "name": "example-skill",
       "source": "./skills/example-skill",
       "skills": "./",
       "description": "Provide a template for creating consistent, reusable skills."
+    },
+    {
+      "name": "technical-documentation",
+      "source": "./skills/technical-documentation",
+      "skills": "./",
+      "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents."
     },
     {
       "name": "anthropics--skill-creator",

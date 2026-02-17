@@ -26,3 +26,17 @@ skills:
       ref: main
       commit: 1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563
     tags: [upstream, imported]
+
+  - id: deslop
+    name: Deslop
+    path: skills/deslop
+    source: local
+    tags: [quality, cleanup, style]
+    version: 0.1.0
+
+  - id: technical-documentation
+    name: Technical Documentation
+    path: skills/technical-documentation
+    source: local
+    tags: [docs, writing, review, evergreen, brownfield]
+    version: 0.1.0
