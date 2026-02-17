@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SKILLS_DIR="$ROOT_DIR/skills"
+VENDOR_DIR="$ROOT_DIR/vendor"
+
+usage() {
+  cat <<USAGE
+Usage:
+  agent-skills list
+  agent-skills validate
+  agent-skills sync [--profile codex,cursor] [--mode symlink|copy] [--dry-run]
+
+Profiles:
+  codex  -> \
+    \\${CODEX_HOME:-$HOME/.codex}/skills
+  cursor -> \
+    \\${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}
+USAGE
+}
+
+codex_target() {
+  echo "${CODEX_HOME:-$HOME/.codex}/skills"
+}
+
+cursor_target() {
+  echo "${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}"
+}
+
+list_skills() {
+  if [[ -d "$SKILLS_DIR" ]]; then
+    find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -print | sort
+  fi
+  if [[ -d "$VENDOR_DIR" ]]; then
+    find "$VENDOR_DIR" -mindepth 2 -maxdepth 2 -type d -print | sort
+  fi
+}
+
+link_or_copy_skill() {
+  local src="$1"
+  local dest_root="$2"
+  local mode="$3"
+  local dry_run="$4"
+  local name
+  name="$(basename "$src")"
+  local dest="$dest_root/$name"
+
+  if [[ "$dry_run" == "true" ]]; then
+    echo "[dry-run] $mode $src -> $dest"
+    return 0
+  fi
+
+  mkdir -p "$dest_root"
+  rm -rf "$dest"
+
+  if [[ "$mode" == "symlink" ]]; then
+    ln -s "$src" "$dest"
+  else
+    cp -R "$src" "$dest"
+  fi
+
+  echo "$mode $src -> $dest"
+}
+
+sync_profile() {
+  local profile="$1"
+  local mode="$2"
+  local dry_run="$3"
+  local target
+
+  case "$profile" in
+    codex) target="$(codex_target)" ;;
+    cursor) target="$(cursor_target)" ;;
+    *)
+      echo "Unknown profile: $profile" >&2
+      return 1
+      ;;
+  esac
+
+  while IFS= read -r skill_path; do
+    [[ -f "$skill_path/SKILL.md" ]] || continue
+    link_or_copy_skill "$skill_path" "$target" "$mode" "$dry_run"
+  done < <(list_skills)
+}
+
+command="${1:-}"
+shift || true
+
+case "$command" in
+  list)
+    list_skills
+    ;;
+  validate)
+    "$ROOT_DIR/scripts/validate.sh"
+    ;;
+  sync)
+    profiles="codex"
+    mode="symlink"
+    dry_run="false"
+
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --profile)
+          profiles="${2:-}"
+          shift 2
+          ;;
+        --mode)
+          mode="${2:-}"
+          shift 2
+          ;;
+        --dry-run)
+          dry_run="true"
+          shift
+          ;;
+        *)
+          echo "Unknown option: $1" >&2
+          usage
+          exit 1
+          ;;
+      esac
+    done
+
+    if [[ "$mode" != "symlink" && "$mode" != "copy" ]]; then
+      echo "Invalid mode: $mode (expected symlink|copy)" >&2
+      exit 1
+    fi
+
+    IFS=',' read -r -a profile_arr <<< "$profiles"
+    for p in "${profile_arr[@]}"; do
+      sync_profile "$p" "$mode" "$dry_run"
+    done
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac

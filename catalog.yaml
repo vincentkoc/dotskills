@@ -1,0 +1,18 @@
+version: 1
+skills:
+  - id: example-skill
+    name: Example Skill
+    path: skills/example-skill
+    source: local
+    tags: [template, starter]
+    version: 0.1.0
+
+  - id: anthropics-skill-creator
+    name: Anthropic Skill Creator (reference)
+    path: vendor/anthropics/skill-creator
+    source: upstream
+    upstream:
+      type: webpage
+      url: https://skills.sh/anthropics/skills/skill-creator
+    tags: [upstream, reference]
+
