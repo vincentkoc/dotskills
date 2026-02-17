@@ -1,0 +1,24 @@
+{
+  "name": "vincentkoc-skills",
+  "owner": {
+    "name": "vincentkoc"
+  },
+  "metadata": {
+    "description": "Personal agent skills marketplace for local and vendored skills.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "example-skill",
+      "source": "./skills/example-skill",
+      "skills": "./",
+      "description": "Provide a template for creating consistent, reusable skills."
+    },
+    {
+      "name": "anthropics--skill-creator",
+      "source": "./vendor/anthropics/skill-creator",
+      "skills": "./",
+      "description": "This skill provides guidance for creating effective skills."
+    }
+  ]
+}

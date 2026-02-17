@@ -24,8 +24,11 @@ bin/
   agent-skills              # CLI for sync/list/validate/import
 scripts/
   validate.sh               # Structural checks
+  generate_marketplace.sh   # Build Claude marketplace manifest
 catalog.yaml                # Metadata catalog (source, version, tags)
 .pre-commit-config.yaml     # Local + CI hooks
+.claude-plugin/
+  marketplace.json          # Claude plugin marketplace manifest
 ```
 
 ## Quick start
@@ -109,7 +112,20 @@ make validate
 make sync
 make precommit-install
 make precommit-run
+make marketplace
 ```
+
+## Claude Marketplace
+
+Generate a marketplace manifest compatible with `.claude-plugin/marketplace.json` layouts:
+
+```bash
+make marketplace
+```
+
+This scans local and vendor skills and writes:
+
+- `/Users/vincentkoc/GIT/_Perso/agent-skills/.claude-plugin/marketplace.json`
 
 ## CI
 

@@ -1,4 +1,4 @@
-.PHONY: list validate sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry
+.PHONY: list validate sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry marketplace
 
 list:
 	./bin/agent-skills list
@@ -26,3 +26,6 @@ import-anthropic-dry:
 
 import-huggingface-dry:
 	./bin/agent-skills import --source huggingface --repo https://github.com/huggingface/skills.git --ref main --dry-run
+
+marketplace:
+	./scripts/generate_marketplace.sh
