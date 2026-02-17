@@ -21,6 +21,18 @@ Skills are managed using vercel-labs/agent-skills (skills.sh/docs).
 - Public skills under `skills/` must include `license: AGPL-3.0-only` and `metadata.source: https://github.com/vincentkoc/dotskills`.
 - Validators must enforce public-skill license and source metadata.
 
+## OpenAI Metadata Defaults
+
+Default values for `agents/openai.yaml` in public skills:
+
+```yaml
+openai_yaml_defaults:
+  interface:
+    icon_small: "../../.assets/icon.jpg"
+    icon_large: "../../.assets/icon.jpg"
+    brand_color: "#111827"
+```
+
 ## PR/Issue Hygiene
 
 - Include issue references when available (for example `Fixes: 123`).

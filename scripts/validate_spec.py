@@ -15,6 +15,11 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
+try:
+    import yaml
+except Exception:  # pragma: no cover
+    yaml = None
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
 LOCAL_SKILL_ROOTS = [ROOT_DIR / "skills", ROOT_DIR / "private-skills"]
 SECTION_ROOTS = ("references", "scripts", "assets")
@@ -22,6 +27,15 @@ PUBLIC_SKILLS_ROOT = ROOT_DIR / "skills"
 PUBLIC_SKILL_LICENSE = "AGPL-3.0-only"
 PUBLIC_SKILL_SOURCE = "https://github.com/vincentkoc/dotskills"
 REPO_LICENSE_FILE = ROOT_DIR / "LICENSE"
+AGENTS_DOC_FILE = ROOT_DIR / "AGENTS.md"
+PUBLIC_OPENAI_YAML_FILE = Path("agents/openai.yaml")
+PUBLIC_OPENAI_REQUIRED_INTERFACE_FIELDS = (
+    "display_name",
+    "short_description",
+    "default_prompt",
+    "icon_small",
+    "icon_large",
+)
 
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 TOP_KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):\s*(.*)$")
@@ -229,6 +243,168 @@ def validate_public_skill_policy(
         )
 
 
+def parse_yaml_mapping(payload: str, context: str, errors: List[str]) -> Dict[str, object]:
+    if yaml is None:
+        errors.append(f"{context}: PyYAML is required for metadata validation")
+        return {}
+
+    try:
+        data = yaml.safe_load(payload) or {}
+    except Exception as exc:  # pragma: no cover
+        errors.append(f"{context}: invalid YAML ({exc})")
+        return {}
+
+    if not isinstance(data, dict):
+        errors.append(f"{context}: expected a YAML mapping at top level")
+        return {}
+    return data
+
+
+def parse_openai_defaults_from_agents(errors: List[str]) -> Dict[str, str]:
+    if not AGENTS_DOC_FILE.is_file():
+        errors.append(f"{AGENTS_DOC_FILE}: missing AGENTS.md for openai defaults")
+        return {}
+
+    text = AGENTS_DOC_FILE.read_text(encoding="utf-8", errors="replace")
+    section_match = re.search(
+        r"^## OpenAI Metadata Defaults\s*$([\s\S]*?)(?=^##\s+|\Z)",
+        text,
+        flags=re.MULTILINE,
+    )
+    if not section_match:
+        errors.append(
+            f"{AGENTS_DOC_FILE}: missing '## OpenAI Metadata Defaults' section"
+        )
+        return {}
+
+    section_text = section_match.group(1)
+    block_match = re.search(r"```yaml\s*([\s\S]*?)\s*```", section_text)
+    if not block_match:
+        errors.append(
+            f"{AGENTS_DOC_FILE}: OpenAI defaults section must include a ```yaml fenced block"
+        )
+        return {}
+
+    defaults_payload = parse_yaml_mapping(
+        block_match.group(1), f"{AGENTS_DOC_FILE} openai defaults", errors
+    )
+    openai_defaults = defaults_payload.get("openai_yaml_defaults")
+    if not isinstance(openai_defaults, dict):
+        errors.append(
+            f"{AGENTS_DOC_FILE}: defaults block must define openai_yaml_defaults mapping"
+        )
+        return {}
+
+    interface_defaults = openai_defaults.get("interface")
+    if not isinstance(interface_defaults, dict):
+        errors.append(
+            f"{AGENTS_DOC_FILE}: openai_yaml_defaults must include interface mapping"
+        )
+        return {}
+
+    parsed_defaults: Dict[str, str] = {}
+    for key, value in interface_defaults.items():
+        key_s = str(key).strip()
+        value_s = str(value).strip()
+        if not key_s:
+            errors.append(f"{AGENTS_DOC_FILE}: empty interface default key")
+            continue
+        if not value_s:
+            errors.append(
+                f"{AGENTS_DOC_FILE}: openai interface default '{key_s}' must be non-empty"
+            )
+            continue
+        parsed_defaults[key_s] = value_s
+
+    for required_key in ("icon_small", "icon_large"):
+        if required_key not in parsed_defaults:
+            errors.append(
+                f"{AGENTS_DOC_FILE}: openai interface default '{required_key}' is required"
+            )
+
+    return parsed_defaults
+
+
+def validate_openai_icon_path(
+    skill_dir: Path, openai_path: Path, field_name: str, value: str, errors: List[str]
+) -> None:
+    if value.startswith(("http://", "https://", "data:")):
+        return
+
+    target = (skill_dir / value).resolve()
+    if not target.exists():
+        errors.append(
+            f"{openai_path}: interface.{field_name} path not found from skill root: '{value}'"
+        )
+
+
+def validate_public_skill_openai_metadata(
+    skill_dir: Path,
+    skill_file: Path,
+    front: Dict[str, object],
+    openai_defaults: Dict[str, str],
+    errors: List[str],
+    warnings: List[str],
+) -> None:
+    if not is_public_skill(skill_dir, front):
+        return
+
+    openai_path = skill_dir / PUBLIC_OPENAI_YAML_FILE
+    if not openai_path.is_file():
+        errors.append(
+            f"{skill_file}: public skill must include {PUBLIC_OPENAI_YAML_FILE.as_posix()}"
+        )
+        return
+
+    payload = openai_path.read_text(encoding="utf-8", errors="replace")
+    openai_data = parse_yaml_mapping(payload, str(openai_path), errors)
+    if not openai_data:
+        return
+
+    interface = openai_data.get("interface")
+    if not isinstance(interface, dict):
+        # Backward compatibility for legacy top-level fields.
+        legacy_fields = {
+            key: openai_data.get(key)
+            for key in PUBLIC_OPENAI_REQUIRED_INTERFACE_FIELDS
+            if key in openai_data
+        }
+        if legacy_fields:
+            warnings.append(
+                f"{openai_path}: legacy top-level interface fields detected; nest them under 'interface'"
+            )
+            interface = legacy_fields
+        else:
+            errors.append(f"{openai_path}: missing required top-level mapping 'interface'")
+            return
+
+    for field in PUBLIC_OPENAI_REQUIRED_INTERFACE_FIELDS:
+        value = str(interface.get(field, "")).strip()
+        if not value:
+            errors.append(f"{openai_path}: interface.{field} is required for public skills")
+
+    for key, expected_value in openai_defaults.items():
+        actual_value = str(interface.get(key, "")).strip()
+        if actual_value != expected_value:
+            errors.append(
+                f"{openai_path}: interface.{key} must match AGENTS.md default '{expected_value}'"
+            )
+
+    for icon_field in ("icon_small", "icon_large"):
+        value = str(interface.get(icon_field, "")).strip()
+        if value:
+            validate_openai_icon_path(skill_dir, openai_path, icon_field, value, errors)
+
+    policy = openai_data.get("policy")
+    if policy is not None:
+        if not isinstance(policy, dict):
+            errors.append(f"{openai_path}: policy must be a mapping when provided")
+        elif "allow_implicit_invocation" in policy and not isinstance(
+            policy.get("allow_implicit_invocation"), bool
+        ):
+            errors.append(f"{openai_path}: policy.allow_implicit_invocation must be boolean")
+
+
 def normalize_ref(raw_ref: str) -> str:
     ref = raw_ref.strip().strip("`'\"")
     ref = ref.split("#", 1)[0]
@@ -313,6 +489,7 @@ def main() -> int:
     warnings: List[str] = []
     validated = 0
     validate_repo_license(errors)
+    openai_defaults = parse_openai_defaults_from_agents(errors)
 
     for skill_dir in skill_dirs:
         skill_file = skill_dir / "SKILL.md"
@@ -327,6 +504,9 @@ def main() -> int:
         validate_description(skill_file, front, errors)
         validate_optional_frontmatter(skill_file, front, errors, warnings)
         validate_public_skill_policy(skill_dir, skill_file, front, errors)
+        validate_public_skill_openai_metadata(
+            skill_dir, skill_file, front, openai_defaults, errors, warnings
+        )
         validate_body(skill_file, body, errors, warnings)
         validate_refs(skill_dir, skill_file, body, errors, warnings)
         validated += 1

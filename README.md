@@ -1,6 +1,6 @@
 <div align="center">
 
-  ![.skills banner](banner.jpg)
+  ![.skills banner](.assets/banner.jpg)
 
 # dotskills (.skills)
 
@@ -60,6 +60,7 @@ skills/                      # First-party skills
     references/
     scripts/
 vendor/                      # Third-party mirrored/imported skills
+.assets/                     # Shared visual assets (banner/icon)
 bin/agent-skills             # List/validate/sync/import
 scripts/                     # Validation + publishing automation
 catalog.yaml                 # Skill metadata catalog
@@ -73,6 +74,7 @@ releases/skills.json
 
 1. repo policy checks (`Purpose/When to use/Workflow/Inputs/Outputs`, entry-file checks)
 2. AgentSkills spec checks for local `SKILL.md` skills (`name`/`description` constraints, frontmatter validity, relative resource references, one-level reference depth)
+3. public skill OpenAI metadata checks (`agents/openai.yaml`, required interface fields, default icons/brand from `AGENTS.md`, and icon path existence)
 
 If installed, the external reference validator is also used:
 

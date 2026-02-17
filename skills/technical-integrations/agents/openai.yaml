@@ -1,0 +1,10 @@
+interface:
+  display_name: "Technical Integrations"
+  short_description: "Design and review vendor-agnostic API, SDK, and integration plans."
+  icon_small: "../../.assets/icon.jpg"
+  icon_large: "../../.assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Design a vendor-agnostic integration plan using existing patterns, explicit tradeoffs, and rollout safeguards."
+
+policy:
+  allow_implicit_invocation: true
