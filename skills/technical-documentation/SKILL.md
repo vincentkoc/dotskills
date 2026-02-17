@@ -18,11 +18,13 @@ Produce and review technical documentation that is clear, actionable, and mainta
 ## Workflow
 
 1. Classify task: `build` or `review`; context: `brownfield` or `evergreen`.
-2. For build tasks, follow `references/build.md`.
-3. For review tasks, follow `references/review.md`.
-4. In brownfield mode, prioritize compatibility with current docs IA, tooling, and release state.
-5. In evergreen mode, prioritize timeless wording, update strategy, and durable structure.
-6. Return deliverables plus validation notes and remaining gaps.
+2. Read `references/principles.md` for the governing ruleset (Matt Palmer + OpenAI).
+3. For build tasks, follow `references/build.md`.
+4. For review tasks, follow `references/review.md`.
+5. Use `references/tooling.md` when platform/tooling choices affect recommendations.
+6. In brownfield mode, prioritize compatibility with current docs IA, tooling, and release state.
+7. In evergreen mode, prioritize timeless wording, update strategy, and durable structure.
+8. Return deliverables plus validation notes and remaining gaps.
 
 ## Inputs
 

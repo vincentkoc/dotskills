@@ -1,36 +1,51 @@
 # Review Docs Playbook
 
+Read `principles.md` first, then apply this checklist.
+
 ## 1. Scope and classification
 
 - Identify doc type and target audience.
-- Confirm whether this is brownfield or evergreen intent.
+- Confirm brownfield vs evergreen intent.
+- Confirm expected outcome for the reader.
 
 ## 2. Structural review
 
-- Check funnel: what/why, quick start, next steps.
-- Confirm headings and navigation are coherent.
-- Flag critical info hidden in images or unreachable sections.
+- Funnel check: what/why, quickstart, next steps.
+- Validate heading flow and navigation discoverability.
+- Flag critical content trapped in images or buried sections.
+- Check Diataxis alignment and split mixed-purpose sections.
 
-## 3. Writing quality
+## 3. Writing quality review
 
-- Ensure concise, scannable paragraphs and precise terms.
-- Remove ambiguous pronouns and vague language.
-- Verify tone is directive and technically accurate.
+- Check for concise, scannable paragraphs.
+- Remove ambiguous pronouns and undefined terms.
+- Verify examples are executable and scoped correctly.
+- Verify tone is directive, technical, and non-hand-wavy.
 
 ## 4. Brownfield review mode
 
-- Check compatibility with existing docs style and IA.
-- Verify links/anchors and cross-doc references remain valid.
-- Flag regressions in current onboarding flows.
+- Verify compatibility with existing docs IA and conventions.
+- Verify anchors, redirects, and cross-doc links remain valid.
+- Flag regressions in onboarding and task completion paths.
+- Ensure changed terminology is intentionally propagated.
 
 ## 5. Evergreen review mode
 
-- Flag time-sensitive or brittle statements.
-- Ensure maintainability cues exist (versioning, update triggers).
-- Confirm recommendations remain valid beyond current release.
+- Flag date-stamped or brittle wording without version scope.
+- Check ownership and refresh signals are present.
+- Ensure recommendations remain valid after routine product evolution.
+- Flag missing deprecation/migration guidance.
 
-## 6. Output format
+## 6. Tooling and platform review
+
+Read `tooling.md` if platform fit is uncertain.
+
+- Check whether content uses platform primitives effectively.
+- Flag structure that fights the chosen docs platform.
+- Recommend targeted platform-aware improvements.
+
+## 7. Output format
 
 1. Blocking issues (file + required fix)
 2. Non-blocking improvements
-3. Validation notes and unresolved checks
+3. Validation notes (done vs pending)
