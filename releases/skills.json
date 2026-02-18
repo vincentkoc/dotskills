@@ -10,7 +10,7 @@
     {
       "name": "technical-documentation",
       "source": "./skills/technical-documentation",
-      "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents.",
+      "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents, including contributor-governance files and agent instruction files.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-documentation -y"
     },
     {

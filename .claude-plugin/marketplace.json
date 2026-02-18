@@ -18,7 +18,7 @@
       "name": "technical-documentation",
       "source": "./skills/technical-documentation",
       "skills": "./",
-      "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents."
+      "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents, including contributor-governance files and agent instruction files."
     },
     {
       "name": "technical-integrations",

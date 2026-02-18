@@ -38,3 +38,5 @@ When these rules conflict:
 2. Preserve structural clarity second.
 3. Preserve long-term maintainability third.
 4. Add agent optimization only if it does not reduce human clarity.
+
+For agent-instructions and contributor-governance specifics (AGENTS/aliases/CONTRIBUTING), use `references/agent-and-contributing.md` as the detailed additional source of truth.
