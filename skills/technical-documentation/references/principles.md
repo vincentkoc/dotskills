@@ -40,3 +40,9 @@ When these rules conflict:
 4. Add agent optimization only if it does not reduce human clarity.
 
 For agent-instructions and contributor-governance specifics (AGENTS/aliases/CONTRIBUTING), use `references/agent-and-contributing.md` as the detailed additional source of truth.
+
+## Execution policy for this skill
+
+- Long-running and extensive investigations are allowed for both build and review work when needed to resolve ambiguity or cross-file drift.
+- Use sub-agents when available for bounded parallel discovery, verification, or cross-source comparison.
+- Keep one merged outcome: sub-agent outputs must be normalized into a single consistent recommendation/fix set.

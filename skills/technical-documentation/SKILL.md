@@ -20,6 +20,7 @@ Produce and review technical documentation that is clear, actionable, and mainta
 - Updating or reviewing AGENTS.md and/or CONTRIBUTING.md to keep agent and contributor workflows aligned with current repo practices.
 - Improving repository onboarding/docs that include contribution instructions, issue templates, PR flow, and review gates.
 - Designing governance documentation strategy for repos with alias instruction files (for example `CLAUDE.md`, `AGENT.md`, `.cursorrules`, `.cursor/rules/*`, `.agent/`, `.agents/`, `.pi/`) where `CLAUDE.md` is treated as a canonical policy source and `AGENTS.md` should be kept as compatibility alias if present.
+- Diagnosing agent-file drift where teams had to prompt iteratively to surface missing files, broken commands, or policy conflicts.
 
 ## Workflow
 
@@ -27,11 +28,14 @@ Produce and review technical documentation that is clear, actionable, and mainta
 2. Read `references/agent-and-contributing.md` for agent instruction and `CONTRIBUTING.md` workflow rules (inventory, canonical/alias mapping, dual-mode balance, deliverable standards, and precedence/conflict handling).
 3. Read `references/principles.md` for the governing ruleset (Matt Palmer & OpenAI).
 4. For build tasks, follow `references/build.md`.
-5. For review tasks, follow `references/review.md`.
-6. Use `references/tooling.md` when platform/tooling choices affect recommendations.
-7. In brownfield mode, prioritize compatibility with current docs IA, tooling, and release state.
-8. In evergreen mode, prioritize timeless wording, update strategy, and durable structure.
-9. Return deliverables plus validation notes and remaining gaps.
+5. For review tasks, follow `references/review.md` and proactively detect issues without waiting for repeated prompts.
+6. For complex or high-risk tasks (build or review), it is acceptable to run longer, deeper, and more exhaustive investigations when needed for confidence.
+7. When available, use sub-agents for bounded parallel discovery/review work, then merge outputs into one coherent final deliverable.
+8. Use `references/tooling.md` when platform/tooling choices affect recommendations.
+9. Run a proactive issue sweep for agent/contributor surfaces and fix high-confidence documentation/rule defects in the same pass unless explicitly asked for report-only mode.
+10. In brownfield mode, prioritize compatibility with current docs IA, tooling, and release state.
+11. In evergreen mode, prioritize timeless wording, update strategy, and durable structure.
+12. Return deliverables plus validation notes and remaining gaps.
 
 ## Inputs
 
@@ -40,6 +44,9 @@ Produce and review technical documentation that is clear, actionable, and mainta
 - Docs framework/tooling constraints (Fern, Mintlify, Sphinx, etc.).
 - Build/review mode and brownfield/evergreen intent.
 - Target agent and human compatibility intent.
+- Desired investigation depth/time budget (quick pass vs exhaustive review).
+- Execution mode (`single-agent` or `sub-agent-assisted` when available).
+- Remediation mode (`apply-fixes` by default, or `report-only` when requested).
 
 ## Outputs
 
@@ -48,3 +55,5 @@ Produce and review technical documentation that is clear, actionable, and mainta
 - Navigation/maintenance recommendations for long-term quality.
 - Governance-doc alignment summary when AGENTS/CONTRIBUTING were touched.
 - Agent instruction-surface map (primary file, alias files, Codex/Claude/Cursor handling plan).
+- Autodetected issue list with applied fixes (or explicit report-only findings).
+- Delegation notes when sub-agents were used (scope delegated and how findings were merged).

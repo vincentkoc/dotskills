@@ -34,6 +34,8 @@ Source: https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents
 2. If `AGENTS.md` is absent, treat the nearest alias file as canonical.
 3. Keep compatibility surfaces explicit: `AGENTS.md`, `AGENT.md`, `.cursorrules`, `.cursor/rules/*`, `.agent/`, `.agents/`, `.pi/`.
 4. If aliases are used, document how they map back to canonical policy (or symlink when supported).
+5. When repos use `.agents/` as canonical rule storage, keep `.cursor` as a compatibility symlink to `.agents` for Cursor rule auto-loading.
+6. Keep policy DRY: store one shared policy core and expose it via aliases/symlinks instead of duplicating rule text.
 
 ## Context-awareness by agent platform
 
@@ -45,6 +47,25 @@ Source: https://github.com/openai/codex/blob/main/AGENTS.md
 3. For Codex-style workflows, prefer explicit file references and deterministic commands.
 4. Keep long runbooks outside top-level policy files; link to scoped docs.
 5. Ensure all agents have a happy path regardless so ensuring everything works across Codex, Claude and other coding agents.
+
+## Symlink and compatibility operations
+
+1. Preferred layout for multi-agent compatibility:
+   - canonical rule directory: `.agents/`
+   - Cursor compatibility path: `.cursor -> .agents` symlink
+   - canonical policy doc: `AGENTS.md` pointing to `.agents` paths where relevant
+2. Validate symlink state before finalizing changes:
+   - if `.agents/` exists and `.cursor` is missing, create `.cursor` symlink to `.agents`
+   - if `.cursor` is a symlink to another target, fix target or document why it must differ
+   - if `.cursor` is a real directory/file, treat as migration conflict and ask before replacement
+3. Validate rule payload through the canonical directory:
+   - rules: `.agents/rules/*.mdc` with valid frontmatter (`description`, `globs`, `alwaysApply` as needed)
+   - commands: `.agents/commands/*.md` when command routing is used
+   - MCP config: `.agents/mcp.json` when MCP is in scope
+4. Keep Codex behavior explicit:
+   - `AGENTS.md` is primary for Codex repository instructions
+   - `.cursor` compatibility is for Cursor auto-loading and does not replace canonical AGENTS policy
+5. Record applied symlink fixes and unresolved compatibility gaps in validation notes.
 
 ## Dual-mode and deliverable standards
 
@@ -60,6 +81,18 @@ Source: https://github.com/vercel-labs/agent-skills/blob/main/AGENTS.md
 5. Treat AGENTS/CONTRIBUTING as first-class deliverables when in scope.
 6. Preserve required structure, constraints, and examples from existing files.
 7. Align wording and commands with active repository instructions.
+
+## Proactive issue discovery and remediation
+
+Source: https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/
+Source: https://github.com/openai/codex/blob/main/AGENTS.md
+Source: https://github.com/vercel-labs/agent-skills/blob/main/AGENTS.md
+
+1. Run a conflict matrix review across AGENTS/aliases/CONTRIBUTING and related command/rule docs before finalizing.
+2. Treat the following as high-priority defects: missing referenced files, non-existent setup commands, command scope mismatches, and branch/commit policy conflicts.
+3. Do not stop at caveat-only notes when a low-risk fix is clear; apply the fix in the same pass.
+4. If a canonical entry file is missing (for example a directory `README.md` that docs depend on), create a minimal actionable file and update references.
+5. Long-running investigations are acceptable when needed to uncover cross-file drift, especially in agent-instruction ecosystems.
 
 ## Discovery
 
