@@ -7,6 +7,7 @@ Read `principles.md` first, then apply this checklist.
 - Identify doc type and target audience.
 - Confirm brownfield vs evergreen intent.
 - Confirm expected outcome for the reader.
+- For full-repo reviews, explicitly include both governance surfaces and product-doc surfaces (`docs/`, README trees, `.md/.mdx/.mdc`, `.rst/.rsc`, framework docs configs).
 
 ## 2. Investigation behavior
 
@@ -16,6 +17,7 @@ Read `principles.md` first, then apply this checklist.
 - When available, use sub-agents for bounded parallel discovery (for example file-inventory, command validation, or cross-doc consistency checks), then merge to one final issue set.
 - When no issues are found, state that explicitly and call out residual risks or validation gaps.
 - Default to `apply-fixes` for high-confidence documentation defects unless the user explicitly requests `report-only`.
+- Do not stop at AGENTS/CONTRIBUTING checks when the task is documentation-wide; continue into docs-content and docs-framework surfaces.
 
 ## 3. Governance surface review
 
@@ -49,35 +51,43 @@ For agent-platform awareness:
 - check for broken or missing referenced files (for example README/index files named as canonical entry points).
 - check for setup/command drift (for example non-existent install commands, root-level commands that should be module-scoped).
 
-## 4. Structural review
+## 4. Product documentation surface review
+
+- Verify docs IA coverage across root/module `README*` files and `docs/**` trees.
+- Review framework-native docs sources in scope (for example Fern, Mintlify, Sphinx, MkDocs) and ensure guidance matches actual source-of-truth files.
+- Check `.md/.mdx/.mdc/.rst/.rsc` for stale commands, missing prerequisites, and broken cross-links.
+- Confirm referenced doc paths and anchors exist.
+- Flag docs that should be split/merged to improve discoverability and maintenance.
+
+## 5. Structural review
 
 - Funnel check: what/why, quickstart, next steps.
 - Validate heading flow and navigation discoverability.
 - Flag critical content trapped in images or buried sections.
 - Check Diataxis alignment and split mixed-purpose sections.
 
-## 5. Writing quality review
+## 6. Writing quality review
 
 - Check for concise, scannable paragraphs.
 - Remove ambiguous pronouns and undefined terms.
 - Verify examples are executable and scoped correctly.
 - Verify tone is directive, technical, and non-hand-wavy.
 
-## 6. Brownfield review mode
+## 7. Brownfield review mode
 
 - Verify compatibility with existing docs IA and conventions.
 - Verify anchors, redirects, and cross-doc links remain valid.
 - Flag regressions in onboarding and task completion paths.
 - Ensure changed terminology is intentionally propagated.
 
-## 7. Evergreen review mode
+## 8. Evergreen review mode
 
 - Flag date-stamped or brittle wording without version scope.
 - Check ownership and refresh signals are present.
 - Ensure recommendations remain valid after routine product evolution.
 - Flag missing deprecation/migration guidance.
 
-## 8. Tooling and platform review
+## 9. Tooling and platform review
 
 Read `tooling.md` if platform fit is uncertain.
 
@@ -85,7 +95,7 @@ Read `tooling.md` if platform fit is uncertain.
 - Flag structure that fights the chosen docs platform.
 - Recommend targeted platform-aware improvements.
 
-## 9. Output format
+## 10. Output format
 
 1. Blocking issues (file + required fix)
 2. Non-blocking improvements
