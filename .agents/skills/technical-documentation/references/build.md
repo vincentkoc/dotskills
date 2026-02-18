@@ -5,6 +5,9 @@ Read `principles.md` first, then follow this execution flow.
 ## 1. Detect and align agent instruction and governance instructions
 
 - Use `references/agent-and-contributing.md` as the source of truth for inventory, canonical/alias mapping, and precedence/conflict handling.
+- Apply the symlink compatibility policy when in scope (`.agents` canonical directory with `.cursor` compatibility symlink when required by tooling).
+- Long-running and extensive build investigations are acceptable when needed to resolve ambiguous or conflicting documentation sources.
+- When available, use sub-agents for bounded parallel inventory/cross-check tasks and merge results into one canonical decision set.
 - Capture required constraints before writing:
   - nested-agent rules, command/test requirements, PR workflow, and style checks.
 - Use the same command and validation expectations in proposed snippets and examples.
@@ -34,6 +37,8 @@ Read `principles.md` first, then follow this execution flow.
 - If CONTRIBUTING.md is becoming too large, split by scope into linked docs (for example, framework/tool-specific setup and release workflows) and keep the root file as a concise entry point.
 - Keep cross-file consistency: links from CONTRIBUTING.md to AGENTS.md (and vice versa) should be accurate and non-circular.
 - If multiple AGENTS.md files exist, document the directory-level scope and avoid conflicting advice.
+- If a required canonical entry file is missing (for example referenced `README.md` under a major directory), create the file in the same pass instead of adding a caveat-only note.
+- For new entry files, keep them minimal and actionable: purpose, prerequisites, concrete run commands, and pointers to deeper docs.
 
 ## 5. Keep agent context tight
 
@@ -77,4 +82,5 @@ Read `principles.md` first, then follow this execution flow.
 
 - Validate commands and snippets where possible.
 - Verify links and references in changed sections.
+- Run a reference existence sweep for every path/command you introduced.
 - Record unresolved checks explicitly in handoff.
