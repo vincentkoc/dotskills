@@ -9,7 +9,11 @@ Skills are managed using vercel-labs/agent-skills (skills.sh/docs).
 
 1. Read `CONTRIBUTING.md` before making changes in this repo.
 2. Make targeted edits to skill files and references.
-3. Run relevant formatters/test commands when scripts or code are changed.
+3. Run validation gates before finalizing:
+   - `make validate`
+   - `pre-commit run --all-files`
+   - `make check-generated`
+   - if generated artifacts are out of date, run `make marketplace && make releases-index` and re-run `make check-generated`
 4. Open PRs as drafts first when applicable.
 
 ## Skill Standards
