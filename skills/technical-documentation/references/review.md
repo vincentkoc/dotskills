@@ -59,35 +59,42 @@ For agent-platform awareness:
 - Confirm referenced doc paths and anchors exist.
 - Flag docs that should be split/merged to improve discoverability and maintenance.
 
-## 5. Structural review
+## 5. Framework config and path mapping checks
+
+- Detect and read framework config first (for example Fern config, Sphinx `conf.py`, Mintlify config, or equivalent).
+- Resolve path references relative to the declaring file/config.
+- Treat filesystem paths and published URL routes as separate maps; verify both.
+- Flag path-map drift explicitly (`missing file`, `stale route`, `wrong base path`).
+
+## 6. Structural review
 
 - Funnel check: what/why, quickstart, next steps.
 - Validate heading flow and navigation discoverability.
 - Flag critical content trapped in images or buried sections.
 - Check Diataxis alignment and split mixed-purpose sections.
 
-## 6. Writing quality review
+## 7. Writing quality review
 
 - Check for concise, scannable paragraphs.
 - Remove ambiguous pronouns and undefined terms.
 - Verify examples are executable and scoped correctly.
 - Verify tone is directive, technical, and non-hand-wavy.
 
-## 7. Brownfield review mode
+## 8. Brownfield review mode
 
 - Verify compatibility with existing docs IA and conventions.
 - Verify anchors, redirects, and cross-doc links remain valid.
 - Flag regressions in onboarding and task completion paths.
 - Ensure changed terminology is intentionally propagated.
 
-## 8. Evergreen review mode
+## 9. Evergreen review mode
 
 - Flag date-stamped or brittle wording without version scope.
 - Check ownership and refresh signals are present.
 - Ensure recommendations remain valid after routine product evolution.
 - Flag missing deprecation/migration guidance.
 
-## 9. Tooling and platform review
+## 10. Tooling and platform review
 
 Read `tooling.md` if platform fit is uncertain.
 
@@ -95,7 +102,7 @@ Read `tooling.md` if platform fit is uncertain.
 - Flag structure that fights the chosen docs platform.
 - Recommend targeted platform-aware improvements.
 
-## 10. Output format
+## 11. Output format
 
 1. Blocking issues (file + required fix)
 2. Non-blocking improvements
