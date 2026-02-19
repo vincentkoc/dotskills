@@ -1,3 +1,4 @@
-display_name: Opik Integrations Auditor
-short_description: Audit and document Opik integration patterns.
-default_prompt: Review Opik integrations across Python, TypeScript, and OTEL/API. Produce a matrix, findings, and doc/test gap plan.
+interface:
+  display_name: "Opik Integrations Auditor"
+  short_description: "Audit and document Opik integration patterns."
+  default_prompt: "Review Opik integrations across Python, TypeScript, and OTEL/API. Produce a matrix, findings, and doc/test gap plan."

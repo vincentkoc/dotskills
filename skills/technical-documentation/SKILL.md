@@ -27,17 +27,18 @@ Produce and review technical documentation that is clear, actionable, and mainta
 
 1. Classify task: `build` or `review`; context: `brownfield` or `evergreen`.
 2. Inventory full documentation scope early (governance + product docs): AGENTS/CONTRIBUTING/aliases plus docs directories, framework sources, and root/module READMEs.
-3. Read `references/agent-and-contributing.md` for agent instruction and `CONTRIBUTING.md` workflow rules (inventory, canonical/alias mapping, dual-mode balance, deliverable standards, and precedence/conflict handling).
-4. Read `references/principles.md` for the governing ruleset (Matt Palmer & OpenAI).
-5. For build tasks, follow `references/build.md`.
-6. For review tasks, follow `references/review.md` and proactively detect issues without waiting for repeated prompts.
-7. For complex or high-risk tasks (build or review), it is acceptable to run longer, deeper, and more exhaustive investigations when needed for confidence.
-8. When available, use sub-agents for bounded parallel discovery/review work, then merge outputs into one coherent final deliverable.
-9. Use `references/tooling.md` when platform/tooling choices affect recommendations.
-10. Run a proactive issue sweep for both governance and docs-content surfaces, and fix high-confidence defects in the same pass unless explicitly asked for report-only mode.
-11. In brownfield mode, prioritize compatibility with current docs IA, tooling, and release state.
-12. In evergreen mode, prioritize timeless wording, update strategy, and durable structure.
-13. Return deliverables plus validation notes and remaining gaps.
+3. Detect multilingual scope (README/docs in multiple languages) and define required parity level.
+4. Read `references/agent-and-contributing.md` for agent instruction and `CONTRIBUTING.md` workflow rules (inventory, canonical/alias mapping, dual-mode balance, deliverable standards, and precedence/conflict handling).
+5. Read `references/principles.md` for the governing ruleset (Matt Palmer & OpenAI).
+6. For build tasks, follow `references/build.md`.
+7. For review tasks, follow `references/review.md` and proactively detect issues without waiting for repeated prompts.
+8. For complex or high-risk tasks (build or review), it is acceptable to run longer, deeper, and more exhaustive investigations when needed for confidence.
+9. When available, use sub-agents for bounded parallel discovery/review work, then merge outputs into one coherent final deliverable.
+10. Use `references/tooling.md` when platform/tooling choices affect recommendations.
+11. Run a proactive issue sweep for both governance and docs-content surfaces, and fix high-confidence defects in the same pass unless explicitly asked for report-only mode.
+12. In brownfield mode, prioritize compatibility with current docs IA, tooling, and release state.
+13. In evergreen mode, prioritize timeless wording, update strategy, and durable structure.
+14. Return deliverables plus validation notes, parity status, and remaining gaps.
 
 ## Sub-agent orchestration guidance
 
@@ -59,6 +60,7 @@ Prefer sub-agents when the repo is large or the requested change set is broad; u
 - Desired investigation depth/time budget (quick pass vs exhaustive review).
 - Execution mode (`single-agent` or `sub-agent-assisted` when available).
 - Remediation mode (`apply-fixes` by default, or `report-only` when requested).
+- Multilingual scope: source-of-truth language, target locales, and parity expectations.
 
 ## Outputs
 
@@ -70,3 +72,4 @@ Prefer sub-agents when the repo is large or the requested change set is broad; u
 - Documentation-surface coverage map (what was reviewed under `/docs`, README hierarchy, and framework-specific source trees).
 - Autodetected issue list with applied fixes (or explicit report-only findings).
 - Delegation notes when sub-agents were used (scope delegated and how findings were merged).
+- Multilingual parity note (in-sync, partial with rationale, or intentionally divergent).

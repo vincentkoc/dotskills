@@ -27,6 +27,26 @@ skills:
       commit: 1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563
     tags: [upstream, imported]
 
+  - id: steipete-sectriage-reference
+    name: Steipete sectriage (reference)
+    path: vendor/steipete/agent-scripts/docs/slash-commands/sectriage.md
+    source: upstream
+    upstream:
+      type: webpage
+      url: https://github.com/steipete/agent-scripts/blob/main/docs/slash-commands/sectriage.md
+    tags: [upstream, reference, slash-command]
+
+  - id: steipete-sectriage
+    name: steipete/sectriage
+    path: vendor/steipete/agent-scripts/docs/slash-commands/sectriage.md
+    source: upstream
+    upstream:
+      type: git
+      repo: https://github.com/steipete/agent-scripts
+      ref: main
+      commit: 4e28dd5bd7caa5ba142c20f80325ac63d42ecf0e
+    tags: [upstream, imported, slash-command]
+
   - id: technical-deslop
     name: Technical Deslop
     path: skills/technical-deslop

@@ -57,6 +57,13 @@ npx skills add vincentkoc/dotskills --list
 
 Default sync targets are managed automatically by vercel skills.
 
+## Codex slash commands
+
+This repo can also mirror Codex slash-command prompts from `vendor/` and sync them to `~/.codex/prompts`.
+
+- `make sync` now syncs skills and slash commands for the `codex` profile.
+- vendored command currently included: `/sectriage` from `steipete/agent-scripts`.
+
 ## Repository layout
 
 ```text
