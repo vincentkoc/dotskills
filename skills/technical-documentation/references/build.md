@@ -19,21 +19,31 @@ Read `principles.md` first, then follow this execution flow.
 - Build a coverage map before drafting so governance and product docs are both represented.
 - If scope is ambiguous, default to broader docs discovery first, then narrow intentionally.
 
-## 3. Define intent and success
+## 3. Framework config and path mapping rules
+
+- Detect framework/config first (for example Fern config, Sphinx `conf.py`, Mintlify config, or equivalent).
+- Resolve every referenced path relative to the file/config that declares it, not assumed repo root.
+- Treat filesystem paths and published URL routes as separate mappings; do not infer one from the other without config evidence.
+- Validate both layers:
+  - config -> file exists on disk
+  - config/nav/routing -> URL path is consistent and reachable
+- Record path-mapping assumptions and mismatches in handoff (`missing file`, `stale route`, `wrong base path`).
+
+## 4. Define intent and success
 
 - Audience, prerequisites, and job-to-be-done.
 - Expected reader outcome immediately after completion.
 - Doc type: tutorial, how-to, reference, explanation.
 - Success criteria: what must be true after publish.
 
-## 4. Build structure before prose
+## 5. Build structure before prose
 
 - Follow the funnel: what/why, quickstart, next steps.
 - Keep headings informative and scannable.
 - Open each section with the takeaway sentence.
 - Add decision points with concrete branch guidance.
 
-## 5. Build AGENTS.md and CONTRIBUTING.md intentionally
+## 6. Build AGENTS.md and CONTRIBUTING.md intentionally
 
 - Keep AGENTS.md structure consistent with `agents.md` ecosystem patterns:
   - include YAML frontmatter when present in repo style (`name`, `description`).
@@ -47,7 +57,7 @@ Read `principles.md` first, then follow this execution flow.
 - If a required canonical entry file is missing (for example referenced `README.md` under a major directory), create the file in the same pass instead of adding a caveat-only note.
 - For new entry files, keep them minimal and actionable: purpose, prerequisites, concrete run commands, and pointers to deeper docs.
 
-## 6. Keep agent context tight
+## 7. Keep agent context tight
 
 - Author once, expose twice:
   - keep one shared policy core and avoid duplicating guidance in separate agent-specific files.
@@ -57,35 +67,35 @@ Read `principles.md` first, then follow this execution flow.
 - For Codex, prefer explicit file references and concrete paths for exact reuse.
 - Avoid adding unrelated historical or process details to avoid token/context drift during future tool reads.
 
-## 7. Brownfield build mode
+## 8. Brownfield build mode
 
 - Match existing terminology, navigation, and component patterns.
 - Preserve existing IA unless there is a documented migration plan.
 - For rewrites, include a migration note from old to new paths.
 - Prefer smallest safe change set that improves utility.
 
-## 8. Evergreen build mode
+## 9. Evergreen build mode
 
 - Prefer stable concepts over release-tied narrative.
 - Isolate volatile details under clearly marked version sections.
 - Include maintenance signals: owners, refresh triggers, stale criteria.
 - Include lifecycle notes: deprecation and replacement paths.
 
-## 9. Writing constraints
+## 10. Writing constraints
 
 - Use precise language and short, imperative instructions.
 - Keep code examples copy-ready and self-contained.
 - Include common failure modes and safe defaults.
 - Avoid placeholder guidance that cannot be executed.
 
-## 10. Agent and automation readiness
+## 11. Agent and automation readiness
 
 - Keep key facts in text (not image-only).
 - Prefer structured lists/tables when choices matter.
 - Add links and anchors that allow deterministic navigation.
 - Document what can be checked automatically in CI.
 
-## 11. Build validation
+## 12. Build validation
 
 - Validate commands and snippets where possible.
 - Verify links and references in changed sections.

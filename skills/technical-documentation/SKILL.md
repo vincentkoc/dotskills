@@ -39,6 +39,15 @@ Produce and review technical documentation that is clear, actionable, and mainta
 12. In evergreen mode, prioritize timeless wording, update strategy, and durable structure.
 13. Return deliverables plus validation notes and remaining gaps.
 
+## Sub-agent orchestration guidance
+
+Prefer sub-agents when the repo is large or the requested change set is broad; use them by default for repo-wide, multi-framework, or high-conflict work.
+
+- `inventory-agent` -> `agents/inventory-agent.md` (`fast` / Claude `haiku`): file/config discovery, coverage map, and missing-path checks.
+- `governance-agent` -> `agents/governance-agent.md` (`thinking` / Claude `sonnet`): AGENTS/CONTRIBUTING/alias precedence, conflicts, and policy drift.
+- `docs-framework-agent` -> `agents/docs-framework-agent.md` (`thinking` / Claude `sonnet`): framework config, relative path base, and file-path vs URL-path mapping checks.
+- `synthesis-agent` -> `agents/synthesis-agent.md` (`long` / Claude `opus`): merge sub-agent outputs into one prioritized fix plan and unified precedence model.
+
 ## Inputs
 
 - Doc type (tutorial, how-to, reference, explanation) and audience.
