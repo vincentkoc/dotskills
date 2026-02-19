@@ -23,6 +23,7 @@ Supported skill entry files:
 Profiles:
   codex  -> \
     \\${CODEX_HOME:-$HOME/.codex}/skills
+    (also syncs slash commands to \\${CODEX_HOME:-$HOME/.codex}/prompts)
   cursor -> \
     \\${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}
 USAGE
@@ -30,6 +31,10 @@ USAGE
 
 codex_target() {
   echo "${CODEX_HOME:-$HOME/.codex}/skills"
+}
+
+codex_prompts_target() {
+  echo "${CODEX_HOME:-$HOME/.codex}/prompts"
 }
 
 cursor_target() {
@@ -68,6 +73,19 @@ find_skill_dirs_under() {
   find "$base" -type f \( -name "SKILL.md" -o -name "AGENT.md" -o -name "AGENTS.md" \) -print \
     | sed -E 's#/(SKILL|AGENT|AGENTS)\.md$##' \
     | sort -u
+}
+
+list_slash_command_files() {
+  {
+    if [[ -d "$ROOT_DIR/slash-commands" ]]; then
+      find "$ROOT_DIR/slash-commands" -type f -name "*.md" -print
+    fi
+
+    if [[ -d "$VENDOR_DIR" ]]; then
+      find "$VENDOR_DIR" -type f -path "*/docs/slash-commands/*.md" -print
+      find "$VENDOR_DIR" -type f -path "*/slash-commands/*.md" -print
+    fi
+  } | sort -u
 }
 
 list_skills() {
@@ -122,6 +140,44 @@ link_or_copy_skill() {
   echo "$mode $src -> $dest"
 }
 
+link_or_copy_file() {
+  local src="$1"
+  local dest_root="$2"
+  local mode="$3"
+  local dry_run="$4"
+  local name
+  name="$(basename "$src")"
+  local dest="$dest_root/$name"
+
+  if [[ "$dry_run" == "true" ]]; then
+    echo "[dry-run] $mode $src -> $dest"
+    return 0
+  fi
+
+  mkdir -p "$dest_root"
+  rm -f "$dest"
+
+  if [[ "$mode" == "symlink" ]]; then
+    ln -s "$src" "$dest"
+  else
+    cp "$src" "$dest"
+  fi
+
+  echo "$mode $src -> $dest"
+}
+
+sync_codex_slash_commands() {
+  local mode="$1"
+  local dry_run="$2"
+  local target
+  target="$(codex_prompts_target)"
+
+  while IFS= read -r cmd_path; do
+    [[ -f "$cmd_path" ]] || continue
+    link_or_copy_file "$cmd_path" "$target" "$mode" "$dry_run"
+  done < <(list_slash_command_files)
+}
+
 sync_profile() {
   local profile="$1"
   local mode="$2"
@@ -147,6 +203,10 @@ sync_profile() {
     fi
     link_or_copy_skill "$skill_path" "$target" "$mode" "$dry_run"
   done < <(list_skills)
+
+  if [[ "$profile" == "codex" ]]; then
+    sync_codex_slash_commands "$mode" "$dry_run"
+  fi
 }
 
 catalog_has_id() {

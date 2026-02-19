@@ -102,7 +102,15 @@ Read `tooling.md` if platform fit is uncertain.
 - Flag structure that fights the chosen docs platform.
 - Recommend targeted platform-aware improvements.
 
-## 11. Output format
+## 11. Multilingual parity review (when applicable)
+
+- Confirm declared source-of-truth language and expected parity policy.
+- Compare changed sections across locales for step/order/warning drift.
+- Flag missing updates to prerequisites, version notes, limits, and safety guidance.
+- Allow intentional divergence only when rationale is explicit and user-impact is low.
+- Require a reader-visible status note when locale parity is partial.
+
+## 12. Output format
 
 1. Blocking issues (file + required fix)
 2. Non-blocking improvements

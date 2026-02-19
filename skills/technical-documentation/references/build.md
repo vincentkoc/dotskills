@@ -101,4 +101,13 @@ Read `principles.md` first, then follow this execution flow.
 - Verify links and references in changed sections.
 - Run a reference existence sweep for every path/command you introduced.
 - Verify docs-framework consistency when in scope (for example Sphinx/Fern config and referenced doc paths).
+
+## 13. Multilingual parity mode (when applicable)
+
+- Pick one source-of-truth language for technical accuracy and release timing.
+- Define parity target: full parity, staged parity, or intentional divergence per section.
+- Keep structure aligned across locales (headings, anchors, section order) when possible.
+- Preserve command/code correctness first; localize explanatory text second.
+- If parity is not feasible, add a visible note with missing scope and expected sync window.
+- Run a locale parity check for changed sections (added/removed steps, warnings, prerequisites).
 - Record unresolved checks explicitly in handoff.

@@ -46,3 +46,7 @@ For agent-instructions and contributor-governance specifics (AGENTS/aliases/CONT
 - Long-running and extensive investigations are allowed for both build and review work when needed to resolve ambiguity or cross-file drift.
 - Use sub-agents when available for bounded parallel discovery, verification, or cross-source comparison.
 - Keep one merged outcome: sub-agent outputs must be normalized into a single consistent recommendation/fix set.
+
+## Multilingual parity rule
+
+When docs exist in multiple languages, target cross-locale parity for task-critical content (steps, warnings, prerequisites, and limits). If full parity is not possible, publish explicit parity status and sync intent.
