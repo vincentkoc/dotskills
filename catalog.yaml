@@ -61,6 +61,13 @@ skills:
     tags: [docs, writing, review, evergreen, brownfield]
     version: 0.1.4
 
+  - id: session-done
+    name: Session Done
+    path: skills/session-done
+    source: local
+    tags: [handoff, teardown, memory, workflow]
+    version: 0.1.0
+
   - id: technical-integrations
     name: Technical Integrations
     path: skills/technical-integrations
