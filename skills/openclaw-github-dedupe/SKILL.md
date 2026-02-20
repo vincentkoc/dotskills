@@ -186,6 +186,40 @@ Provide a consistent, evidence-driven triage pass for issue and PR clusters so d
 
 Select merge mode based on repo policy and branch protection requirements.
 
+## scripts/alias.sh helper
+
+Run the tiny helper directly from this skill directory for repetitive cluster operations:
+
+`./scripts/alias.sh run-cluster /path/to/cluster.txt`
+
+Minimal `cluster.txt` format:
+
+`<type>:<id>|<action>|<target>`
+
+Supported actions:
+
+- `inspect` → fetch issue/PR views, diff file list, and checks.
+- `close-pr-duplicate` → close PR as duplicate of target PR.
+- `close-issue-duplicate` → comment + close issue as duplicate of target issue.
+- `noop` → no action.
+
+Typical example file:
+
+```text
+pr:20988|inspect|
+pr:20377|close-pr-duplicate|20988
+issue:19839|close-issue-duplicate|20337
+issue:12714|noop|
+```
+
+Use `ODGH_DRY_RUN=1` for dry-run mode to print command intent without making mutations.
+You can also use it inline:
+
+`./scripts/alias.sh --dry-run run-cluster /path/to/cluster.txt`
+
+For safe editing without real references, copy:
+`scripts/cluster-example.txt`
+
 ## Git cleanup option
 - To remove stale branch:
 `git branch -D <branch>`
