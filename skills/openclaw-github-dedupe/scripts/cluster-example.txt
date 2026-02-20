@@ -1,0 +1,21 @@
+# Example cluster workflow plan
+# Replace placeholder IDs before running.
+#
+# Columns:
+#   <type>:<id>|<action>|<target>
+#
+# Supported <type>:
+#   - pr
+#   - issue
+#
+# Supported <action>:
+#   - inspect
+#   - close-pr-duplicate
+#   - close-issue-duplicate
+#   - noop
+
+pr:xxxxx|inspect|
+pr:aaaaaa|close-pr-duplicate|xxxxx
+issue:bbbbb|close-issue-duplicate|ccccc
+issue:ddddd|inspect|
+issue:eeeee|noop|
