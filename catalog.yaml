@@ -88,3 +88,10 @@ skills:
     source: local
     tags: [opik, integrations, audit, internal]
     version: 0.1.0
+
+  - id: openclaw-github-dedupe
+    name: Issue/PR Cluster Deduper
+    path: skills/openclaw-github-dedupe
+    source: local
+    tags: [github, triage, dedupe, issue-pr]
+    version: 0.1.0

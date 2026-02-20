@@ -9,6 +9,12 @@
   },
   "plugins": [
     {
+      "name": "openclaw-github-dedupe",
+      "source": "./skills/openclaw-github-dedupe",
+      "skills": "./",
+      "description": "Use this skill when a cluster of GitHub issues and pull requests has been reported for a common failure mode (Slack, iMessage, support threads, or manual list), and you need an evidence-based dedupe recommendation or execution."
+    },
+    {
       "name": "technical-deslop",
       "source": "./skills/technical-deslop",
       "skills": "./",

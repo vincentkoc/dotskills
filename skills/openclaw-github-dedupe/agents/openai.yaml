@@ -1,0 +1,10 @@
+interface:
+  display_name: "Issue/PR Cluster Deduper"
+  short_description: "Triages issue/PR clusters for duplicates, canonicalization, and audit-ready closure actions."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Run an evidence-based issue/PR cluster dedupe triage and propose safe closure actions with full contributor credit."
+
+policy:
+  allow_implicit_invocation: true

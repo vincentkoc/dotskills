@@ -2,6 +2,12 @@
   "repo": "vincentkoc/dotskills",
   "skills": [
     {
+      "name": "openclaw-github-dedupe",
+      "source": "./skills/openclaw-github-dedupe",
+      "description": "Use this skill when a cluster of GitHub issues and pull requests has been reported for a common failure mode (Slack, iMessage, support threads, or manual list), and you need an evidence-based dedupe recommendation or execution.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill openclaw-github-dedupe -y"
+    },
+    {
       "name": "technical-deslop",
       "source": "./skills/technical-deslop",
       "description": "Clean branch/staged diffs by removing AI-style slop and restoring repo-consistent style without changing behavior.",
