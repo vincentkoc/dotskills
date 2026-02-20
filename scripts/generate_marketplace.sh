@@ -74,7 +74,7 @@ is_internal_entry() {
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 tmp_rows="$(mktemp)"
-trap "rm -f '$tmp_rows'" EXIT
+trap 'rm -f "$tmp_rows"' EXIT
 
 {
   while IFS= read -r skill_dir; do

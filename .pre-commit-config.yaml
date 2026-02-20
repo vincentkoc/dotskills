@@ -18,6 +18,18 @@ repos:
     hooks:
       - id: gitleaks
 
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        files: \.sh$
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        files: \.ya?ml$
+
   - repo: local
     hooks:
       - id: codeql-workflow-check
