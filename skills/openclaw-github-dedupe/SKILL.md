@@ -15,6 +15,8 @@ Use this skill when a cluster of GitHub issues and pull requests has been report
 
 Provide a consistent, evidence-driven triage pass for issue and PR clusters so duplicate work is folded, contributor credit is preserved, and cleanup actions stay auditable.
 
+Execution is command-led and conservative: drive decisions from `gh` readbacks plus deterministic file/metadata checks only, and avoid speculative local analysis beyond triage logic.
+
 Primary goal: make every run action-ready with explicit per-item actions, links, and command outcomes.
 
 ## Vision
@@ -74,10 +76,13 @@ This workflow is designed for high-velocity maintainers and external contributor
 - `merge_tool_pref` (optional): `auto`, `gh`, `merge-skill`, or `land-skill`; default `auto`.
 - `dry_run` (optional): `0|1` to force non-mutating mode.
 - `output_mode` (optional): `compact|detailed`; default `detailed`.
+- `triage_report` (optional): path to a triage report file (like `/Users/vincentkoc/Desktop/triage_report.md`) to seed initial cluster candidates.
+- `search_limit` (optional): max similar items per item from GH search; default `12`.
+- `search_queries` (optional): explicit query terms (space-separated).
 
 ## Outputs
 
-- Per-item action matrix with explicit status (`KEEP_OPEN_CANONICAL`, `CLOSE_DUPLICATE`, `KEEP_OPEN_RELATED`, `KEEP_OPEN_UNRELATED`, `MANUAL_REVIEW_REQUIRED`).
+- Per-item action matrix with explicit status (`KEEP_OPEN_CANONICAL`, `CLOSE_DUPLICATE`, `KEEP_OPEN_RELATED`, `KEEP_OPEN_UNRELATED`, `MANUAL_REVIEW_REQUIRED`) and each row showing title + author.
 - Evidence matrix with root-cause mapping, scope deltas, and risk blockers.
 - Credit chain and attribution rationale (single-credit default, dual-credit only by exception).
 - Required command set (dry-run and execution mode): close, comment, label, merge, and changelog actions.
@@ -88,21 +93,27 @@ This workflow is designed for high-velocity maintainers and external contributor
 Use sub-agents in this chain for higher consistency and lower mistakes:
 
 - `agents/cluster-intake-agent.md`
+- `agents/cluster-similarity-agent.md`
 - `agents/cluster-evidence-agent.md`
 - `agents/cluster-decision-agent.md`
 - `agents/cluster-synthesis-agent.md`
 
 Run in sequence and feed each output to the next.
 
-- Intake → Evidence: normalizes items and fetches GH context.
-- Evidence → Decision: maps risk and hard-stop states.
-- Decision → Synthesis: emits final action matrix and command plan.
+- Intake → Similarity → Evidence → Decision → Synthesis.
+
+1. Intake: normalize cluster refs (required first), including optional `triage_report` expansion.
+2. Similarity: find additional related open issues/PRs from GitHub search and attach ranked candidates.
+3. Evidence: pull full context for cluster + similar candidates.
+4. Decision: maps risk and hard-stop states.
+5. Synthesis: emits final action matrix and command plan.
 
 If any sub-agent blocks, continue only with explicit `manual-review-required` and keep execution safe.
 
 When orchestrator support exists, run them as a chain and pass structured outputs between steps:
 
 - Start with `cluster-intake-agent`
+- Feed output to `cluster-similarity-agent`
 - Feed output to `cluster-evidence-agent`
 - Feed output to `cluster-decision-agent`
 - Feed output to `cluster-synthesis-agent`
@@ -124,7 +135,15 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
    - Resolve each input to canonical links and types.
    - Skip malformed entries with a reasoned note for `manual-review-required`.
 
-2. Fetch evidence from GitHub
+2. Similarity sweep (required)
+   - Use the supplied `cluster-intake-agent` summary as the primary seed.
+   - Expand search surface by running GitHub queries for additional candidates and include likely neighbors in the same root-cause family.
+   - Pull:
+     - `gh issue list --search "<query> in:title" --state all --repo <repo> --json number,title,url,state,author,updatedAt,labels`
+     - `gh pr list --search "<query> in:title" --state all --repo <repo> --json number,title,url,state,author,updatedAt,isDraft,mergeable`
+   - Keep likely matches when title/body overlap is explicit, not keyword-only.
+
+3. Fetch evidence from GitHub
    - For PRs: `gh pr view <ref> --json number,title,body,state,author,labels,createdAt,updatedAt,mergedAt,closedAt,mergeable,mergeStateStatus,isDraft,changedFiles,additions,deletions,statusCheckRollup,commits,url`
    - For issues: `gh issue view <ref> --json number,title,body,state,labels,author,createdAt,updatedAt,url,comments`
    - Pull file footprint for PRs when deciding canonical scope: `gh pr diff <ref> --name-only`
@@ -185,17 +204,33 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
 - Dry run: `<on|off>`
 
 ### Per-item action matrix (required)
-- `pr:20988` — `KEEP_OPEN_CANONICAL` — `https://github.com/openclaw/openclaw/pull/20988` — `Streaming recipient-id root-cause fix`
-- `issue:19839` — `CLOSE_DUPLICATE` — `https://github.com/openclaw/openclaw/issues/19839` — `->` `https://github.com/openclaw/openclaw/issues/20337`
-- `issue:12714` — `KEEP_OPEN_RELATED` — `https://github.com/openclaw/openclaw/issues/12714` — `Block-mode emission behavior mismatch`
+Render this as a table:
+
+| item | action | title | author | artifact | rationale | target |
+|---|---|---|---|---|---|---|
+| `pr:xxxxx` | `KEEP_OPEN_CANONICAL` | `Streaming recipient-id root-cause fix` | `@canonical_author` | `https://github.com/openclaw/openclaw/pull/xxxxx` | `canonical remediation path` | `-` |
+| `issue:yyyyy` | `CLOSE_DUPLICATE` | `Slack stream stop race condition` | `@duplicate_author` | `https://github.com/openclaw/openclaw/issues/yyyyy` | `covered by canonical PR` | `#zzzzz` |
+| `issue:aaaaa` | `KEEP_OPEN_RELATED` | `Block-mode emission behavior mismatch` | `@related_author` | `https://github.com/openclaw/openclaw/issues/aaaaa` | `adjacent area: block-path semantics` | `-` |
+
+Required matrix fields: item, action, title, author, artifact link, short rationale, and canonical target/duplicate mapping target where applicable.
 
 ### Command/result block (required)
-- `planned`/`executed`/`blocked` status per command.
-- For each command, include exact command text and resulting state.
+Render command outcomes as a table:
+
+| status | command | state |
+|---|---|---|
+| `planned`/`executed`/`blocked` | `gh issue view ...` | `passed` / `applied` / `blocked by checks` |
+
+Include exact command text and resulting state for each operation.
 
 ### Evidence matrix (required)
-- Item-level evidence anchors: PR/issue link, root-cause marker, scope delta, merge risk, and confidence tag.
-- Blockers must be explicit.
+Render evidence per item as a table:
+
+| item | title | author | root-cause marker | scope delta | merge risk | confidence |
+|---|---|---|---|---|---|---|
+| `pr:xxxxx` | `Streaming recipient-id root-cause fix` | `@canonical_author` | `recipient IDs + stream pipeline` | `touches stream API + block pipeline` | `low` | `high` |
+
+Blockers must be explicit.
 
 ### Credit and closure rationale block (required)
 - Explicit credit chain for all merged/closed outcomes with default one credited contributor in 95%+ cases; max two only by explicit exception.
@@ -303,39 +338,45 @@ This appears separate from this cluster and will stay in its own thread.
 If this looks related, point to the shared failure step and I can rerun dedupe right away.`
 
 ### Variation examples
-`Nice work circling this one.
+Use a starter bank (never replay the same opener twice in one run):
 
-I reviewed the overlap and confirmed the final fix is tracking in #20988 by @Dithilli.
+`Great call on this one.
 
-It covers the same failure mode and is the right place for closure path continuity.
+I’m closing this as a duplicate of #xxxxx. The same failure pattern is now covered in the canonical fix, and this path is fully superseded there.
 
-If this seems off in your view, tell me what changed and I can reopen the review quickly.`
+Your earlier work is still part of the attribution trail. If this is a miss, tell me what changed and I can reopen review right away.`
 
-`Thanks for taking the first pass on this.
+`Nice work surfacing this with clear context.
 
-I'm closing this as a duplicate of #20988. A later stable PR carried this forward with the merge-safe completion path.
+I reviewed the overlap and confirmed the final fix is in #xxxxx by @canonical_author. We’re keeping that one because it has the most complete root-cause coverage.
 
-Your contribution is still part of the attribution trail, and I can reopen this review if there is a miss.`
+If this looks off in your repro, tell me and I can re-check the boundary quickly.`
 
-`Good observation. This is related, but not a duplicate.
+`Thanks for pushing this.
 
-The failure path diverges at message-route semantics, so this remains in a separate track.
+This appears related, not a duplicate. It diverges at `{reason}` and belongs in a separate track for now.
 
-If that boundary feels wrong, I can reassess with the extra context right away.`
+If you think that boundary is wrong, point me to the shared failure step and I’ll reassess it right away.`
+
+`I appreciate the early pass here.
+
+I’m treating #xxxxx as canonical because it is the safest and most complete path for this cluster.
+
+If I should rerun this split, share the exact overlap and I can do that immediately.`
 
 ## Messaging examples by situation
 
 ### Situation 1: clean duplicate, single-credit result
-- Canonical: `pr:20988`
-- Duplicate: `issue:19839`, `issue:12714`
+- Canonical: `pr:xxxxx` by `@canonical_author`
+- Duplicate: `issue:yyyyy` by `@first_author`, `issue:zzzzz` by `@second_author`
 - Required behavior:
   - One credited canonical author only (target 95%+ of cases).
   - Duplicate closure uses single-credit close templates.
   - Related notes include a specific divergence reason.
 
 ### Situation 2: earlier PR non-mergeable, direct follow-up continuation, dual-credit
-- Canonical: `pr:20988`
-- Earlier groundwork: `pr:20377` (not mergeable, direct continuation proven by diff overlap and clean follow-up checks)
+- Canonical: `pr:xxxxx`
+- Earlier groundwork: `pr:yyyyy` (not mergeable, direct continuation proven by diff overlap and clean follow-up checks)
 - Required behavior:
   - Dual-credit templates are used.
 - Rationale statement must include:
@@ -394,15 +435,17 @@ Supported actions:
 Example:
 
 ```text
-pr:20988|inspect|
-pr:20377|close-pr-duplicate|20988
-issue:19839|close-issue-duplicate|20337
-issue:12714|noop|
+pr:xxxxx|inspect|
+pr:yyyyy|close-pr-duplicate|xxxxx
+issue:bbbbb|close-issue-duplicate|aaaaa
+issue:ccccc|noop|
 ```
 
 Use placeholder IDs in examples only:
 
 `pr:xxxxx|inspect|`
+
+Prefer using `scripts/cluster-example.txt` as your starting template for reusable cluster runs.
 
 ## Git cleanup option
 

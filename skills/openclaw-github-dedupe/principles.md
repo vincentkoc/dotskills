@@ -1,4 +1,4 @@
-# Principles for OpenClaw Cluster Dedupe
+# Principles for GitHub Cluster Dedupe
 
 ## Purpose
 
