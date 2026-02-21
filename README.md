@@ -31,7 +31,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 
 | Skill | What it does | Install |
 |---|---|---|
-| `openclaw-github-dedupe` | Triage GitHub issue/PR clusters for OpenClaw, preserving credit while choosing canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
+| `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
 | `technical-deslop` | Ship clean diffs fast: remove AI noise and keep behavior unchanged. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
 | `technical-documentation` | Produce dev‑ready docs: clear, structured build/review for brownfield + evergreen. | `npx skills add vincentkoc/dotskills --skill technical-documentation -y` |
 | `technical-integrations` | Design integrations that land: vendor‑agnostic API/RFC/SDK plans with rollout safety. | `npx skills add vincentkoc/dotskills --skill technical-integrations -y` |
