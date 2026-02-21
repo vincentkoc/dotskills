@@ -77,7 +77,7 @@ This workflow is designed for high-velocity maintainers and external contributor
 
 ## Outputs
 
-- Per-item action matrix with explicit status (`KEEP_OPEN_CANONICAL`, `CLOSE_DUPLICATE`, `KEEP_OPEN_RELATED`, `KEEP_OPEN_UNRELATED`, `MANUAL_REVIEW_REQUIRED`).
+- Per-item action matrix with explicit status (`KEEP_OPEN_CANONICAL`, `CLOSE_DUPLICATE`, `KEEP_OPEN_RELATED`, `KEEP_OPEN_UNRELATED`, `MANUAL_REVIEW_REQUIRED`) and each row showing title + author.
 - Evidence matrix with root-cause mapping, scope deltas, and risk blockers.
 - Credit chain and attribution rationale (single-credit default, dual-credit only by exception).
 - Required command set (dry-run and execution mode): close, comment, label, merge, and changelog actions.
@@ -185,16 +185,19 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
 - Dry run: `<on|off>`
 
 ### Per-item action matrix (required)
-- `pr:20988` — `KEEP_OPEN_CANONICAL` — `https://github.com/openclaw/openclaw/pull/20988` — `Streaming recipient-id root-cause fix`
-- `issue:19839` — `CLOSE_DUPLICATE` — `https://github.com/openclaw/openclaw/issues/19839` — `->` `https://github.com/openclaw/openclaw/issues/20337`
-- `issue:12714` — `KEEP_OPEN_RELATED` — `https://github.com/openclaw/openclaw/issues/12714` — `Block-mode emission behavior mismatch`
+- `pr:20988` — `KEEP_OPEN_CANONICAL` — `Streaming recipient-id root-cause fix` by `@canonical_author` — `https://github.com/openclaw/openclaw/pull/20988` — `canonical remediation path`
+- `issue:19839` — `CLOSE_DUPLICATE` — `[Security] ...` by `@duplicate_author` — `https://github.com/openclaw/openclaw/issues/19839` — `->` `https://github.com/openclaw/openclaw/issues/20337`
+- `issue:12714` — `KEEP_OPEN_RELATED` — `[Security] ...` by `@related_author` — `https://github.com/openclaw/openclaw/issues/12714` — `Block-mode emission behavior mismatch`
+
+Required matrix row shape:
+- `<item> — <action> — <title> by @<author> — <url> — <short rationale>`
 
 ### Command/result block (required)
 - `planned`/`executed`/`blocked` status per command.
 - For each command, include exact command text and resulting state.
 
 ### Evidence matrix (required)
-- Item-level evidence anchors: PR/issue link, root-cause marker, scope delta, merge risk, and confidence tag.
+- Item-level evidence anchors: PR/issue link, title, author, root-cause marker, scope delta, merge risk, and confidence tag.
 - Blockers must be explicit.
 
 ### Credit and closure rationale block (required)
