@@ -76,6 +76,9 @@ This workflow is designed for high-velocity maintainers and external contributor
 - `merge_tool_pref` (optional): `auto`, `gh`, `merge-skill`, or `land-skill`; default `auto`.
 - `dry_run` (optional): `0|1` to force non-mutating mode.
 - `output_mode` (optional): `compact|detailed`; default `detailed`.
+- `triage_report` (optional): path to a triage report file (like `/Users/vincentkoc/Desktop/triage_report.md`) to seed initial cluster candidates.
+- `search_limit` (optional): max similar items per item from GH search; default `12`.
+- `search_queries` (optional): explicit query terms (space-separated).
 
 ## Outputs
 
@@ -90,21 +93,27 @@ This workflow is designed for high-velocity maintainers and external contributor
 Use sub-agents in this chain for higher consistency and lower mistakes:
 
 - `agents/cluster-intake-agent.md`
+- `agents/cluster-similarity-agent.md`
 - `agents/cluster-evidence-agent.md`
 - `agents/cluster-decision-agent.md`
 - `agents/cluster-synthesis-agent.md`
 
 Run in sequence and feed each output to the next.
 
-- Intake → Evidence: normalizes items and fetches GH context.
-- Evidence → Decision: maps risk and hard-stop states.
-- Decision → Synthesis: emits final action matrix and command plan.
+- Intake → Similarity → Evidence → Decision → Synthesis.
+
+1. Intake: normalize cluster refs (required first), including optional `triage_report` expansion.
+2. Similarity: find additional related open issues/PRs from GitHub search and attach ranked candidates.
+3. Evidence: pull full context for cluster + similar candidates.
+4. Decision: maps risk and hard-stop states.
+5. Synthesis: emits final action matrix and command plan.
 
 If any sub-agent blocks, continue only with explicit `manual-review-required` and keep execution safe.
 
 When orchestrator support exists, run them as a chain and pass structured outputs between steps:
 
 - Start with `cluster-intake-agent`
+- Feed output to `cluster-similarity-agent`
 - Feed output to `cluster-evidence-agent`
 - Feed output to `cluster-decision-agent`
 - Feed output to `cluster-synthesis-agent`
@@ -126,7 +135,15 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
    - Resolve each input to canonical links and types.
    - Skip malformed entries with a reasoned note for `manual-review-required`.
 
-2. Fetch evidence from GitHub
+2. Similarity sweep (required)
+   - Use the supplied `cluster-intake-agent` summary as the primary seed.
+   - Expand search surface by running GitHub queries for additional candidates and include likely neighbors in the same root-cause family.
+   - Pull:
+     - `gh issue list --search "<query> in:title" --state all --repo <repo> --json number,title,url,state,author,updatedAt,labels`
+     - `gh pr list --search "<query> in:title" --state all --repo <repo> --json number,title,url,state,author,updatedAt,isDraft,mergeable`
+   - Keep likely matches when title/body overlap is explicit, not keyword-only.
+
+3. Fetch evidence from GitHub
    - For PRs: `gh pr view <ref> --json number,title,body,state,author,labels,createdAt,updatedAt,mergedAt,closedAt,mergeable,mergeStateStatus,isDraft,changedFiles,additions,deletions,statusCheckRollup,commits,url`
    - For issues: `gh issue view <ref> --json number,title,body,state,labels,author,createdAt,updatedAt,url,comments`
    - Pull file footprint for PRs when deciding canonical scope: `gh pr diff <ref> --name-only`
