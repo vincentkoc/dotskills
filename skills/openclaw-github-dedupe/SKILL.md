@@ -15,6 +15,8 @@ Use this skill when a cluster of GitHub issues and pull requests has been report
 
 Provide a consistent, evidence-driven triage pass for issue and PR clusters so duplicate work is folded, contributor credit is preserved, and cleanup actions stay auditable.
 
+Execution is command-led and conservative: drive decisions from `gh` readbacks plus deterministic file/metadata checks only, and avoid speculative local analysis beyond triage logic.
+
 Primary goal: make every run action-ready with explicit per-item actions, links, and command outcomes.
 
 ## Vision
@@ -185,9 +187,9 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
 - Dry run: `<on|off>`
 
 ### Per-item action matrix (required)
-- `pr:20988` — `KEEP_OPEN_CANONICAL` — `Streaming recipient-id root-cause fix` by `@canonical_author` — `https://github.com/openclaw/openclaw/pull/20988` — `canonical remediation path`
-- `issue:19839` — `CLOSE_DUPLICATE` — `[Security] ...` by `@duplicate_author` — `https://github.com/openclaw/openclaw/issues/19839` — `->` `https://github.com/openclaw/openclaw/issues/20337`
-- `issue:12714` — `KEEP_OPEN_RELATED` — `[Security] ...` by `@related_author` — `https://github.com/openclaw/openclaw/issues/12714` — `Block-mode emission behavior mismatch`
+- `pr:xxxxx` — `KEEP_OPEN_CANONICAL` — `Streaming recipient-id root-cause fix` by `@canonical_author` — `https://github.com/openclaw/openclaw/pull/xxxxx` — `canonical remediation path`
+- `issue:yyyyy` — `CLOSE_DUPLICATE` — `Slack stream stop race condition` by `@duplicate_author` — `https://github.com/openclaw/openclaw/issues/yyyyy` — `->` `https://github.com/openclaw/openclaw/issues/zzzzz`
+- `issue:aaaaa` — `KEEP_OPEN_RELATED` — `Block-mode emission behavior mismatch` by `@related_author` — `https://github.com/openclaw/openclaw/issues/aaaaa` — `adjacent area: block-path semantics`
 
 Required matrix row shape:
 - `<item> — <action> — <title> by @<author> — <url> — <short rationale>`
@@ -306,39 +308,52 @@ This appears separate from this cluster and will stay in its own thread.
 If this looks related, point to the shared failure step and I can rerun dedupe right away.`
 
 ### Variation examples
-`Nice work circling this one.
+Use a starter bank (never replay the same opener twice in one run):
 
-I reviewed the overlap and confirmed the final fix is tracking in #20988 by @Dithilli.
+`Great progress getting this in front of me. Thanks for the context.
 
-It covers the same failure mode and is the right place for closure path continuity.
+The final fix is tracking in #xxxxx by @canonical_author.
+This is the path we’re standardizing on because it best covers the failure family.
 
-If this seems off in your view, tell me what changed and I can reopen the review quickly.`
+If you think the boundary changed, share the diff and I can reopen the decision right away.`
 
-`Thanks for taking the first pass on this.
+`Thanks for the clear pass here.
 
-I'm closing this as a duplicate of #20988. A later stable PR carried this forward with the merge-safe completion path.
+I reviewed the overlap and confirmed this as a duplicate of #xxxxx. The newer canonical fix now carries the same core path plus the missing delivery hardening.
 
-Your contribution is still part of the attribution trail, and I can reopen this review if there is a miss.`
+Your earlier contribution is still credited in the canonical history, and I can reopen review if you see a gap.`
 
-`Good observation. This is related, but not a duplicate.
+`Great catch, thank you.
 
-The failure path diverges at message-route semantics, so this remains in a separate track.
+I reviewed this cluster and this looks related, not duplicate. The vector diverges on routing semantics, so it stays separate for now.
 
-If that boundary feels wrong, I can reassess with the extra context right away.`
+If this looks wrong against your evidence, point me to the exact overlap and I can re-evaluate quickly.`
+
+`Nice to see this captured with concrete reproduction details.
+
+I’m treating this as the canonical path and keeping it open; this one is a direct extension with merge-safe improvements.
+
+If needed, I can reopen and reassess the boundary with updated checks in the same flow.`
+
+`Your report is very useful.
+
+I’m closing this as a duplicate of #xxxxx. It maps to the same recipient-id streaming path and is now covered by the canonical fix.
+
+If you think this was a miss, tell me what changed and I can reopen review right away.`
 
 ## Messaging examples by situation
 
 ### Situation 1: clean duplicate, single-credit result
-- Canonical: `pr:20988`
-- Duplicate: `issue:19839`, `issue:12714`
+- Canonical: `pr:xxxxx` by `@canonical_author`
+- Duplicate: `issue:yyyyy` by `@first_author`, `issue:zzzzz` by `@second_author`
 - Required behavior:
   - One credited canonical author only (target 95%+ of cases).
   - Duplicate closure uses single-credit close templates.
   - Related notes include a specific divergence reason.
 
 ### Situation 2: earlier PR non-mergeable, direct follow-up continuation, dual-credit
-- Canonical: `pr:20988`
-- Earlier groundwork: `pr:20377` (not mergeable, direct continuation proven by diff overlap and clean follow-up checks)
+- Canonical: `pr:xxxxx`
+- Earlier groundwork: `pr:yyyyy` (not mergeable, direct continuation proven by diff overlap and clean follow-up checks)
 - Required behavior:
   - Dual-credit templates are used.
 - Rationale statement must include:
@@ -397,15 +412,17 @@ Supported actions:
 Example:
 
 ```text
-pr:20988|inspect|
-pr:20377|close-pr-duplicate|20988
-issue:19839|close-issue-duplicate|20337
-issue:12714|noop|
+pr:xxxxx|inspect|
+pr:yyyyy|close-pr-duplicate|xxxxx
+issue:bbbbb|close-issue-duplicate|aaaaa
+issue:ccccc|noop|
 ```
 
 Use placeholder IDs in examples only:
 
 `pr:xxxxx|inspect|`
+
+Prefer using `scripts/cluster-example.txt` as your starting template for reusable cluster runs.
 
 ## Git cleanup option
 

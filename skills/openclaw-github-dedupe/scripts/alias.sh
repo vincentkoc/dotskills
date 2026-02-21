@@ -32,10 +32,10 @@ Actions:
   noop                  - no action
 
 Examples:
-  pr:20988|inspect|
-  pr:20377|close-pr-duplicate|20988
-  issue:19839|close-issue-duplicate|20337
-  issue:12714|noop|
+  pr:xxxxx|inspect|
+  pr:yyyyy|close-pr-duplicate|xxxxx
+  issue:zzzzz|close-issue-duplicate|aaaaa
+  issue:bbbbb|noop|
 EOF
 }
 
