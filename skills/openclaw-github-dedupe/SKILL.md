@@ -187,20 +187,33 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
 - Dry run: `<on|off>`
 
 ### Per-item action matrix (required)
-- `pr:xxxxx` — `KEEP_OPEN_CANONICAL` — `Streaming recipient-id root-cause fix` by `@canonical_author` — `https://github.com/openclaw/openclaw/pull/xxxxx` — `canonical remediation path`
-- `issue:yyyyy` — `CLOSE_DUPLICATE` — `Slack stream stop race condition` by `@duplicate_author` — `https://github.com/openclaw/openclaw/issues/yyyyy` — `->` `https://github.com/openclaw/openclaw/issues/zzzzz`
-- `issue:aaaaa` — `KEEP_OPEN_RELATED` — `Block-mode emission behavior mismatch` by `@related_author` — `https://github.com/openclaw/openclaw/issues/aaaaa` — `adjacent area: block-path semantics`
+Render this as a table:
 
-Required matrix row shape:
-- `<item> — <action> — <title> by @<author> — <url> — <short rationale>`
+| item | action | title | author | artifact | rationale | target |
+|---|---|---|---|---|---|---|
+| `pr:xxxxx` | `KEEP_OPEN_CANONICAL` | `Streaming recipient-id root-cause fix` | `@canonical_author` | `https://github.com/openclaw/openclaw/pull/xxxxx` | `canonical remediation path` | `-` |
+| `issue:yyyyy` | `CLOSE_DUPLICATE` | `Slack stream stop race condition` | `@duplicate_author` | `https://github.com/openclaw/openclaw/issues/yyyyy` | `covered by canonical PR` | `#zzzzz` |
+| `issue:aaaaa` | `KEEP_OPEN_RELATED` | `Block-mode emission behavior mismatch` | `@related_author` | `https://github.com/openclaw/openclaw/issues/aaaaa` | `adjacent area: block-path semantics` | `-` |
+
+Required matrix fields: item, action, title, author, artifact link, short rationale, and canonical target/duplicate mapping target where applicable.
 
 ### Command/result block (required)
-- `planned`/`executed`/`blocked` status per command.
-- For each command, include exact command text and resulting state.
+Render command outcomes as a table:
+
+| status | command | state |
+|---|---|---|
+| `planned`/`executed`/`blocked` | `gh issue view ...` | `passed` / `applied` / `blocked by checks` |
+
+Include exact command text and resulting state for each operation.
 
 ### Evidence matrix (required)
-- Item-level evidence anchors: PR/issue link, title, author, root-cause marker, scope delta, merge risk, and confidence tag.
-- Blockers must be explicit.
+Render evidence per item as a table:
+
+| item | title | author | root-cause marker | scope delta | merge risk | confidence |
+|---|---|---|---|---|---|---|
+| `pr:xxxxx` | `Streaming recipient-id root-cause fix` | `@canonical_author` | `recipient IDs + stream pipeline` | `touches stream API + block pipeline` | `low` | `high` |
+
+Blockers must be explicit.
 
 ### Credit and closure rationale block (required)
 - Explicit credit chain for all merged/closed outcomes with default one credited contributor in 95%+ cases; max two only by explicit exception.
