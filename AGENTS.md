@@ -47,6 +47,29 @@ openai_yaml_defaults:
 - If a public skill is added or renamed, update `catalog.yaml` entry.
 - Regenerate published indexes when public skills change: `make marketplace` and `make releases-index`.
 
+### Add/remove skill checklist
+
+When adding or removing a public skill:
+
+- Add public skill path: `skills/<skill-name>/`.
+- Add or update `SKILL.md` required sections and `metadata.source`/`license`.
+- Add `agents/openai.yaml` and `assets/icon.jpg` for public skills.
+- Update `catalog.yaml` entry:
+  - set `id`, `name`, `path`, and `source`.
+  - remove stale entry for deleted/renamed skills.
+- Update `README.md` public skills table and install examples.
+- Run `make marketplace && make releases-index`.
+- Run `make check-generated` and fix any sync gaps.
+- On publish, include versioned tag/release flow after PR merge.
+
+When adding or removing a private skill:
+
+- Place or remove under `private-skills/<skill-name>/`.
+- Do not update `catalog.yaml`.
+- Do not update public `README.md` install list unless you intentionally expose it.
+- No public-release index regeneration is required unless a public skill changed.
+- Still run `make validate`, `pre-commit run --all-files`, and `make check-generated`.
+
 ## PR/Issue Hygiene
 
 - Include issue references when available (for example `Fixes: 123`).

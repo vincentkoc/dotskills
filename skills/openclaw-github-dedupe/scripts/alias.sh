@@ -4,6 +4,7 @@ set -euo pipefail
 
 REPO="${ODGH_REPO:-openclaw/openclaw}"
 DRY_RUN="${ODGH_DRY_RUN:-0}"
+STYLE_VARIANTS="${ODGH_STYLE_VARIANTS:-1}"
 
 usage() {
   cat <<'EOF'
@@ -16,6 +17,7 @@ Usage:
 Environment:
   ODGH_REPO      GitHub repo (default: openclaw/openclaw)
   ODGH_DRY_RUN   if set to 1, print actions without mutating state
+  ODGH_STYLE_VARIANTS if set to 0, use fixed legacy comment texts
 
 Flags:
   --dry-run      preview command intent without mutating GitHub state
@@ -81,10 +83,96 @@ gh_pr_files() {
   gh pr diff --name-only "$id" --repo "$REPO"
 }
 
+variant_index() {
+  local key="$1"
+  local max="$2"
+  local total=0
+  local i ch
+  for ((i = 0; i < ${#key}; i++)); do
+    ch=$(printf '%d' "'${key:i:1}")
+    total=$((total + ch))
+  done
+  echo $((total % max))
+}
+
+issue_close_body() {
+  local canonical="$1"
+  local item_id="$2"
+  local idx
+  local opener trail
+  idx="$(variant_index "${item_id}-${canonical}-issue" 4)"
+  case "$idx" in
+    0)
+      opener='Thanks for the report.'
+      trail='I can reroute this if I missed the right cluster alignment.'
+      ;;
+    1)
+      opener='Good catch, thank you.'
+      trail='If you see a mismatch, I can reopen this right away.'
+      ;;
+    2)
+      opener='Great call reporting this.'
+      trail='Please flag the exact shared failure step if you want me to re-check it now.'
+      ;;
+    *)
+      opener='I appreciate the report.'
+      trail='If this is a miss, tell me and I can reopen review right away.'
+      ;;
+  esac
+
+  cat <<EOF
+${opener}
+
+I'm closing this as duplicate of #${canonical}. The same failure pattern and behavior map to the canonical fix path there.
+
+${trail}
+EOF
+}
+
+pr_close_body() {
+  local canonical="$1"
+  local item_id="$2"
+  local idx
+  local opener trail
+  idx="$(variant_index "${item_id}-${canonical}-pr" 4)"
+  case "$idx" in
+    0)
+      opener='Thanks for the earlier contribution.'
+      trail='Your work is preserved in the canonical attribution trail.'
+      ;;
+    1)
+      opener='Thanks for taking a pass on this.'
+      trail='Your contribution is still part of the attribution trail.'
+      ;;
+    2)
+      opener='Thanks for tackling this quickly.'
+      trail='Credit is retained in the canonical outcome.'
+      ;;
+    *)
+      opener='Thanks for pushing this forward.'
+      trail='Your contribution is preserved with the canonical summary.'
+      ;;
+  esac
+
+  cat <<EOF
+${opener}
+
+I'm going to close this as a duplicate of #${canonical}. Great attempt here, but this PR is stale and a newer, stable PR is handling the same root-cause path.
+${trail}
+
+If this is a mistake, tell me and I can reopen review right away.
+EOF
+}
+
 close_issue_duplicate() {
   local id="$1"
   local canonical="$2"
-  local body="Thanks for reporting. Closing as duplicate of #${canonical}. This appears to match the same root-cause path and behavior. Credit is tracked in #${canonical}. If this is a mistake, please tell us and we’ll reopen a review path."
+  local body
+  if [[ "$STYLE_VARIANTS" -eq 0 ]]; then
+    body=$'Thanks for the report.\n\nI\'m closing this as duplicate of #'"${canonical}"$'.\nThe same failure pattern and behavior map to the canonical fix path there.\n\nIf this is a mistake, tell me and I can reopen review right away.'
+  else
+    body="$(issue_close_body "$canonical" "$id")"
+  fi
   if [[ "$DRY_RUN" == "1" ]]; then
     printf 'DRY-RUN: gh issue comment %s --repo "%s" --body "%s"\n' "$id" "$REPO" "$body"
     printf 'DRY-RUN: gh issue close %s --repo "%s" --reason not planned\n' "$id" "$REPO"
@@ -97,7 +185,12 @@ close_issue_duplicate() {
 close_pr_duplicate() {
   local id="$1"
   local canonical="$2"
-  local body="Thanks for the earlier contribution. Closing as duplicate of #${canonical}. Your PR covered part of the same root cause and is credited in the canonical fix. If this is a mistake, please tell us and we’ll reopen a review path."
+  local body
+  if [[ "$STYLE_VARIANTS" -eq 0 ]]; then
+    body=$'Thanks for the earlier contribution.\n\nI\'m going to close this as a duplicate of #'"${canonical}"$'. Great attempt here, but this PR is stale and a newer, stable PR is handling the same root-cause path.\nYour work is preserved in the canonical attribution trail.\n\nIf this is a mistake, tell me and I can reopen review right away.'
+  else
+    body="$(pr_close_body "$canonical" "$id")"
+  fi
   if [[ "$DRY_RUN" == "1" ]]; then
     printf 'DRY-RUN: gh pr close %s --repo "%s" --comment "%s"\n' "$id" "$REPO" "$body"
     return 0
