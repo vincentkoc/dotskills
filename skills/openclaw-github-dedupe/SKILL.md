@@ -323,35 +323,29 @@ If this looks related, point to the shared failure step and I can rerun dedupe r
 ### Variation examples
 Use a starter bank (never replay the same opener twice in one run):
 
-`Hey, great catch on this one.
+`Great call on this one.
 
-I reviewed the cluster and confirmed the final fix is in #xxxxx by @canonical_author. That keeps the same root-cause path while adding the missing hardening.
+I’m closing this as a duplicate of #xxxxx. The same failure pattern is now covered in the canonical fix, and this path is fully superseded there.
 
-If you see a gap in that boundary, tell me and I can reopen review right away.`
+Your earlier work is still part of the attribution trail. If this is a miss, tell me what changed and I can reopen review right away.`
 
-`Nice work circling this with a concrete repro.
+`Nice work surfacing this with clear context.
 
-I’m closing this as a duplicate of #xxxxx because this path is now covered by the canonical fix.
+I reviewed the overlap and confirmed the final fix is in #xxxxx by @canonical_author. We’re keeping that one because it has the most complete root-cause coverage.
 
-You’re still part of the attribution trail. If this is a miss, tell me and I can re-run review immediately.`
+If this looks off in your repro, tell me and I can re-check the boundary quickly.`
 
-`Thanks for the details here.
+`Thanks for pushing this.
 
-This is related, not duplicate; it diverges on `{reason}` and should stay on a separate track for now.
+This appears related, not a duplicate. It diverges at `{reason}` and belongs in a separate track for now.
 
-If your evidence says otherwise, point me to the shared failure step and I’ll reassess quickly.`
+If you think that boundary is wrong, point me to the shared failure step and I’ll reassess it right away.`
 
-`I appreciate the early pass.
+`I appreciate the early pass here.
 
-I’m treating #xxxxx as canonical since it is the most complete and merge-safe coverage for this cluster.
+I’m treating #xxxxx as canonical because it is the safest and most complete path for this cluster.
 
-If I should reopen and revisit this split, say the exact overlap and I’ll rerun it right away.`
-
-`Great report.
-
-I’m closing this as duplicate of #xxxxx. The same root-cause surface is already being tracked there, so we can avoid duplicate churn.
-
-If this is not what you expected, tell me and I’ll reopen review right away.`
+If I should rerun this split, share the exact overlap and I can do that immediately.`
 
 ## Messaging examples by situation
 
