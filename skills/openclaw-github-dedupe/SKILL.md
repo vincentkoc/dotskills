@@ -323,36 +323,35 @@ If this looks related, point to the shared failure step and I can rerun dedupe r
 ### Variation examples
 Use a starter bank (never replay the same opener twice in one run):
 
-`Great progress getting this in front of me. Thanks for the context.
+`Hey, great catch on this one.
 
-The final fix is tracking in #xxxxx by @canonical_author.
-This is the path we’re standardizing on because it best covers the failure family.
+I reviewed the cluster and confirmed the final fix is in #xxxxx by @canonical_author. That keeps the same root-cause path while adding the missing hardening.
 
-If you think the boundary changed, share the diff and I can reopen the decision right away.`
+If you see a gap in that boundary, tell me and I can reopen review right away.`
 
-`Thanks for the clear pass here.
+`Nice work circling this with a concrete repro.
 
-I reviewed the overlap and confirmed this as a duplicate of #xxxxx. The newer canonical fix now carries the same core path plus the missing delivery hardening.
+I’m closing this as a duplicate of #xxxxx because this path is now covered by the canonical fix.
 
-Your earlier contribution is still credited in the canonical history, and I can reopen review if you see a gap.`
+You’re still part of the attribution trail. If this is a miss, tell me and I can re-run review immediately.`
 
-`Great catch, thank you.
+`Thanks for the details here.
 
-I reviewed this cluster and this looks related, not duplicate. The vector diverges on routing semantics, so it stays separate for now.
+This is related, not duplicate; it diverges on `{reason}` and should stay on a separate track for now.
 
-If this looks wrong against your evidence, point me to the exact overlap and I can re-evaluate quickly.`
+If your evidence says otherwise, point me to the shared failure step and I’ll reassess quickly.`
 
-`Nice to see this captured with concrete reproduction details.
+`I appreciate the early pass.
 
-I’m treating this as the canonical path and keeping it open; this one is a direct extension with merge-safe improvements.
+I’m treating #xxxxx as canonical since it is the most complete and merge-safe coverage for this cluster.
 
-If needed, I can reopen and reassess the boundary with updated checks in the same flow.`
+If I should reopen and revisit this split, say the exact overlap and I’ll rerun it right away.`
 
-`Your report is very useful.
+`Great report.
 
-I’m closing this as a duplicate of #xxxxx. It maps to the same recipient-id streaming path and is now covered by the canonical fix.
+I’m closing this as duplicate of #xxxxx. The same root-cause surface is already being tracked there, so we can avoid duplicate churn.
 
-If you think this was a miss, tell me what changed and I can reopen review right away.`
+If this is not what you expected, tell me and I’ll reopen review right away.`
 
 ## Messaging examples by situation
 
