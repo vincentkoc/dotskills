@@ -54,6 +54,13 @@ skills:
     tags: [quality, cleanup, style]
     version: 0.1.0
 
+  - id: ghcrawl-cluster-operator
+    name: ghcrawl Cluster Operator
+    path: skills/ghcrawl-cluster-operator
+    source: local
+    tags: [ghcrawl, github, clustering, sqlite, cli]
+    version: 0.1.0
+
   - id: technical-documentation
     name: Technical Documentation
     path: skills/technical-documentation

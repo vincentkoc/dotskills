@@ -31,6 +31,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 
 | Skill | What it does | Install |
 |---|---|---|
+| `ghcrawl-cluster-operator` | Operate ghcrawl local sync, clustering, and cluster inspection from the CLI. | `npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y` |
 | `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
 | `technical-deslop` | Ship clean diffs fast: remove AI noise and keep behavior unchanged. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
 | `technical-documentation` | Produce dev‑ready docs: clear, structured build/review for brownfield + evergreen. | `npx skills add vincentkoc/dotskills --skill technical-documentation -y` |
@@ -44,6 +45,7 @@ Internal/private workflow skills can live in this repo and are marked in the met
 Install one skill:
 
 ```bash
+npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y
 npx skills add vincentkoc/dotskills --skill technical-deslop -y
 npx skills add vincentkoc/dotskills --skill technical-documentation -y
 npx skills add vincentkoc/dotskills --skill technical-integrations -y

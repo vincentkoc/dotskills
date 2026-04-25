@@ -2,6 +2,12 @@
   "repo": "vincentkoc/dotskills",
   "skills": [
     {
+      "name": "ghcrawl-cluster-operator",
+      "source": "./skills/ghcrawl-cluster-operator",
+      "description": "Operate ghcrawl as a local-first GitHub issue and pull request crawler: inspect the SQLite store, pull GitHub data, refresh summaries and embeddings, build clusters, and extract cluster evidence through deterministic CLI commands.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill ghcrawl-cluster-operator -y"
+    },
+    {
       "name": "openclaw-github-dedupe",
       "source": "./skills/openclaw-github-dedupe",
       "description": "Use this skill when a cluster of GitHub issues and pull requests has been reported for a common failure mode (Slack, iMessage, support threads, or manual list), and you need an evidence-based dedupe recommendation or execution.",
