@@ -32,6 +32,8 @@ If the operator repeats a pane id or gives conflicting assignments, preserve the
 - Track Testbox ids, GitHub run ids, PR/issue URLs, branch/worktree path, and exact failing shard.
 - Fetch/rebase onto current `origin/main` immediately before changed gates. If Testbox pulls unrelated failures from a stale base, rebase first and rerun in the same box before blaming the patch.
 - If a Testbox sync leaves remote dependencies missing, classify it as Testbox environment drift and repair inside the box; do not run `pnpm install` in the local Codex worktree or label missing packages as product failures.
+- After repeated passing cheap checks on a hot `main`, switch to a tight last-mile push loop: fetch, rebase, `git diff --check origin/main..HEAD`, push `HEAD:main`, and retry a bounded number of times on non-fast-forward rejection. Do not keep rerunning slow lint between every rejected push unless the rebase touches that surface.
+- If a patch supersedes an in-flight Testbox/CI run, stop or ignore the stale run with that reason recorded. Poll the exact current run instead of starting more validation lanes.
 - For local sparse Codex worktrees, node dependency failures can be local setup noise. Verify inside Testbox or the canonical repo before declaring product failure.
 - For CodeQL, distinguish stale analyses from current `main` analyses. Re-check `commit_sha`, category, and `results_count`.
 - For clownfish, the real queue may be local markdown/jobs, not GitHub issues. Confirm the actual queue root before mutating jobs.
@@ -60,6 +62,7 @@ For OpenClaw-adjacent review-only repos such as `clawbench`, do not force the `g
 - Branch-only slice workers must stop after reporting commit SHA, checks, branch HEAD, and blockers when a coordinator takes over.
 - Before taking over a stuck coordinator, inspect existing Testbox ids and local processes. If a check is still running, wait or reuse it; if it is only `ready`/stale, record that and run cheap checks rather than another broad gate.
 - For PR queues, keep the queue state local to the manager: pending, assigned, blocked, merged, closure-needed, done. Reassign only after checking live PR metadata.
+- For clownfish or other backlog reducers, track live issue/PR counts with baseline and delta. If the queue worker stops to explain failed jobs, classify it as needs-manager and either kick it back into queue handling or ask the operator whether to inspect the failures.
 - Closure workers must address unresolved review/Aisle/Greptile comments or prove they are stale, then close linked duplicate/stale issues and PRs with a short thankful reason tied to the merged PR.
 - If the operator issues an urgent policy update, broadcast it to every worker, submit it with Enter/CR, verify it appears in each worker log, and collect each worker's report of any local command already started.
 

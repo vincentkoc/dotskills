@@ -5,7 +5,7 @@ license: Proprietary
 compatibility: Requires tmux. Codex log inspection expects local session logs under ~/.codex/sessions.
 metadata:
   internal: true
-  version: "0.1.4"
+  version: "0.1.5"
   spec: agentskills-v1
 ---
 
@@ -93,24 +93,36 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - do live metadata before assignment because "merge as-is" can become conflicts, failed checks, or unresolved review comments;
    - batch merge/closure jobs conservatively to avoid rebase churn;
    - each worker prompt must include exact scope, review/comment obligations, merge/closure policy, and final report shape.
-15. For secrets and repo settings:
+15. When deciding whether to allocate more work:
+   - scrape live lane state first;
+   - allocate only when there is idle capacity and a concrete next slice;
+   - do not allocate just to use empty panes; more workers without a crisp slice creates coordination sludge;
+   - if the right next action is waiting for CI/CodeQL/Testbox or one closeout watcher, say that and leave panes idle.
+16. For metric tracking:
+   - store baseline and samples in a local TSV or similar lightweight artifact when the operator asks to track progress over time;
+   - report absolute counts plus deltas from baseline, not vibes;
+   - verify the tracker process is still alive before relying on it, and restart or sample manually if it died;
+   - if new automation is opening work while workers close work, call out the slope honestly.
+17. For secrets and repo settings:
    - do not print, quote back, or store secrets in prompt files;
    - prefer setting secrets with `gh secret set <NAME> --repo <owner/repo>` using stdin from a shell variable, then unset the variable;
    - record only the secret name, repo, and result, never the value;
    - ask for the narrowest required token permissions when the operator asks.
-16. When broadcasting updates to active workers:
+   - after repo/workflow setup, verify the full path: local checks, remote CI, workflow registration, live smoke, and external service permissions;
+   - when an external service blocks on namespace/org permission, report the exact error and prefer manual resource creation over widening token permissions.
+18. When broadcasting updates to active workers:
    - send the update to every assigned pane, not only the active pane;
    - if Codex shows "tab to queue message" or similar, queue the message, press Enter/CR, and then verify the update appears in that worker's log;
    - for urgent validation policy changes, ask each worker to report any already-started command and whether it was stopped, completed, or moved to the correct surface;
    - scan processes after the broadcast and stop only the specific disallowed validation commands you own, not the whole worker.
-17. For watch loops:
+19. For watch loops:
    - use the operator's requested cadence;
    - keep the job open and keep messages short, like the L2 operator style;
    - stay silent unless a lane needs attention, finishes, blocks, begins risky external mutation, or the operator asks for a floor read;
    - stop or replace old local watch loops before starting a new monitoring mode;
    - track which evidence is fresh vs memory-derived.
-18. For OpenClaw lanes, apply `references/openclaw-lane-matrix.md`.
-19. Preserve the lane taxonomy unless the operator overrides it:
+20. For OpenClaw lanes, apply `references/openclaw-lane-matrix.md`.
+21. Preserve the lane taxonomy unless the operator overrides it:
    - `L1`: fixes and maintainer hygiene.
    - `L2`: feature work.
    - `L3`: exploratory work.

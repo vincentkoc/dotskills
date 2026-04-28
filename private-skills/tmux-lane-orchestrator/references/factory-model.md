@@ -53,6 +53,8 @@ The manager should behave like an area manager:
 - When the operator reallocates work, reduce ambiguity fast: one coordinator owns final mutation; superseded workers become report-only.
 - For many similar jobs, run a queue instead of pretending every pane can merge independently.
 - A message is not delivered until it is submitted and observed in the worker log. Staged text in a Codex input box does not count.
+- Idle panes are not a problem by themselves. The manager should allocate only when there is real work with a clean ownership boundary.
+- Progress counters need baselines and deltas; a count that rises while work is running may still be useful if new work is being created faster than closures land.
 
 The manager is not a hidden autonomous boss. It is a transparent control surface for the operator.
 
