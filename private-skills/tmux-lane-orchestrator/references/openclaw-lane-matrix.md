@@ -35,9 +35,17 @@ If the operator repeats a pane id or gives conflicting assignments, preserve the
 - After repeated passing cheap checks on a hot `main`, switch to a tight last-mile push loop: fetch, rebase, `git diff --check origin/main..HEAD`, push `HEAD:main`, and retry a bounded number of times on non-fast-forward rejection. Do not keep rerunning slow lint between every rejected push unless the rebase touches that surface.
 - If a patch supersedes an in-flight Testbox/CI run, stop or ignore the stale run with that reason recorded. Poll the exact current run instead of starting more validation lanes.
 - For local sparse Codex worktrees, node dependency failures can be local setup noise. Verify inside Testbox or the canonical repo before declaring product failure.
-- For CodeQL, distinguish stale analyses from current `main` analyses. Re-check `commit_sha`, category, and `results_count`.
+- For CodeQL, distinguish stale analyses from current `main` analyses. Re-check `commit_sha`, `ref`, category, analysis key, and `results_count`.
+- When new CodeQL runners/categories land, do not allocate implementation from the old open-alert count alone. Inspect recent analyses first:
+  - if current critical/security categories show `results_count=0` and remaining alerts point at an old default-profile commit, split closeout-only dismissal buckets by category/path;
+  - if an alert has a current `main` instance, allocate a fixer for that concrete file/rule family;
+  - for GitHub API dismissal, use the accepted reason and a short evidence comment when "fixed" is not an accepted enum.
 - For clownfish, the real queue may be local markdown/jobs, not GitHub issues. Confirm the actual queue root before mutating jobs.
 - For docs lanes, require a code-change-to-doc-impact link. No-op audits are valid output when docs already match.
+- For plugin lifecycle or inspector sweeps, classify findings before assigning fixes:
+  - plugin-surface defects: runtime capture API mismatches, missing exported aliases, registration output polluting JSON protocols, or actual install/doctor/enable-disable failures;
+  - fixture/harness debt: missing test config such as embedding settings, sparse checkout gaps, Testbox full-sync dependency drift, Docker shard silence, or local `node_modules` loss;
+  - suspicious-but-unproven: one slow plugin or a retry that later passes. Keep watching, but do not file it as a product bug yet.
 
 ## Worker launch rules
 
@@ -59,6 +67,7 @@ For OpenClaw-adjacent review-only repos such as `clawbench`, do not force the `g
 ## Coordinator and queue rules
 
 - For parallel CodeQL/security remediation, split by disjoint files or alert families, then appoint exactly one final coordinator to cherry-pick/integrate/rebase/push.
+- For CodeQL closeout after fixes land, split API-only dismissal buckets by old category/path, forbid file edits and pushes, require per-alert stale signature proof, and re-read alert state after mutation.
 - Branch-only slice workers must stop after reporting commit SHA, checks, branch HEAD, and blockers when a coordinator takes over.
 - Before taking over a stuck coordinator, inspect existing Testbox ids and local processes. If a check is still running, wait or reuse it; if it is only `ready`/stale, record that and run cheap checks rather than another broad gate.
 - For PR queues, keep the queue state local to the manager: pending, assigned, blocked, merged, closure-needed, done. Reassign only after checking live PR metadata.

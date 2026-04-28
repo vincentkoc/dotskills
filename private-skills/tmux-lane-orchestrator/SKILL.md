@@ -5,7 +5,7 @@ license: Proprietary
 compatibility: Requires tmux. Codex log inspection expects local session logs under ~/.codex/sessions.
 metadata:
   internal: true
-  version: "0.1.5"
+  version: "0.1.6"
   spec: agentskills-v1
 ---
 
@@ -97,7 +97,8 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - scrape live lane state first;
    - allocate only when there is idle capacity and a concrete next slice;
    - do not allocate just to use empty panes; more workers without a crisp slice creates coordination sludge;
-   - if the right next action is waiting for CI/CodeQL/Testbox or one closeout watcher, say that and leave panes idle.
+   - if the right next action is waiting for CI/CodeQL/Testbox or one closeout watcher, say that and leave panes idle;
+   - when fresh scanners or runners were just added, validate the live result set before assigning fixers. If new analyses report zero results and open alerts are old-profile residue, allocate closeout/dismissal buckets or a watcher, not implementation lanes.
 16. For metric tracking:
    - store baseline and samples in a local TSV or similar lightweight artifact when the operator asks to track progress over time;
    - report absolute counts plus deltas from baseline, not vibes;
@@ -109,7 +110,8 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - record only the secret name, repo, and result, never the value;
    - ask for the narrowest required token permissions when the operator asks.
    - after repo/workflow setup, verify the full path: local checks, remote CI, workflow registration, live smoke, and external service permissions;
-   - when an external service blocks on namespace/org permission, report the exact error and prefer manual resource creation over widening token permissions.
+   - when an external service blocks on namespace/org permission, report the exact error and prefer manual resource creation over widening token permissions;
+   - after the operator changes token or external-service permissions, rerun the exact failed workflow/run/SHA first and pull the fresh log. Do not rebuild the whole setup or broaden permissions until the new failure proves a different boundary.
 18. When broadcasting updates to active workers:
    - send the update to every assigned pane, not only the active pane;
    - if Codex shows "tab to queue message" or similar, queue the message, press Enter/CR, and then verify the update appears in that worker's log;
@@ -121,8 +123,11 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - stay silent unless a lane needs attention, finishes, blocks, begins risky external mutation, or the operator asks for a floor read;
    - stop or replace old local watch loops before starting a new monitoring mode;
    - track which evidence is fresh vs memory-derived.
-20. For OpenClaw lanes, apply `references/openclaw-lane-matrix.md`.
-21. Preserve the lane taxonomy unless the operator overrides it:
+20. When a worker reports broad test or sweep findings:
+   - separate confirmed product/plugin defects from harness, fixture, Testbox, sparse-checkout, dependency, and stale-analysis noise;
+   - name the evidence that makes each issue real, and say when a suspicious result is not confirmed yet.
+21. For OpenClaw lanes, apply `references/openclaw-lane-matrix.md`.
+22. Preserve the lane taxonomy unless the operator overrides it:
    - `L1`: fixes and maintainer hygiene.
    - `L2`: feature work.
    - `L3`: exploratory work.
