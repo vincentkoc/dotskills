@@ -27,7 +27,11 @@ If the operator repeats a pane id or gives conflicting assignments, preserve the
 - Respect active worker ownership. Inspect before intervening.
 - Do not start duplicate heavy checks if a worker already has a Testbox, GitHub Actions run, or local heavy-check lane active.
 - Prefer Testbox evidence for broad, Docker, live, E2E, release, and complex validation.
+- In maintainer Testbox-only lanes, all `pnpm` validation/check/test/build/format/docs-list commands must run inside Blacksmith Testbox. Non-pnpm `git`, `gh`, and file inspection can stay local.
+- If `OPENCLAW_TESTBOX=1 pnpm <script>` still starts local work, interrupt it and switch to an explicit Blacksmith run such as `blacksmith testbox run --id <tbx> "env OPENCLAW_TESTBOX=1 pnpm <script>"` or the repo's explicit `pnpm testbox -- pnpm <script>` path.
 - Track Testbox ids, GitHub run ids, PR/issue URLs, branch/worktree path, and exact failing shard.
+- Fetch/rebase onto current `origin/main` immediately before changed gates. If Testbox pulls unrelated failures from a stale base, rebase first and rerun in the same box before blaming the patch.
+- If a Testbox sync leaves remote dependencies missing, classify it as Testbox environment drift and repair inside the box; do not run `pnpm install` in the local Codex worktree or label missing packages as product failures.
 - For local sparse Codex worktrees, node dependency failures can be local setup noise. Verify inside Testbox or the canonical repo before declaring product failure.
 - For CodeQL, distinguish stale analyses from current `main` analyses. Re-check `commit_sha`, category, and `results_count`.
 - For clownfish, the real queue may be local markdown/jobs, not GitHub issues. Confirm the actual queue root before mutating jobs.
@@ -44,8 +48,9 @@ When the operator asks to spin up new OpenClaw work in a lane:
 - Put the exact worktree path in the worker prompt and explicitly say not to use the main checkout.
 - Tell workers not to run `pnpm install` in Codex worktrees.
 - Tell workers to commit/push small slices to `main` only after scoped proof, and to use Testbox for broad validation.
+- For OpenClaw PR closeout lanes, include the stricter rule up front: no direct local `pnpm` validation/check/test/build/format/docs-list. Use Blacksmith Testbox for every `pnpm` command.
 - Launch in YOLO/no-sandbox mode from the target cwd with the prompt file passed as Codex's initial prompt argument; do not paste large here-docs into multiple panes or use stdin redirection for Codex TUI launches.
-- After launch, verify cwd, pane title, first Codex screen, directory trust prompts, and that the worker received the intended mission.
+- After launch, press Enter/CR if the initial prompt is staged but not submitted, then verify cwd, pane title, first Codex screen, directory trust prompts, and that the worker received the intended mission.
 
 For OpenClaw-adjacent review-only repos such as `clawbench`, do not force the `gwt` pattern unless the operator asks for implementation. Clone or pull the target repo, launch YOLO from that checkout, and keep the worker review-first with no code edits.
 
@@ -56,6 +61,7 @@ For OpenClaw-adjacent review-only repos such as `clawbench`, do not force the `g
 - Before taking over a stuck coordinator, inspect existing Testbox ids and local processes. If a check is still running, wait or reuse it; if it is only `ready`/stale, record that and run cheap checks rather than another broad gate.
 - For PR queues, keep the queue state local to the manager: pending, assigned, blocked, merged, closure-needed, done. Reassign only after checking live PR metadata.
 - Closure workers must address unresolved review/Aisle/Greptile comments or prove they are stale, then close linked duplicate/stale issues and PRs with a short thankful reason tied to the merged PR.
+- If the operator issues an urgent policy update, broadcast it to every worker, submit it with Enter/CR, verify it appears in each worker log, and collect each worker's report of any local command already started.
 
 ## Status heuristics
 

@@ -52,6 +52,7 @@ The manager should behave like an area manager:
 - For review workers, keep them in review mode until the operator explicitly flips them into implementation.
 - When the operator reallocates work, reduce ambiguity fast: one coordinator owns final mutation; superseded workers become report-only.
 - For many similar jobs, run a queue instead of pretending every pane can merge independently.
+- A message is not delivered until it is submitted and observed in the worker log. Staged text in a Codex input box does not count.
 
 The manager is not a hidden autonomous boss. It is a transparent control surface for the operator.
 

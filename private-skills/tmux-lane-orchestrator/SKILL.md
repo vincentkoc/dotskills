@@ -5,7 +5,7 @@ license: Proprietary
 compatibility: Requires tmux. Codex log inspection expects local session logs under ~/.codex/sessions.
 metadata:
   internal: true
-  version: "0.1.3"
+  version: "0.1.4"
   spec: agentskills-v1
 ---
 
@@ -71,6 +71,7 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - default worker jobs to YOLO mode / no sandbox / no approval prompts unless the operator says to use a safer mode;
    - avoid multi-line here-doc paste directly into multiple panes because tmux can interleave input and corrupt both commands;
    - set a useful pane title before launch, then verify cwd, command, first screen, and trust prompts from scrollback;
+   - after launch, submit the staged prompt with Enter/CR if Codex has not begun responding; do not leave the prompt sitting in the input area;
    - if Codex asks for directory trust and the target repo is intended, clear that prompt once and record it in the summary.
 11. When assigning OpenClaw work to a fresh worker, create or verify the requested `gwt` worktree first. The worker prompt must name the exact worktree path, forbid touching the main checkout, forbid `pnpm install` inside Codex worktrees, require `node_modules` symlink verification, and route broad validation through Testbox.
 12. When launching a review-first worker:
@@ -97,14 +98,19 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - prefer setting secrets with `gh secret set <NAME> --repo <owner/repo>` using stdin from a shell variable, then unset the variable;
    - record only the secret name, repo, and result, never the value;
    - ask for the narrowest required token permissions when the operator asks.
-16. For watch loops:
+16. When broadcasting updates to active workers:
+   - send the update to every assigned pane, not only the active pane;
+   - if Codex shows "tab to queue message" or similar, queue the message, press Enter/CR, and then verify the update appears in that worker's log;
+   - for urgent validation policy changes, ask each worker to report any already-started command and whether it was stopped, completed, or moved to the correct surface;
+   - scan processes after the broadcast and stop only the specific disallowed validation commands you own, not the whole worker.
+17. For watch loops:
    - use the operator's requested cadence;
    - keep the job open and keep messages short, like the L2 operator style;
    - stay silent unless a lane needs attention, finishes, blocks, begins risky external mutation, or the operator asks for a floor read;
    - stop or replace old local watch loops before starting a new monitoring mode;
    - track which evidence is fresh vs memory-derived.
-17. For OpenClaw lanes, apply `references/openclaw-lane-matrix.md`.
-18. Preserve the lane taxonomy unless the operator overrides it:
+18. For OpenClaw lanes, apply `references/openclaw-lane-matrix.md`.
+19. Preserve the lane taxonomy unless the operator overrides it:
    - `L1`: fixes and maintainer hygiene.
    - `L2`: feature work.
    - `L3`: exploratory work.
