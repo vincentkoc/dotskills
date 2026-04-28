@@ -5,7 +5,7 @@ license: Proprietary
 compatibility: Requires tmux. Codex log inspection expects local session logs under ~/.codex/sessions.
 metadata:
   internal: true
-  version: "0.1.6"
+  version: "0.1.7"
   spec: agentskills-v1
 ---
 

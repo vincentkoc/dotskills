@@ -32,8 +32,11 @@ If the operator repeats a pane id or gives conflicting assignments, preserve the
 - Track Testbox ids, GitHub run ids, PR/issue URLs, branch/worktree path, and exact failing shard.
 - Fetch/rebase onto current `origin/main` immediately before changed gates. If Testbox pulls unrelated failures from a stale base, rebase first and rerun in the same box before blaming the patch.
 - If a Testbox sync leaves remote dependencies missing, classify it as Testbox environment drift and repair inside the box; do not run `pnpm install` in the local Codex worktree or label missing packages as product failures.
+- Sparse local worktrees can damage a full Testbox checkout during sync by applying sparse deletions. For broad gates, prefer resetting the Testbox checkout to the pushed PR branch or exact SHA, fetch/refresh `origin/main` inside the box, then run the pnpm gate there.
+- If a warmed Testbox stops accepting its SSH key or belongs to another lane/ref, mark it unusable for this task. Warm one replacement and record why instead of fighting or hijacking another worker's box.
 - After repeated passing cheap checks on a hot `main`, switch to a tight last-mile push loop: fetch, rebase, `git diff --check origin/main..HEAD`, push `HEAD:main`, and retry a bounded number of times on non-fast-forward rejection. Do not keep rerunning slow lint between every rejected push unless the rebase touches that surface.
 - If a patch supersedes an in-flight Testbox/CI run, stop or ignore the stale run with that reason recorded. Poll the exact current run instead of starting more validation lanes.
+- For exact-SHA GitHub red checks, classify by touched surface before editing: inspect logs, compare against the PR diff, rerun failed jobs once when they look flaky or base-noisy, and record run/job ids. If proof is green on the touched surface and branch protection allows a normal squash merge over unrelated non-required reds, merging can be reasonable. If the red check is required, security-sensitive, or still plausibly caused by the PR, hold with exact blockers.
 - For local sparse Codex worktrees, node dependency failures can be local setup noise. Verify inside Testbox or the canonical repo before declaring product failure.
 - For CodeQL, distinguish stale analyses from current `main` analyses. Re-check `commit_sha`, `ref`, category, analysis key, and `results_count`.
 - When new CodeQL runners/categories land, do not allocate implementation from the old open-alert count alone. Inspect recent analyses first:
@@ -46,6 +49,7 @@ If the operator repeats a pane id or gives conflicting assignments, preserve the
   - plugin-surface defects: runtime capture API mismatches, missing exported aliases, registration output polluting JSON protocols, or actual install/doctor/enable-disable failures;
   - fixture/harness debt: missing test config such as embedding settings, sparse checkout gaps, Testbox full-sync dependency drift, Docker shard silence, or local `node_modules` loss;
   - suspicious-but-unproven: one slow plugin or a retry that later passes. Keep watching, but do not file it as a product bug yet.
+- For pre-release plugin certainty, use the repo's `openclaw-pre-release-plugin-testing` skill when present. Avoid re-running already-green install/uninstall sweeps; target the remaining confidence gaps: package acceptance, doctor/fix corruption, config round-trip, gateway bootstrap, SDK consumer smoke, and live-ish credential availability.
 
 ## Worker launch rules
 
@@ -59,6 +63,7 @@ When the operator asks to spin up new OpenClaw work in a lane:
 - Tell workers not to run `pnpm install` in Codex worktrees.
 - Tell workers to commit/push small slices to `main` only after scoped proof, and to use Testbox for broad validation.
 - For OpenClaw PR closeout lanes, include the stricter rule up front: no direct local `pnpm` validation/check/test/build/format/docs-list. Use Blacksmith Testbox for every `pnpm` command.
+- In Testbox-only lanes, local commit helpers, pre-commit hooks, formatters, and docs-list commands can still shell out to `pnpm`. Inspect or bypass those paths when needed, and report any local pnpm already started before an urgent policy update.
 - Launch in YOLO/no-sandbox mode from the target cwd with the prompt file passed as Codex's initial prompt argument; do not paste large here-docs into multiple panes or use stdin redirection for Codex TUI launches.
 - After launch, press Enter/CR if the initial prompt is staged but not submitted, then verify cwd, pane title, first Codex screen, directory trust prompts, and that the worker received the intended mission.
 
@@ -71,6 +76,8 @@ For OpenClaw-adjacent review-only repos such as `clawbench`, do not force the `g
 - Branch-only slice workers must stop after reporting commit SHA, checks, branch HEAD, and blockers when a coordinator takes over.
 - Before taking over a stuck coordinator, inspect existing Testbox ids and local processes. If a check is still running, wait or reuse it; if it is only `ready`/stale, record that and run cheap checks rather than another broad gate.
 - For PR queues, keep the queue state local to the manager: pending, assigned, blocked, merged, closure-needed, done. Reassign only after checking live PR metadata.
+- In PR closeout, re-check Aisle/Greptile after each pushed fix before merging. Bots can replace an old finding with a new, valid one; handle or prove it stale with code/test evidence before closeout.
+- Rebase churn is usually `CHANGELOG.md`; preserve current `origin/main` entries and insert the PR credit once in the active Unreleased section. If the post-rebase range contains unrelated reverse-diffs, fetch and rebase again before pushing.
 - For clownfish or other backlog reducers, track live issue/PR counts with baseline and delta. If the queue worker stops to explain failed jobs, classify it as needs-manager and either kick it back into queue handling or ask the operator whether to inspect the failures.
 - Closure workers must address unresolved review/Aisle/Greptile comments or prove they are stale, then close linked duplicate/stale issues and PRs with a short thankful reason tied to the merged PR.
 - If the operator issues an urgent policy update, broadcast it to every worker, submit it with Enter/CR, verify it appears in each worker log, and collect each worker's report of any local command already started.
