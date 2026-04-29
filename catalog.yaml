@@ -102,3 +102,10 @@ skills:
     source: local
     tags: [github, triage, dedupe, issue-pr]
     version: 0.1.0
+
+  - id: operations-worktree
+    name: Operations Worktree
+    path: skills/operations-worktree
+    source: local
+    tags: [git, worktree, operations, workflow]
+    version: 0.1.0

@@ -1,21 +1,23 @@
 ---
 name: openclaw-github-dedupe
-description: Investigate a cluster of GitHub issues and PRs, determine canonical candidates, post duplicate/related status, preserve contributor credit, and execute cleanup actions (comments, closes, labels, changelog touchpoints).
+description: Investigate a cluster of GitHub issues and PRs, determine canonical candidates, post duplicate/related status, preserve contributor credit, and execute cleanup actions. Supports autonomous mode for provided-link-only closeout, merge/fix follow-through, changelog, and post-merge issue/PR cleanup.
 license: AGPL-3.0-only
 metadata:
-  short-description: GitHub triage for issue/PR clusters and dedupe decisions
+  short-description: GitHub triage for issue/PR clusters, autonomous closeout, and dedupe decisions
   source: "https://github.com/vincentkoc/dotskills"
 ---
 
 # Issue/PR Cluster Deduper
 
-Use this skill when a cluster of GitHub issues and pull requests has been reported for a common failure mode (Slack, iMessage, support threads, or manual list), and you need an evidence-based dedupe recommendation or execution.
+Use this skill when a cluster of GitHub issues and pull requests has been reported for a common failure mode (Slack, iMessage, support threads, or manual list), and you need an evidence-based dedupe recommendation, execution pass, or autonomous closeout run.
 
 ## Purpose
 
 Provide a consistent, evidence-driven triage pass for issue and PR clusters so duplicate work is folded, contributor credit is preserved, and cleanup actions stay auditable.
 
 Execution is command-led and conservative: drive decisions from `gh` readbacks plus deterministic file/metadata checks only, and avoid speculative local analysis beyond triage logic.
+
+Autonomous mode is different from broad dedupe: it starts from user-provided links/refs, follows only links found inside those refs, first decides whether the cluster is still viable and needed against current `main`, then drives the selected fix/merge/closure path to completion when repo policy allows.
 
 Primary goal: make every run action-ready with explicit per-item actions, links, and command outcomes.
 
@@ -62,7 +64,7 @@ This workflow is designed for high-velocity maintainers and external contributor
 ## Inputs
 
 - `cluster_refs` (required): list of issue/PR references as IDs or URLs.
-- `mode` (optional): `plan` (default) or `execute`.
+- `mode` (optional): `plan` (default), `execute`, or `autonomous`.
 - `channel` (optional): source context like `slack`, `imessage`, `support`, etc.
 - `repo` (optional): explicit `owner/repo` when not using current checkout.
 - `canonical_hint` (optional): explicit preference when ambiguity exists.
@@ -79,6 +81,33 @@ This workflow is designed for high-velocity maintainers and external contributor
 - `triage_report` (optional): path to a triage report file (like `/Users/vincentkoc/Desktop/triage_report.md`) to seed initial cluster candidates.
 - `search_limit` (optional): max similar items per item from GH search; default `12`.
 - `search_queries` (optional): explicit query terms (space-separated).
+
+## Autonomous mode
+
+Trigger this path only when the user explicitly says `autonomous mode` or sets `mode=autonomous`. This is closeout work, not exploration.
+
+- Do not run a broad GitHub search by default.
+- Start only from refs/URLs the user supplied, refs linked from those issue/PR bodies, comments, review threads, closing refs, commit messages, and PR descriptions, or refs in an explicit local cluster artifact.
+- If you need a broad search, stop and state the exact reason. Do not silently expand.
+- Prefer full GitHub URLs in comments and final output.
+- Do not ask before routine issue closeout when confidence is high and repo policy allows it. Ask before bulk PR close/reopen when local repo instructions require it.
+
+Before editing, merging, or closing anything, prove the cluster is still actionable against current `main`:
+
+1. Fetch current `origin/main` and identify whether the reported behavior is already fixed, obsolete, or still reproduces from code/tests.
+2. Hydrate every provided/ref-linked item with `gh issue view` or `gh pr view`; include bodies, comments, labels, state, checks, review threads, and linked closing refs.
+3. Classify each item as `needed`, `covered`, `stale`, or `independent`.
+4. Identify the canonical path: existing merged commit/PR, existing open PR if mergeable or repairable, or new fix branch/PR only if no viable PR exists and the bug is confirmed from code/tests.
+5. Do not enter drive mode until the canonical path and closeout target are explicit.
+
+- If an open PR is canonical: address actionable review comments, fix CI/changelog, rebase on `main`, run targeted local gates, push, wait for relevant checks, and merge per repo policy.
+- If `main` already contains the fix: use that merged PR/commit as canonical and close only high-confidence covered duplicates.
+- If no PR exists and the bug is real: create a worktree/branch from `origin/main`, patch the smallest implicated surface, add focused tests/changelog when user-facing, open a draft PR, drive it through review/CI where permitted, then merge when clean.
+- After merge/fix confirmation: close covered issues/PRs with a short comment naming the canonical full URL and why the item is covered.
+- Leave independent or low-confidence items open with a relationship comment only when useful.
+- Verify closure state with `gh issue view` / `gh pr view` after actions.
+
+Autonomous mode final output may be compact, but it must include: canonical URL, landed commit/PR state, validation performed, closed refs, and items intentionally left open.
 
 ## Outputs
 
@@ -135,13 +164,14 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
    - Resolve each input to canonical links and types.
    - Skip malformed entries with a reasoned note for `manual-review-required`.
 
-2. Similarity sweep (required)
+2. Similarity sweep (required except autonomous mode)
    - Use the supplied `cluster-intake-agent` summary as the primary seed.
    - Expand search surface by running GitHub queries for additional candidates and include likely neighbors in the same root-cause family.
    - Pull:
      - `gh issue list --search "<query> in:title" --state all --repo <repo> --json number,title,url,state,author,updatedAt,labels`
      - `gh pr list --search "<query> in:title" --state all --repo <repo> --json number,title,url,state,author,updatedAt,isDraft,mergeable`
    - Keep likely matches when title/body overlap is explicit, not keyword-only.
+   - In autonomous mode, skip this step unless the user explicitly asks for broad discovery. Instead, expand only by refs linked from the provided items.
 
 3. Fetch evidence from GitHub
    - For PRs: `gh pr view <ref> --json number,title,body,state,author,labels,createdAt,updatedAt,mergedAt,closedAt,mergeable,mergeStateStatus,isDraft,changedFiles,additions,deletions,statusCheckRollup,commits,url`
@@ -149,6 +179,7 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
    - Pull file footprint for PRs when deciding canonical scope: `gh pr diff <ref> --name-only`
    - Pull check state for PRs: `gh pr checks <ref>`
    - Pull review/AI-tool signal text: `gh issue view <ref> --json comments`
+   - In autonomous mode, also pull PR review threads with GraphQL when review comments can block merge or need resolution.
 
 3. Normalize guardrails
    - Mergeability: mergeable flag, merge-state blockers, draft state, check rollup status.
@@ -171,6 +202,12 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
    - Unrelated: split into a separate cluster/routing note.
    - For any hard-stop failure: keep `manual-review-required` with explicit blockers.
 
+5a. Autonomous viability decision
+   - Compare the candidate root cause to current `origin/main`.
+   - If a fix is already merged, switch canonical target to the landed PR/commit and drive duplicate closeout.
+   - If an open PR is stale or non-maintainer-editable but directionally useful, rework on a fresh branch/PR rather than landing unsafe code.
+   - If the cluster is not viable or is already closed by unrelated main changes, close only clearly covered items and leave a short audit trail.
+
 6. Merge and changelog follow-up
    - If execute + winning PR is green:
      - prefer merge/land helper when available
@@ -178,10 +215,12 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
      - rerun check discovery and report final state
    - If changelog is needed, add only once under Unreleased `### Fixes` and do not duplicate existing entries.
    - If changelog cannot be added before merge, create a follow-up squash commit only if required by repo policy.
+   - In autonomous mode, treat changelog placement as part of the fix, not optional cleanup.
 
 7. Emit outcomes
    - In `plan` mode: only draft comments, labels, close commands, and blockers.
    - In `execute` mode: run only safe GH mutations after all guardrails pass.
+   - In `autonomous` mode: run safe GH mutations, code edits, PR updates, merges, and closeout actions after the viability gate passes.
    - Return final output using the required format below.
 
 8. Review for governance drift

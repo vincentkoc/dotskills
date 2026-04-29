@@ -10,8 +10,14 @@
     {
       "name": "openclaw-github-dedupe",
       "source": "./skills/openclaw-github-dedupe",
-      "description": "Use this skill when a cluster of GitHub issues and pull requests has been reported for a common failure mode (Slack, iMessage, support threads, or manual list), and you need an evidence-based dedupe recommendation or execution.",
+      "description": "Use this skill when a cluster of GitHub issues and pull requests has been reported for a common failure mode (Slack, iMessage, support threads, or manual list), and you need an evidence-based dedupe recommendation, execution pass, or autonomous closeout run.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill openclaw-github-dedupe -y"
+    },
+    {
+      "name": "operations-worktree",
+      "source": "./skills/operations-worktree",
+      "description": "Create and manage worktrees safely and consistently across projects while avoiding stale branch bases.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill operations-worktree -y"
     },
     {
       "name": "technical-deslop",
