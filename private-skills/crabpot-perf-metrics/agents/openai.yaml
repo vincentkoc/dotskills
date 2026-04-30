@@ -1,0 +1,7 @@
+interface:
+  display_name: "Crabpot Perf Metrics"
+  short_description: "Interpret Crabpot/OpenClaw perf profiles and dashboard deltas."
+  default_prompt: "Compare Crabpot perf artifacts across refs and explain the meaningful runtime, import-loop, RSS, CPU, and lifecycle changes."
+
+policy:
+  allow_implicit_invocation: true
