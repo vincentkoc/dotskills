@@ -54,6 +54,13 @@ skills:
     tags: [quality, cleanup, style]
     version: 0.1.0
 
+  - id: crawlkit
+    name: Crawlkit
+    path: skills/crawlkit
+    source: local
+    tags: [go, crawlkit, crawler, sqlite, tui]
+    version: 0.1.0
+
   - id: ghcrawl-cluster-operator
     name: ghcrawl Cluster Operator
     path: skills/ghcrawl-cluster-operator

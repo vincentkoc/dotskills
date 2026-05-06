@@ -9,6 +9,12 @@
   },
   "plugins": [
     {
+      "name": "crawlkit",
+      "source": "./skills/crawlkit",
+      "skills": "./",
+      "description": "Maintain crawlkit, the shared Go library for crawl app archive infrastructure."
+    },
+    {
       "name": "ghcrawl-cluster-operator",
       "source": "./skills/ghcrawl-cluster-operator",
       "skills": "./",
