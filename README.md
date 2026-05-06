@@ -32,6 +32,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 | Skill | What it does | Install |
 |---|---|---|
 | `crawlkit` | Maintain and release the shared crawl app Go library. | `npx skills add vincentkoc/dotskills --skill crawlkit -y` |
+| `graincrawl` | Maintain and release the local-first Granola archive CLI. | `npx skills add vincentkoc/dotskills --skill graincrawl -y` |
 | `ghcrawl-cluster-operator` | Operate ghcrawl local sync, clustering, and cluster inspection from the CLI. | `npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y` |
 | `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
 | `operations-worktree` | Create safe git worktrees from fresh remote defaults instead of stale local branches. | `npx skills add vincentkoc/dotskills --skill operations-worktree -y` |
@@ -55,6 +56,7 @@ npx skills add vincentkoc/dotskills --skill technical-skill-finder -y
 npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y
 npx skills add vincentkoc/dotskills --skill operations-worktree -y
 npx skills add vincentkoc/dotskills --skill crawlkit -y
+npx skills add vincentkoc/dotskills --skill graincrawl -y
 ```
 
 List available public skills:

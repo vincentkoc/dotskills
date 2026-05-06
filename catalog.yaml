@@ -61,6 +61,13 @@ skills:
     tags: [go, crawlkit, crawler, sqlite, tui]
     version: 0.1.0
 
+  - id: graincrawl
+    name: Graincrawl
+    path: skills/graincrawl
+    source: local
+    tags: [graincrawl, granola, crawler, sqlite, cli]
+    version: 0.1.0
+
   - id: ghcrawl-cluster-operator
     name: ghcrawl Cluster Operator
     path: skills/ghcrawl-cluster-operator

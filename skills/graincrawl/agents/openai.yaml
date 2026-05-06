@@ -1,0 +1,10 @@
+interface:
+  display_name: "🌾 Graincrawl"
+  short_description: "Maintain and release the local-first Granola archive CLI."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Maintain graincrawl or verify a graincrawl release while preserving read-only Granola boundaries and SQLite-first archive behavior."
+
+policy:
+  allow_implicit_invocation: true
