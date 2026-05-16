@@ -32,6 +32,12 @@
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill operations-worktree -y"
     },
     {
+      "name": "semantic-slicing",
+      "source": "./skills/semantic-slicing",
+      "description": "Turn a large repo into reviewable semantic slices with evidence. Use code shape, threat candidates, issue clusters, and support chatter together so review budget lands on the right parts of the system.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill semantic-slicing -y"
+    },
+    {
       "name": "technical-deslop",
       "source": "./skills/technical-deslop",
       "description": "Clean branch/staged diffs by removing AI-style slop and restoring repo-consistent style without changing behavior.",

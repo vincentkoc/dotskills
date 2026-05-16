@@ -36,6 +36,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 | `ghcrawl-cluster-operator` | Operate ghcrawl local sync, clustering, and cluster inspection from the CLI. | `npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y` |
 | `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
 | `operations-worktree` | Create safe git worktrees from fresh remote defaults instead of stale local branches. | `npx skills add vincentkoc/dotskills --skill operations-worktree -y` |
+| `semantic-slicing` | Build local feature, threat, issue, and support maps for focused repo review. | `npx skills add vincentkoc/dotskills --skill semantic-slicing -y` |
 | `technical-deslop` | Ship clean diffs fast: remove AI noise and keep behavior unchanged. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
 | `technical-documentation` | Produce dev‑ready docs: clear, structured build/review for brownfield + evergreen. | `npx skills add vincentkoc/dotskills --skill technical-documentation -y` |
 | `technical-integrations` | Design integrations that land: vendor‑agnostic API/RFC/SDK plans with rollout safety. | `npx skills add vincentkoc/dotskills --skill technical-integrations -y` |
@@ -57,6 +58,7 @@ npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y
 npx skills add vincentkoc/dotskills --skill operations-worktree -y
 npx skills add vincentkoc/dotskills --skill crawlkit -y
 npx skills add vincentkoc/dotskills --skill graincrawl -y
+npx skills add vincentkoc/dotskills --skill semantic-slicing -y
 ```
 
 List available public skills:

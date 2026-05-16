@@ -39,6 +39,12 @@
       "description": "Create and manage worktrees safely and consistently across projects while avoiding stale branch bases."
     },
     {
+      "name": "semantic-slicing",
+      "source": "./skills/semantic-slicing",
+      "skills": "./",
+      "description": "Turn a large repo into reviewable semantic slices with evidence. Use code shape, threat candidates, issue clusters, and support chatter together so review budget lands on the right parts of the system."
+    },
+    {
       "name": "technical-deslop",
       "source": "./skills/technical-deslop",
       "skills": "./",
