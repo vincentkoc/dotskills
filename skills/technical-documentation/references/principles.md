@@ -1,42 +1,103 @@
-# Documentation Principles
+# OpenClaw Documentation Principles
 
-This reference consolidates the core rules used by this skill.
+Use these rules as the governing model for OpenClaw docs work.
 
-## Matt Palmer: 8 rules for better docs
+## Reader model
 
-Source: https://mattpalmer.io/posts/2025/10/8-rules-for-better-docs/
+1. Lead with the OpenClaw task the reader is trying to complete.
+2. Give one recommended path before alternatives.
+3. Keep main docs focused on the 80/20 scenario.
+4. Move dense contracts, exhaustive fields, rare debugging paths, generated
+   material, and maintainer-only detail to linked reference/support pages.
+5. Put production risks exactly where the reader can make the mistake.
+6. Link concepts, guides, references, CLI pages, SDK docs, testing, and
+   troubleshooting so readers can continue without rereading.
 
-Use these as default operating principles:
+## Page types
 
-1. Write for humans, optimize for agents.
-2. Start with a funnel: what/why, quickstart, next steps.
-3. Use Diataxis to scaffold content.
-4. Write with AI, but structure for agents.
-5. Offload routine docs operations to background agents.
-6. Automate quality with CI.
-7. Automate scaffolding and repetitive workflow tasks.
-8. Make contribution easy and visible.
+Choose a page type before writing:
 
-## OpenAI cookbook: what makes documentation good
+- Overview: route readers to the right product area, integration path, or guide.
+- Quickstart: get a new user to a working result with the fewest safe steps.
+- Topic page: explain a major OpenClaw entity or surface end to end.
+- Guide: walk through one workflow from prerequisites to production readiness.
+- API/SDK/CLI reference: define every object, method, command, option, response,
+  error, enum, default, and version rule in scope.
+- Testing guide: show sandbox setup, fixtures, simulated failures, and live-mode
+  differences.
+- Troubleshooting guide: map observable symptoms to checks, causes, and fixes.
+- Maintainer note: capture internal flow, proof, rollout, or release behavior in
+  the configured memory/spec location instead of public docs unless the user
+  explicitly asks for public docs.
+- Governance file: keep agent/contributor policy concrete, scoped, and aligned
+  with current OpenClaw repo behavior.
 
-Source: https://cookbook.openai.com/articles/what_makes_documentation_good
+## Topic page default
 
-Key quality constraints:
+Use this shape for major-entity pages:
 
-- Prefer specific and accurate terminology over niche jargon.
-- Keep examples self-contained and minimize dependencies.
-- Prioritize high-value topics over edge-case depth.
-- Do not teach unsafe patterns (for example, exposed secrets).
-- Open with context that helps readers orient quickly.
-- Apply empathy and override rigid rules when it clearly improves outcomes.
+1. Title naming the entity or surface.
+2. Unheaded opening that says what it is, what it owns, and what it does not
+   own.
+3. Requirements, only when setup needs accounts, versions, permissions, plugins,
+   operating systems, or credentials.
+4. Quickstart with the recommended path and smallest reliable verification.
+5. Configuration with task-critical options inline and exhaustive details linked
+   to reference docs.
+6. Major subtopics organized by reader intent, not under a generic
+   "Subtopics" heading.
+7. Troubleshooting with observable failures and concrete checks.
+8. Related links to guides, references, commands, concepts, and adjacent topics.
 
-## Practical merge policy
+## OpenClaw terminology
 
-When these rules conflict:
+- Use **OpenClaw** for the product and `openclaw` for CLI/package/path/config.
+- Use **plugin/plugins** in product docs and user-facing text.
+- Treat `extensions/` as an internal repository layout term; use it only when
+  a file path or internal contributor instruction requires it.
+- Prefer concrete OpenClaw nouns: agent profile, Gateway webhook, plugin
+  manifest, channel, provider, session state, capability, migration plan.
+- Define OpenClaw-specific jargon before first use.
 
-1. Preserve reader task success first.
-2. Preserve structural clarity second.
-3. Preserve long-term maintainability third.
-4. Add agent optimization only if it does not reduce human clarity.
+## Writing style
 
-For agent-instructions and contributor-governance specifics (AGENTS/aliases/CONTRIBUTING), use `references/agent-and-contributing.md` as the detailed additional source of truth.
+- Use present tense, active voice, and direct instructions.
+- Address the reader as "you" for procedural steps.
+- Use short paragraphs and scannable lists.
+- Use sentence case headings unless a product name, command, or identifier
+  requires capitalization.
+- Use descriptive link text; avoid "this page" and "click here."
+- Avoid marketing language, hype, generic benefits, and vague claims.
+- Avoid culturally specific idioms, jokes, and image/color-only instructions.
+- Use "must" for requirements, "can" for optional capability, "recommended" for
+  the default path, and "avoid" for known footguns.
+- Explain "why" only when it changes a developer decision.
+
+## Examples
+
+- Prefer complete copy-pasteable commands and snippets.
+- Use realistic variable names and values.
+- Mark placeholders with angle-bracket names such as `<API_KEY>` or
+  `<CUSTOMER_ID>`.
+- Show expected success output after commands when it helps verification.
+- Keep one conceptual unit per code block and use language-specific fences.
+- Avoid examples that hide setup, auth, error handling, or cleanup.
+
+## Review rubric
+
+Use this rubric for every docs review:
+
+- `accurate`: source, tests, current behavior, shipped behavior, and dependency
+  contracts support the statement.
+- `helpful`: the page answers the reader's task without making them infer key
+  steps.
+- `concise`: the main path is not buried under rare details or repeated prose.
+- `complete within scope`: the page covers what it claims and names intentional
+  limits.
+- `maintainable`: source of truth, generated content, ownership, and refresh
+  triggers are clear.
+- `findable`: title, headings, docs-list hints, nav placement, and related links
+  match likely reader intent.
+
+Accuracy is a hard gate. A concise page that is wrong or unverified is not
+acceptable.

@@ -1,32 +1,49 @@
-# Documentation Tooling Guide
+# OpenClaw Docs Tooling Guide
 
-Source: https://www.mintlify.com/blog/top-7-api-documentation-tools-of-2025
+Use this file when platform, routing, generated docs, or validation choices
+matter.
 
-Use this file when deciding build/review expectations for doc platforms.
+## OpenClaw docs stack
 
-## Tool-selection checkpoints
+- Public docs source lives under `docs/**`.
+- Navigation and page grouping live in `docs/docs.json`.
+- Use `pnpm docs:list` to discover indexed docs and docs-list routing hints.
+- Treat filesystem paths, Mintlify routes, redirects, and published
+  `https://docs.openclaw.ai/...` URLs as separate maps.
+- Generated references, redirect-only pages, and hidden support pages should not
+  be added to visible nav without an explicit reason.
 
-- Existing stack lock-in: do not force migration for minor gains.
-- API workflow depth: generated references, OpenAPI support, testability.
-- Collaboration model: docs-as-code, review workflow, versioning.
-- Runtime quality: search, navigation, and copy-ready code snippets.
-- AI readiness: structured content, stable URLs, machine-friendly layout yet human readable.
-- Human readiness: reading complexity, reading UX, navigation depth, minimize jargon.
+## Path and route checks
 
-## Apply in brownfield mode
+- Resolve docs paths relative to the config or source that declares them.
+- Verify `docs/docs.json` entries point to existing files or intentional routes.
+- Verify moved docs keep addressability through redirects or stable related
+  links when needed.
+- When reporting published docs, include the relevant full
+  `https://docs.openclaw.ai/...` URL.
 
-- Prioritize compatibility with the current platform.
-- Use available components and style conventions before introducing new patterns.
-- Propose migration only when current constraints block critical outcomes.
+## Validation commands
 
-## Apply in evergreen mode
+Use the narrowest commands that prove the touched surface:
 
-- Favor platforms and templates that make routine updates low-friction.
-- Standardize section templates to reduce drift.
-- Capture ownership, update cadence, and stale-content detection rules.
+```bash
+pnpm docs:list
+pnpm docs:check-mdx
+pnpm docs:check-links
+pnpm docs:check-i18n-glossary
+pnpm format:docs:check
+pnpm lint:docs
+git diff --check
+```
 
-## Review implications
+Generated docs, plugin inventories, labeler changes, or scripts may require
+their own inventory/generated checks. Behavior claims may require source-backed
+tests or command probes beyond docs checks.
 
-- Check whether content uses platform primitives correctly (tabs, callouts, endpoint blocks).
-- Flag docs that are technically correct but hard to scan in the chosen platform.
-- Recommend platform-specific improvements only when they reduce cognitive load.
+## Platform-fit review
+
+- Prefer existing OpenClaw/Mintlify components and navigation patterns.
+- Do not propose a docs-platform migration for ordinary content problems.
+- Keep key facts in text, not image-only screenshots.
+- Prefer stable anchors, descriptive headings, and structured tables only when
+  they reduce lookup effort.

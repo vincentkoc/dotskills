@@ -1,111 +1,86 @@
-# AGENT and CONTRIBUTING Principles
+# OpenClaw Agent and Contributor Docs
 
-This reference consolidates the core rules for agent-policy and contributor-governance docs.
+Use this reference for OpenClaw `AGENTS.md`, `CONTRIBUTING.md`, CODEOWNERS,
+labeler, changelog, and adjacent governance documentation.
 
-You must:
-1. Discover repo-level and nested instruction files with:
-   `rg --files -g 'AGENTS.md' -g 'CONTRIBUTING.md' -g 'CLAUDE.md' -g 'AGENT.md' -g '.cursor/rules/*' -g '.cursorrules' -g '.agent/**' -g '.agents/**' -g '.pi/**' -g 'AGENTS.*.md'`
-2. Read the root and nearest-scope `AGENTS.md`/`CONTRIBUTING.md` pair before editing.
-3. If alias files exist, normalize to one canonical source (`AGENTS.md` preferred when present; otherwise nearest alias), plus compatibility pointers or explicit symlink notes.
-4. Document conflicting instructions and precedence decisions.
+## Required discovery
 
-## GitHub + AGENTS baseline
+Before editing governance docs, discover the relevant instruction scope:
 
-Source: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors
-Source: https://agents.md/
-Source: https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/
-Source: https://cobusgreyling.substack.com/p/what-is-agentsmd
-Source: https://www.infoq.com/news/2025/08/agents-md/
+```bash
+rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g 'CONTRIBUTING.md' -g 'CODEOWNERS' -g '.github/labeler.yml'
+```
 
-Use these as default operating principles:
+Then read:
 
-1. Keep `CONTRIBUTING.md` discoverable and actionable (`.github`, root, or `docs`).
-2. Keep agent instructions concrete: real commands, real paths, clear boundaries.
-3. Use explicit behavior boundaries for agents: `Always`, `Ask first`, `Never`.
-4. Keep contributor and agent rules aligned with actual repository workflows.
-5. Ensure clear guidance is provided to agents on if, when and how to raise issues and pull requests.
+1. root `AGENTS.md`
+2. nearest scoped `AGENTS.md` for the files being edited
+3. `CONTRIBUTING.md` when contributor workflow is affected
+4. `CODEOWNERS`, labeler, changelog, or workflow docs when the change touches
+   ownership, labels, PR flow, releases, channels, plugins, apps, or docs
+   surfaces
 
-## Canonical and alias policy
+## OpenClaw source of truth
 
-Source: https://agents.md/
-Source: https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/
+- `AGENTS.md` is canonical for Codex repository instructions.
+- Scoped `AGENTS.md` files narrow or add rules for their subtree.
+- When creating a new `AGENTS.md`, add a sibling `CLAUDE.md` symlink and edit
+  `AGENTS.md` only.
+- Do not treat `CLAUDE.md`, `.cursor`, `.cursorrules`, or other generic
+  agent-file conventions as canonical unless the active OpenClaw instructions
+  explicitly say so.
+- Do not add `.cursor -> .agents` compatibility symlinks as a default OpenClaw
+  docs operation.
 
-1. Treat `AGENTS.md` as canonical when present.
-2. If `AGENTS.md` is absent, treat the nearest alias file as canonical.
-3. Keep compatibility surfaces explicit: `AGENTS.md`, `AGENT.md`, `.cursorrules`, `.cursor/rules/*`, `.agent/`, `.agents/`, `.pi/`.
-4. If aliases are used, document how they map back to canonical policy (or symlink when supported).
+## Governance writing rules
 
-## Context-awareness by agent platform
+- Telegraph style for root policy: short, concrete, repo-specific.
+- Keep long runbooks out of root policy; route them to scoped docs, memory/spec
+  notes, or dedicated references.
+- Include real commands and real repo paths.
+- Prefer boundaries over broad advice: what is allowed, what needs owner review,
+  and what is never allowed.
+- Keep product/docs/UI wording aligned with OpenClaw root policy: use
+  "plugin/plugins"; `extensions/` is internal except in file paths.
+- Never print secrets, credentials, live config, real phone numbers, or private
+  artifacts.
 
-Source: https://github.com/vercel-labs/agent-skills/blob/main/AGENTS.md
-Source: https://github.com/openai/codex/blob/main/AGENTS.md
+## Contributor workflow checks
 
-1. For Cursor and Claude-style glob consumers, keep rule files narrow and bounded.
-2. Avoid over-referencing large path sets that inflate context for glob-based agents.
-3. For Codex-style workflows, prefer explicit file references and deterministic commands.
-4. Keep long runbooks outside top-level policy files; link to scoped docs.
-5. Ensure all agents have a happy path regardless so ensuring everything works across Codex, Claude and other coding agents.
+For `CONTRIBUTING.md` or contributor-facing guidance:
 
-## Dual-mode and deliverable standards
+- Verify setup, install, build, test, lint, docs, and PR commands match current
+  repo wrappers.
+- Keep issue triage, PR expectations, review gates, and validation commands
+  actionable.
+- Link to deeper docs instead of embedding every domain runbook in the root
+  contributor guide.
+- Do not contradict scoped `AGENTS.md`, CODEOWNERS, or release/security policy.
 
-Source: https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/
-Source: https://agents.md/
-Source: https://github.com/openai/codex/blob/main/AGENTS.md
-Source: https://github.com/vercel-labs/agent-skills/blob/main/AGENTS.md
+## Labeler, ownership, and changelog impact
 
-1. Author one shared policy core (same commands, boundaries, and precedence) for all agents.
-2. For Cursor/Claude-style agents, expose that core through glob-driven and bounded files (small `AGENTS.md`/rule surface).
-3. For Codex, expose that same core through explicit file references with precise scope.
-4. Where styles diverge, prefer the smallest common structure that satisfies both and avoid duplicating policy text.
-5. Treat AGENTS/CONTRIBUTING as first-class deliverables when in scope.
-6. Preserve required structure, constraints, and examples from existing files.
-7. Align wording and commands with active repository instructions.
+- New channel/plugin/app/doc surfaces may require `.github/labeler.yml` and
+  GitHub label updates.
+- Larger behavior/product/security/ownership changes need owner review.
+- Docs changes tied to behavior/API/CLI/config changes should align with the
+  changelog policy for that change.
+- Contributor PR authors should not add OpenClaw changelog entries unless the
+  maintainer workflow explicitly asks for it.
 
-## Discovery
+## Conflict handling
 
-1. Agents prefer simple terminal commands so having a well defined `make *` or `npm run *` is ideal
-2. Agents can discover terminal commands through shell completion so providing shell completion helps
+When governance sources disagree:
 
-## CONTRIBUTING size and scope control
+1. Prefer the active root `AGENTS.md`.
+2. Apply nearest scoped `AGENTS.md` rules for files under that scope.
+3. Prefer current repo commands and source behavior over stale prose.
+4. If a rule would cause unsafe git mutation, credential exposure, broad cleanup,
+   or owner-boundary violations, stop and ask.
+5. Record the conflict and the smallest proposed fix.
 
-Source: https://contributing.md/how-to-build-contributing-md/
-Source: https://blog.codacy.com/best-practices-to-manage-an-open-source-project
-Source: https://mozillascience.github.io/working-open-workshop/contributing/
-Source: https://github.com/openclaw/openclaw/blob/main/CONTRIBUTING.md
+## Deliverables
 
-1. Keep root `CONTRIBUTING.md` focused on setup, issue flow, PR flow, testing, and review gates.
-2. Use issue/PR template links instead of embedding every process detail inline.
-3. When the file grows too large, split by domain and link from root.
-4. Move any large content into docs if avalible (for example Mintlify/Fern/Sphinx workflows) to avoid large contributor guide.
-5. Optimize for agent/machine readability as well as humans.
-
-## Example repos to emulate
-
-Source: https://github.com/openclaw/openclaw/blob/main/AGENTS.md
-Source: https://github.com/openclaw/openclaw/blob/main/CONTRIBUTING.md
-Source: https://github.com/openclaw/openclaw/blob/main/VISION.md
-Source: https://github.com/openai/codex/blob/main/AGENTS.md
-Source: https://github.com/processing/p5.js/blob/main/AGENTS.md
-Source: https://github.com/vercel-labs/agent-skills/blob/main/AGENTS.md
-Source: https://github.com/agentsmd/agents.md/blob/main/AGENTS.md
-Source: https://github.com/rails/rails/blob/main/CONTRIBUTING.md
-Source: https://github.com/kubernetes/kubernetes/blob/master/CONTRIBUTING.md
-Source: https://github.com/atom/atom/blob/master/CONTRIBUTING.md
-Source: https://github.com/github/docs/blob/main/CONTRIBUTING.md
-Source: https://github.com/facebook/react/blob/main/CONTRIBUTING.md
-
-1. OpenClaw: strong real-world alias policy and AGENTS/CONTRIBUTING/VISION cohesion.
-2. OpenAI Codex: strict command discipline and explicit scope control.
-3. p5.js: explicit AI-policy guardrails in agent instructions.
-4. Vercel + agentsmd spec: compact, context-efficient AGENTS patterns.
-5. Rails/Kubernetes/Atom/GitHub Docs/React: contributor guidance patterns at different project scales.
-
-## Practical merge policy
-
-When these rules conflict:
-
-1. Preserve contributor and reader task success first.
-2. Preserve instruction clarity and unambiguous boundaries second.
-3. Preserve long-term maintainability and context-efficiency third.
-4. Add extra agent optimization only if it does not reduce human clarity or there is explict need.
-5. Use your judgement as the expert.
+- State which governance files were read.
+- Summarize any policy conflicts and the selected precedence.
+- For edits, include exact validation commands run or skipped.
+- For report-only reviews, list blocking policy drift first, then cleanup items.

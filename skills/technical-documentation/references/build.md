@@ -1,80 +1,100 @@
-# Build Docs Playbook
+# OpenClaw Docs Build Playbook
 
-Read `principles.md` first, then follow this execution flow.
+Read `principles.md` first, then follow this execution flow for writing,
+refactoring, or changing OpenClaw docs IA.
 
-## 1. Detect and align agent instruction and governance instructions
+## 1. Establish scope and source of truth
 
-- Use `references/agent-and-contributing.md` as the source of truth for inventory, canonical/alias mapping, and precedence/conflict handling.
-- Capture required constraints before writing:
-  - nested-agent rules, command/test requirements, PR workflow, and style checks.
-- Use the same command and validation expectations in proposed snippets and examples.
+- Classify the task: new page, page edit, docs refactor, nav/IA change,
+  generated-reference change, troubleshooting addition, maintainer note, or
+  governance update.
+- For docs/user-visible work, run `pnpm docs:list` before drafting and use it
+  to find current docs surfaces.
+- Read only the relevant current docs, source files, tests, command output,
+  upstream docs/types, specs, or prior pages needed to support the change.
+- If the request is a maintainer/internal flow or spec, route it to the
+  configured memory/spec location when that is the established OpenClaw pattern.
 
-## 2. Define intent and success
+## 2. Choose page type and reader
 
-- Audience, prerequisites, and job-to-be-done.
-- Expected reader outcome immediately after completion.
-- Doc type: tutorial, how-to, reference, explanation.
-- Success criteria: what must be true after publish.
+- Reader: user, operator, plugin author, contributor, maintainer, or release
+  owner.
+- Page type: overview, quickstart, topic page, guide, API/SDK/CLI reference,
+  testing guide, troubleshooting page, maintainer note, or governance file.
+- Use topic pages for major product surfaces. Main docs should cover the 80/20
+  path; reference/support pages carry exhaustive contracts and rare detail.
+- State intentional scope limits up front when a page is partial.
 
 ## 3. Build structure before prose
 
-- Follow the funnel: what/why, quickstart, next steps.
-- Keep headings informative and scannable.
-- Open each section with the takeaway sentence.
-- Add decision points with concrete branch guidance.
+- Put the first useful action early unless conceptual setup is required to pick
+  the right path.
+- Use verb-led headings for guides and task-oriented headings for topic pages.
+- Keep task-critical configuration inline; link exhaustive defaults, enums,
+  schemas, and generated references.
+- Attach caveats and warnings to the step where they matter.
+- Use "plugin/plugins" in user-facing docs and reserve `extensions/` for paths
+  or internal repository instructions.
 
-## 4. Build AGENTS.md and CONTRIBUTING.md intentionally
+## 4. OpenClaw docs IA and navigation
 
-- Keep AGENTS.md structure consistent with `agents.md` ecosystem patterns:
-  - include YAML frontmatter when present in repo style (`name`, `description`).
-  - state persona scope and explicit instruction boundaries: `Always`, `Ask first`, `Never`.
-  - include concrete commands and representative code examples.
-- For CONTRIBUTING.md, prioritize issue triage flow, PR expectations, setup/test commands, and review gates.
-- Add `Code of Conduct`, `Testing`, `Local checks`, and `PR expectations` sections when missing but required by the repo.
-- If CONTRIBUTING.md is becoming too large, split by scope into linked docs (for example, framework/tool-specific setup and release workflows) and keep the root file as a concise entry point.
-- Keep cross-file consistency: links from CONTRIBUTING.md to AGENTS.md (and vice versa) should be accurate and non-circular.
-- If multiple AGENTS.md files exist, document the directory-level scope and avoid conflicting advice.
+- Read `docs/docs.json` before nav changes.
+- Classify by page type before placement:
+  - topic pages and 80/20 workflows stay on the main reader path.
+  - reference/support pages belong under `Reference`.
+  - generated `plugins/reference/*` children and redirect-only pages stay out of
+    visible nav unless explicitly required.
+- For plugin-docs IA, keep install/manage flows on the main reader path and move
+  SDK/API/maintainer/reference surfaces to `Reference`.
+- For new channel/plugin/app/doc surfaces, check whether `.github/labeler.yml`
+  and GitHub labels also need updates.
+- For moved pages, include a keep/drop/move/destination matrix in the handoff.
 
-## 5. Keep agent context tight
+## 5. Preserve source coverage during refactors
 
-- Author once, expose twice:
-  - keep one shared policy core and avoid duplicating guidance in separate agent-specific files.
-  - publish that core through bounded glob-friendly files for Cursor/Claude plus explicit path references for Codex.
-- For Cursor and Claude-style agents, avoid broad references. Use minimal globbing and narrow rule files that each serve one concern (for example, repo-wide setup, test rules, security checks).
-- Keep AGENTS and alias files short-to-medium; move detailed runbooks to linked docs.
-- For Codex, prefer explicit file references and concrete paths for exact reuse.
-- Avoid adding unrelated historical or process details to avoid token/context drift during future tool reads.
+- Identify source units before rewriting: headings, paragraphs, tables,
+  examples, CLI/API contracts, warnings, and troubleshooting facts.
+- Map each retained unit to a destination page or section.
+- Do not treat a broad "covered" row as proof for dense source material; use
+  line- or claim-level evidence when the source unit is dense.
+- For dropped content, state whether it is obsolete, duplicated elsewhere,
+  unsupported, or moved to a reference/support page.
+- When a docs-audit artifact is used, verify it is mapped audit data with
+  non-empty `mappings[]`, not only inventory or reindexed JSON.
 
-## 6. Brownfield build mode
+## 6. Source-backed content requirements
 
-- Match existing terminology, navigation, and component patterns.
-- Preserve existing IA unless there is a documented migration plan.
-- For rewrites, include a migration note from old to new paths.
-- Prefer smallest safe change set that improves utility.
+- CLI docs must match current flags, output, errors, and examples.
+- API/SDK docs must include fields, defaults, enum values, constraints,
+  nullable behavior, lifecycle states, errors, and recovery guidance.
+- Config docs must align exported types, schema/help, metadata, baselines, and
+  current docs.
+- Dependency-backed behavior must be verified from upstream docs, source, or
+  types before documenting defaults, timing, errors, or API behavior.
+- Security-sensitive docs must avoid real secrets, live config, phone numbers,
+  private videos, or credentials.
 
-## 7. Evergreen build mode
+## 7. Governance docs
 
-- Prefer stable concepts over release-tied narrative.
-- Isolate volatile details under clearly marked version sections.
-- Include maintenance signals: owners, refresh triggers, stale criteria.
-- Include lifecycle notes: deprecation and replacement paths.
+- For root/scoped `AGENTS.md`, `CONTRIBUTING.md`, `CODEOWNERS`, labeler, or
+  changelog work, use `agent-and-contributing.md`.
+- Keep root governance concise and route detailed runbooks to scoped docs or
+  memory/spec notes where appropriate.
+- Do not introduce generic agent-file conventions that conflict with OpenClaw
+  root policy.
 
-## 8. Writing constraints
+## 8. Validation
 
-- Use precise language and short, imperative instructions.
-- Keep code examples copy-ready and self-contained.
-- Include common failure modes and safe defaults.
-- Avoid placeholder guidance that cannot be executed.
+Choose the narrowest validation that proves the touched surface:
 
-## 9. Agent and automation readiness
+- `pnpm docs:list`
+- `pnpm docs:check-mdx`
+- `pnpm docs:check-links`
+- `pnpm docs:check-i18n-glossary`
+- `pnpm format:docs:check` or `pnpm lint:docs`
+- `git diff --check`
+- generated-doc or inventory checks when generated references, plugin catalogs,
+  labeler, or docs scripts changed
+- behavior tests or command probes when docs claim runtime behavior
 
-- Keep key facts in text (not image-only).
-- Prefer structured lists/tables when choices matter.
-- Add links and anchors that allow deterministic navigation.
-- Document what can be checked automatically in CI.
-
-## 10. Build validation
-
-- Validate commands and snippets where possible.
-- Verify links and references in changed sections.
-- Record unresolved checks explicitly in handoff.
+If proof is blocked, say exactly which command was not run and why.

@@ -1,77 +1,107 @@
-# Review Docs Playbook
+# OpenClaw Docs Review Playbook
 
-Read `principles.md` first, then apply this checklist.
+Read `principles.md` first, then use this checklist for OpenClaw docs reviews.
 
 ## 1. Scope and classification
 
-- Identify doc type and target audience.
-- Confirm brownfield vs evergreen intent.
-- Confirm expected outcome for the reader.
+- Identify task mode: report-only review or apply-fixes.
+- Identify page type and reader.
+- Identify touched surfaces: `docs/**`, `docs/docs.json`, README, generated
+  reference, AGENTS, CONTRIBUTING, CODEOWNERS, labeler, changelog, or scripts.
+- For docs/user-visible work, run `pnpm docs:list`, then read relevant docs and
+  source only.
 
-## 2. Governance surface review
+## 2. Findings standard
 
-- Use `references/agent-and-contributing.md` as the source of truth for inventory, canonical/alias mapping, and precedence/conflict handling.
-For AGENTS.md:
+Lead with bugs, behavioral inaccuracies, regressions, missing proof, and docs IA
+failures. Each finding must include:
 
-- confirm persona intent, scope, and command/tool boundaries are explicit.
-- check frontmatter style matches repo conventions when present.
-- ensure `Always`, `Ask first`, and `Never` boundaries are present when expected.
-- require concrete command examples and repo-specific paths to avoid ambiguity.
+- failed rubric criterion: accurate, helpful, concise, complete within scope,
+  maintainable, or findable
+- affected file/path/section
+- why it fails, backed by source, tests, current behavior, shipped behavior, or
+  dependency contract evidence
+- smallest fix
 
-For CONTRIBUTING.md:
+Accuracy is blocking. Do not downgrade inaccurate behavior, commands, flags,
+config, or API contracts to a style nit.
 
-- verify issue/PR workflow is complete and actionable.
-- ensure local setup, lint/test commands, and review criteria are accurate.
-- ensure governance does not conflict with nested AGENTS instructions.
-- flag oversized files that should be split into linked section docs (for example tool-specific setup and release docs).
+## 3. Source-backed accuracy checks
 
-For agent-platform awareness:
+- Verify CLI commands, flags, outputs, errors, and examples against source,
+  tests, or executable probes.
+- Verify API/SDK/config contracts against exported types, schemas, help output,
+  generated docs, or upstream docs/types.
+- Verify screenshots, UI labels, nav labels, file paths, and published URLs when
+  they are part of the docs claim.
+- For dependency-backed behavior, read upstream docs/source/types before making
+  statements about defaults, timing, errors, or API behavior.
+- Separate current behavior, shipped behavior, planned behavior, and maintainer
+  intent.
 
-- confirm references are minimal and scoped for Cursor/Claude glob behavior.
-- confirm Codex-facing guidance uses explicit file references.
-- confirm both surfaces represent the same shared policy core (commands, boundaries, and precedence), not divergent guidance.
-- check for context bloat from duplicated policy statements across agent and contributor files.
-- check for conflicting rules, skills and agent instructions
-- check for conflicting information in agent instructions vs codebase
+## 4. Structure and page-type review
 
-## 3. Structural review
+- Confirm the page type is correct for the content.
+- Topic pages should follow: opening, requirements when needed, quickstart,
+  configuration, major subtopics, troubleshooting, related.
+- Guides should name the outcome, include prerequisites, steps, proof,
+  production readiness, troubleshooting, and see-also links.
+- References should be exhaustive for their stated surface.
+- Troubleshooting should start from observable symptoms, not internal causes.
+- Flag dense contracts or rare debugging detail that should move to reference or
+  support pages.
 
-- Funnel check: what/why, quickstart, next steps.
-- Validate heading flow and navigation discoverability.
-- Flag critical content trapped in images or buried sections.
-- Check Diataxis alignment and split mixed-purpose sections.
+## 5. Docs IA and findability review
 
-## 4. Writing quality review
+- Read `docs/docs.json` for nav-related changes.
+- Verify topic pages remain on the main reader path and support/reference pages
+  belong under `Reference`.
+- Verify generated references and redirect-only pages are not accidentally added
+  to visible nav.
+- Confirm titles, headings, docs-list hints, anchors, and related links match
+  likely reader intent.
+- For moved pages, require a keep/drop/move/destination matrix.
 
-- Check for concise, scannable paragraphs.
-- Remove ambiguous pronouns and undefined terms.
-- Verify examples are executable and scoped correctly.
-- Verify tone is directive, technical, and non-hand-wavy.
+## 6. Preservation review for rewrites
 
-## 5. Brownfield review mode
+- Identify the source material being replaced or split.
+- Require destination evidence for every important claim, warning, example,
+  field, command, and troubleshooting fact.
+- Treat dense source sections as needing line- or claim-level mapping.
+- Verify dropped sections are obsolete, duplicated, unsupported, or moved.
+- If using audit artifacts, confirm the artifact is a mapped audit with non-empty
+  `mappings[]`.
 
-- Verify compatibility with existing docs IA and conventions.
-- Verify anchors, redirects, and cross-doc links remain valid.
-- Flag regressions in onboarding and task completion paths.
-- Ensure changed terminology is intentionally propagated.
+## 7. Governance review
 
-## 6. Evergreen review mode
+Use `agent-and-contributing.md` for AGENTS/CONTRIBUTING/CODEOWNERS/labeler work.
 
-- Flag date-stamped or brittle wording without version scope.
-- Check ownership and refresh signals are present.
-- Ensure recommendations remain valid after routine product evolution.
-- Flag missing deprecation/migration guidance.
+- Confirm root policy and scoped instructions do not conflict.
+- Confirm commands and PR/review gates match current repo behavior.
+- Confirm user-facing docs say "plugin/plugins" and do not expose internal
+  `extensions/` terminology except as paths.
+- Confirm new channel/plugin/app/doc surfaces include labeler/GitHub label impact
+  when required.
 
-## 7. Tooling and platform review
+## 8. Validation notes
 
-Read `tooling.md` if platform fit is uncertain.
+Record what was checked and what remains:
 
-- Check whether content uses platform primitives effectively.
-- Flag structure that fights the chosen docs platform.
-- Recommend targeted platform-aware improvements.
+- docs-list
+- MDX check
+- link check
+- i18n glossary check
+- docs format/lint
+- `git diff --check`
+- generated-doc checks
+- behavior tests or command probes
 
-## 7. Output format
+If a validation command is not feasible, say why and name the residual risk.
 
-1. Blocking issues (file + required fix)
+## 9. Output format
+
+1. Blocking issues
 2. Non-blocking improvements
-3. Validation notes (done vs pending)
+3. Validation notes
+
+If no issues are found, say so clearly and still list residual validation gaps.
