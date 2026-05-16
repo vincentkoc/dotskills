@@ -123,3 +123,10 @@ skills:
     source: local
     tags: [git, worktree, operations, workflow]
     version: 0.1.0
+
+  - id: semantic-slicing
+    name: Semantic Slicing
+    path: skills/semantic-slicing
+    source: local
+    tags: [semantic-slicing, security, review, visualization, gitcrawl, discrawl]
+    version: 0.1.0
