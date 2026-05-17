@@ -26,9 +26,9 @@ Choose a page type before writing:
 - Testing guide: show sandbox setup, fixtures, simulated failures, and live-mode
   differences.
 - Troubleshooting guide: map observable symptoms to checks, causes, and fixes.
-- Maintainer note: capture internal flow, proof, rollout, or release behavior in
-  the configured memory/spec location instead of public docs unless the user
-  explicitly asks for public docs.
+- Maintainer note: capture repo-relevant internal flow, proof, rollout, or
+  release behavior in scoped repo docs or bundled references when it belongs in
+  this skill. Do not route repo-wide docs to personal or local-only paths.
 - Governance file: keep agent/contributor policy concrete, scoped, and aligned
   with current OpenClaw repo behavior.
 

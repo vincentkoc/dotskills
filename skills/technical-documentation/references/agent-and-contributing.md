@@ -35,8 +35,8 @@ Then read:
 ## Governance writing rules
 
 - Telegraph style for root policy: short, concrete, repo-specific.
-- Keep long runbooks out of root policy; route them to scoped docs, memory/spec
-  notes, or dedicated references.
+- Keep long runbooks out of root policy; route them to scoped repo docs or
+  dedicated bundled references.
 - Include real commands and real repo paths.
 - Prefer boundaries over broad advice: what is allowed, what needs owner review,
   and what is never allowed.

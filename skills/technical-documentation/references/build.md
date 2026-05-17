@@ -12,8 +12,9 @@ refactoring, or changing OpenClaw docs IA.
   to find current docs surfaces.
 - Read only the relevant current docs, source files, tests, command output,
   upstream docs/types, specs, or prior pages needed to support the change.
-- If the request is a maintainer/internal flow or spec, route it to the
-  configured memory/spec location when that is the established OpenClaw pattern.
+- If the request is a maintainer/internal flow, keep it in scoped repo docs or a
+  bundled reference only when it belongs in this skill. Do not reference private
+  local-only paths from repo-wide docs.
 
 ## 2. Choose page type and reader
 
@@ -78,8 +79,8 @@ refactoring, or changing OpenClaw docs IA.
 
 - For root/scoped `AGENTS.md`, `CONTRIBUTING.md`, `CODEOWNERS`, labeler, or
   changelog work, use `agent-and-contributing.md`.
-- Keep root governance concise and route detailed runbooks to scoped docs or
-  memory/spec notes where appropriate.
+- Keep root governance concise and route detailed runbooks to scoped repo docs
+  or dedicated bundled references where appropriate.
 - Do not introduce generic agent-file conventions that conflict with OpenClaw
   root policy.
 
