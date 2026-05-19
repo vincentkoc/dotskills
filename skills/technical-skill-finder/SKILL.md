@@ -1,7 +1,7 @@
 ---
 name: technical-skill-finder
 description: Mine coding agent logs (Codex/Cursor/session histories and similar telemetry) to discover high-value candidate skills, then draft structured skill creation/reuse recommendations.
-license: AGPL-3.0-only
+license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
 ---

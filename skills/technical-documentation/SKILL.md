@@ -1,7 +1,7 @@
 ---
 name: technical-documentation
 description: Build and review high-quality technical docs as well as agent instruction files in your repository.
-license: AGPL-3.0-only
+license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
 ---

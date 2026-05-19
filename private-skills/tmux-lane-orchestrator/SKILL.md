@@ -1,7 +1,7 @@
 ---
 name: tmux-lane-orchestrator
 description: Manage one tmux agent lane from its matching ops pane, inspect live pane state and Codex logs on cold start, and produce concise manager summaries for OpenClaw and adjacent project work.
-license: Proprietary
+license: MIT
 compatibility: Requires tmux. Codex log inspection expects local session logs under ~/.codex/sessions.
 metadata:
   internal: true

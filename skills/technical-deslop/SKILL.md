@@ -1,7 +1,7 @@
 ---
 name: technical-deslop
 description: Remove AI-style noise from staged and branch diffs while preserving behavior and repository style.
-license: AGPL-3.0-only
+license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
 ---

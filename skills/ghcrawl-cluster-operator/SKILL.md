@@ -1,7 +1,7 @@
 ---
 name: ghcrawl-cluster-operator
 description: "Use when inspecting a ghcrawl SQLite store, pulling GitHub issue/PR data, refreshing summaries, embeddings, and clusters, or extracting one cluster and its evidence through the ghcrawl CLI."
-license: AGPL-3.0-only
+license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
 ---

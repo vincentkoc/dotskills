@@ -1,7 +1,7 @@
 ---
 name: technical-integrations
 description: Hunt existing integration patterns and design vendor/framework-agnostic API, RFC, SDK, and integration plans for new external vendor integrations.
-license: AGPL-3.0-only
+license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
 ---

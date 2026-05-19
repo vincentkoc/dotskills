@@ -1,7 +1,7 @@
 ---
 name: operations-worktree
 description: Safe git worktree creation and hygiene workflow that defaults new branches to an up-to-date remote default branch instead of local HEAD.
-license: AGPL-3.0-only
+license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
 ---

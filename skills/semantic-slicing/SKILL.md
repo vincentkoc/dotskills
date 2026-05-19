@@ -1,7 +1,7 @@
 ---
 name: semantic-slicing
 description: Build local semantic review slices by combining clawpatch feature maps, deepsec threat candidates, visual review maps, and optional gitcrawl/discrawl evidence for repos such as openclaw/openclaw.
-license: AGPL-3.0-only
+license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
 ---

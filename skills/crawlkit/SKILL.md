@@ -1,7 +1,7 @@
 ---
 name: crawlkit
 description: Maintain and release the crawlkit Go library, preserving downstream compatibility for gitcrawl, slacrawl, discrawl, and notcrawl.
-license: AGPL-3.0-only
+license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
 ---

@@ -1,7 +1,7 @@
 ---
 name: openclaw-github-dedupe
 description: Investigate a cluster of GitHub issues and PRs, determine canonical candidates, post duplicate/related status, preserve contributor credit, and execute cleanup actions. Supports autonomous mode for provided-link-only closeout, merge/fix follow-through, changelog, and post-merge issue/PR cleanup.
-license: AGPL-3.0-only
+license: MIT
 metadata:
   short-description: GitHub triage for issue/PR clusters, autonomous closeout, and dedupe decisions
   source: "https://github.com/vincentkoc/dotskills"

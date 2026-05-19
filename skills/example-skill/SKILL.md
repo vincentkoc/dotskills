@@ -1,7 +1,7 @@
 ---
 name: example-skill
 description: Template skill for repository authors; excluded from public publishing.
-license: Proprietary
+license: MIT
 metadata:
   internal: true
   version: "1.0.0"
