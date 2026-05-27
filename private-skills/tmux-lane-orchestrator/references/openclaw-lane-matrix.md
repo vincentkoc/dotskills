@@ -27,6 +27,7 @@ If the operator repeats a pane id or gives conflicting assignments, preserve the
 - Respect active worker ownership. Inspect before intervening.
 - Do not start duplicate heavy checks if a worker already has a Testbox, GitHub Actions run, or local heavy-check lane active.
 - Prefer Testbox evidence for broad, Docker, live, E2E, release, and complex validation.
+- For Crabbox Windows/WSL2 lanes, prefer Azure when subscription quota or credits are available. Keep Linux/macOS lanes on their existing Testbox/AWS paths unless the task explicitly needs Azure proof, and preserve explicit provider overrides.
 - In maintainer Testbox-only lanes, all `pnpm` validation/check/test/build/format/docs-list commands must run inside Blacksmith Testbox. Non-pnpm `git`, `gh`, and file inspection can stay local.
 - If `OPENCLAW_TESTBOX=1 pnpm <script>` still starts local work, interrupt it and switch to an explicit Blacksmith run such as `blacksmith testbox run --id <tbx> "env OPENCLAW_TESTBOX=1 pnpm <script>"` or the repo's explicit `pnpm testbox -- pnpm <script>` path.
 - Track Testbox ids, GitHub run ids, PR/issue URLs, branch/worktree path, and exact failing shard.
