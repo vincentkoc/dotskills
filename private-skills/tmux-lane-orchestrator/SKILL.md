@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires tmux. Codex log inspection expects local session logs under ~/.codex/sessions.
 metadata:
   internal: true
-  version: "0.1.7"
+  version: "0.1.8"
   spec: agentskills-v1
 ---
 
@@ -32,6 +32,7 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
 - The operator gives a lane map such as `L1.1`, `L1.2`, etc. and wants periodic summaries.
 - OpenClaw or adjacent maintainer work is running across tmux panes and needs traffic control.
 - A worker appears stuck, duplicated, idle, or working on a risky external action.
+- A worker or remote pane has started a dev server, preview, web UI, fixture, or browser-test surface that needs to be reachable from the operator's main local machine.
 
 ## Workflow
 
@@ -126,8 +127,17 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
 20. When a worker reports broad test or sweep findings:
    - separate confirmed product/plugin defects from harness, fixture, Testbox, sparse-checkout, dependency, and stale-analysis noise;
    - name the evidence that makes each issue real, and say when a suspicious result is not confirmed yet.
-21. For OpenClaw lanes, apply `references/openclaw-lane-matrix.md`.
-22. Preserve the lane taxonomy unless the operator overrides it:
+21. For remote preview ports:
+   - treat reachability as part of the deliverable, not a nice-to-have afterthought;
+   - first identify the remote host, remote port, bind address, owning process, and whether the manager is on the operator's main local machine or inside the remote machine;
+   - remember that mosh does not forward TCP ports; use a separate SSH tunnel;
+   - from the main local machine, prefer `ssh -4 -fN -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -L 127.0.0.1:<localPort>:127.0.0.1:<remotePort> <host>`;
+   - from inside the remote machine, use reverse forwarding only when a known main-local SSH target or explicit operator instruction exists; otherwise give the exact main-local forwarding command and mark the tunnel as blocked on main-local access;
+   - avoid local port collisions by checking `lsof -nP -iTCP:<localPort> -sTCP:LISTEN`; if the requested port is occupied, choose the next obvious port and say so;
+   - verify the tunnel with `lsof` and `curl` before handoff, and report the local URL plus SSH tunnel PID;
+   - do not kill existing tunnels unless they were created by the current task or the operator names the PID/scope.
+22. For OpenClaw lanes, apply `references/openclaw-lane-matrix.md`.
+23. Preserve the lane taxonomy unless the operator overrides it:
    - `L1`: fixes and maintainer hygiene.
    - `L2`: feature work.
    - `L3`: exploratory work.

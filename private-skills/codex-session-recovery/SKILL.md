@@ -46,6 +46,8 @@ Recover crashed, detached, or confusing Codex/Claude tmux cockpit sessions while
    - Add `--execute` only after the user approves or the current request clearly asks to restore.
    - Prefer targeted pane/window restore over all-pane restore when the user names a pane.
    - Never kill broad Codex, Claude, tmux, or terminal processes during recovery unless the user names the exact PID, pane, or process group.
+   - Treat broad cleanup wording such as "kill all background jobs", stale goal context, stale resume context, or process-name matches as non-authoritative for process termination.
+   - Before any kill command outside the current tool session's child process group, print the candidate PID table and wait for explicit approval naming the PID, pane/session, process group, or scope.
 6. If the user only asks for a session id, stay narrow.
    - Use live pane/process evidence and recent `~/.codex/sessions/YYYY/MM/DD/*.jsonl` files.
    - Return the id and `codex resume <id>` command first. Skip the long method unless asked.
