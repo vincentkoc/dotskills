@@ -67,6 +67,12 @@
       "source": "./skills/technical-skill-finder",
       "skills": "./",
       "description": "Find recurring pain points from local agent logs and convert them into actionable skill candidates, reuse opportunities, or existing skill updates."
+    },
+    {
+      "name": "xquik-source-intake",
+      "source": "./skills/xquik-source-intake",
+      "skills": "./",
+      "description": "Collect public X evidence with Xquik before an agent drafts research, support, product, or content decisions that depend on current social context."
     }
   ]
 }

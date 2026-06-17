@@ -60,6 +60,12 @@
       "source": "./skills/technical-skill-finder",
       "description": "Find recurring pain points from local agent logs and convert them into actionable skill candidates, reuse opportunities, or existing skill updates.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-skill-finder -y"
+    },
+    {
+      "name": "xquik-source-intake",
+      "source": "./skills/xquik-source-intake",
+      "description": "Collect public X evidence with Xquik before an agent drafts research, support, product, or content decisions that depend on current social context.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill xquik-source-intake -y"
     }
   ]
 }
