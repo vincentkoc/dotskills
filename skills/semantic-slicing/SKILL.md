@@ -34,14 +34,17 @@ Default stance: map locally first, rank second, spend agent/security-review budg
 4. Run deterministic maps before AI review:
    - Clawpatch feature map for entrypoints/packages/config/test slices.
    - Deepsec regex scan for candidate threat surfaces.
+   - Optional repo git overlay for CODEOWNERS routing, tracked files, code/test/doc shape, and recent churn.
    - Optional gitcrawl/discrawl lookups for historical pain around the same files, components, or symptoms.
 5. Run `scripts/semantic-map.mjs` to merge the local artifacts into `semantic-map.html` and `semantic-map.json`.
-6. Rank slices by combined signal:
-   - high-risk entrypoint or tool boundary,
-   - deepsec candidate density and slug quality,
-   - recent/open gitcrawl clusters,
-   - matching discrawl support terms,
-   - churn/ownership/test gaps if available.
+   - Sparse mode is on by default and omits dotfile/config trees, docs, changelog files, and mobile app trees so core review stays focused.
+   - Use `--no-sparse` or `--sparse false` for the full repo; use `--sparse-exclude <csv>` and `--sparse-include <csv>` to tune the filter.
+6. Review the board in product order:
+   - review lanes first: semantic shape, ownership routing, development pressure, security pressure, issue pressure, support pressure,
+   - focus controls second: lens and system filters that narrow the matrix without duplicating rows,
+   - overall lens matrix third: the single slice-row table with comparable bars for semantic, ownership, development, security, issue, and support lenses,
+   - agent handoff packet fourth: compact JSON for follow-up agents,
+   - evidence tables last: raw-ish overlays for audit, not the primary reading path.
 7. Choose a cost size before running AI stages:
    - `low`: deterministic maps only; no `deepsec process` or real `clawpatch review`.
    - `medium`: one to three explicit files/features with high-risk slugs, batch size 1, concurrency 1, and a turn cap.
@@ -58,6 +61,7 @@ Default stance: map locally first, rank second, spend agent/security-review budg
 - `clawpatch_repo`: local clone of `openclaw/clawpatch`, optional if `clawpatch` is already on PATH.
 - `deepsec_repo`: local clone of `vercel-labs/deepsec`, optional if `deepsec` is already on PATH.
 - `focus`: optional path prefixes, issue numbers, slugs, components, or channels to prioritize.
+- `sparse`: optional map filter, default `true`; excludes dotfile/config, docs/changelog, and mobile app paths unless configured.
 - `cost_size`: `low`, `medium`, or `high`; default `low`.
 - `budget_mode`: `map-only`, `targeted-ai`, or `full-ai`; default follows `cost_size`.
 
@@ -66,9 +70,11 @@ Default stance: map locally first, rank second, spend agent/security-review budg
 - Tool setup status and blocker list.
 - Clawpatch feature counts and contamination checks.
 - Deepsec scan run ID, candidate counts, top slugs, and top files.
+- Optional repo overlays from `--repo`: CODEOWNERS routing, tracked files, code/test/doc shape, 90-day churn, and test-gap pressure.
 - Optional gitcrawl cluster/thread evidence and discrawl support evidence.
-- Local visual map: `semantic-map.html` plus machine-readable `semantic-map.json`.
-- Ranked slice plan with recommended next commands and cost-size rationale.
+- Local semantic review board: `semantic-map.html` plus machine-readable `semantic-map.json`.
+- Clean semantic buckets, ownership overlay, development overlay, security overlay, issue overlay, support overlay, and normalized queues.
+- Human review lanes, focus controls, agent handoff packet, and ranked next commands per lens with cost-size rationale.
 
 ## Guardrails
 

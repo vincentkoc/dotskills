@@ -74,6 +74,35 @@ Watch for:
 - tests/docs-only changes that should not expand into a full security scan,
 - moved files that break naive path matching.
 
+## Development slices
+
+Source: target repo git metadata from `--repo`.
+
+Best for:
+- high-churn buckets,
+- code/test/doc shape,
+- refactor planning,
+- unstable areas that are expensive to review manually.
+
+Watch for:
+- long history windows dominating the board,
+- generated or deleted files in churn history,
+- test ratios that say "look closer", not "coverage is good".
+
+## Ownership slices
+
+Source: CODEOWNERS from `--repo`.
+
+Best for:
+- routing review to the right internal team,
+- spotting security or release-manager owned buckets,
+- pairing churn with ownership before delegating agents.
+
+Watch for:
+- broad fallback owners,
+- last-match-wins CODEOWNERS semantics,
+- ownership rules that are policy signals, not implementation boundaries.
+
 ## Runtime/import slices
 
 Source: import graph, startup profiles, package manifests, plugin manifests.
@@ -89,10 +118,34 @@ Watch for:
 - static+dynamic imports of the same heavy module,
 - core/plugin boundary violations.
 
-## Visual review map
+## Semantic review board
 
-Map each bucket with:
+Design the output for two readers: a human maintainer choosing the next slice,
+and an agent that needs a small handoff payload. Start with code shape, then add
+overlays. Do not collapse every lens into a single security-looking queue.
+
+The board should expose:
+- review lanes: semantic shape, ownership routing, development pressure, security pressure, issue pressure, support pressure,
+- focus controls for lens and system filters without duplicating slice rows,
+- one overall lens matrix with comparable bars and routing actions as the primary slice table,
+- a compact agent handoff packet,
+- collapsible evidence tables for audit.
+
+Default maps should be sparse and core-focused: omit dotfile/config trees, docs,
+changelog files, and mobile app trees unless the user is explicitly reviewing
+those surfaces. Keep the sparse setting configurable so the same workflow can
+produce a whole-repo board or a targeted board with selected paths re-included.
+
+Map each semantic bucket with:
 - feature count,
+- owned file count,
+- entrypoint count,
+- test count,
+- representative features.
+
+Add overlays separately:
+- CODEOWNERS rule and owner counts,
+- git tracked-file shape and churn,
 - deepsec candidate count,
 - top slugs,
 - top files,
@@ -100,10 +153,12 @@ Map each bucket with:
 - discrawl hit count,
 - contamination count.
 
-Recommended ranking:
+Recommended combined ranking:
 
 ```text
 score = entrypoint_weight + threat_density + issue_signal + support_signal + churn_signal - contamination_penalty
 ```
 
-The score is a review queue, not a bug claim.
+The combined score is a review queue, not a bug claim. Also keep separate
+`semantic`, `security`, `issues`, and `support` queues so the reviewer can pick
+the right lens for the job.
