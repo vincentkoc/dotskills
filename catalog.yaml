@@ -96,6 +96,13 @@ skills:
     tags: [discovery, logs, mining, skills]
     version: 0.1.0
 
+  - id: xquik-source-intake
+    name: Xquik Source Intake
+    path: skills/xquik-source-intake
+    source: local
+    tags: [x, research, monitoring, mcp, api, evidence]
+    version: 0.1.0
+
   - id: codex-goal-mining
     name: Codex Goal Mining
     path: skills/codex-goal-mining

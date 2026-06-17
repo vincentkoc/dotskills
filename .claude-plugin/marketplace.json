@@ -127,6 +127,12 @@
       "source": "./skills/tmux-lane-orchestrator",
       "skills": "./",
       "description": "Act as the manager for one tmux worker lane. Keep visibility over the lane's panes, infer what each worker is doing from tmux and Codex logs, surface blockers, and give the operator short status summaries with concrete next actions."
+    },
+    {
+      "name": "xquik-source-intake",
+      "source": "./skills/xquik-source-intake",
+      "skills": "./",
+      "description": "Collect public X evidence with Xquik before an agent drafts research, support, product, or content decisions that depend on current social context."
     }
   ]
 }
