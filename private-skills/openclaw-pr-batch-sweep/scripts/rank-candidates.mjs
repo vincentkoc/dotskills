@@ -28,7 +28,11 @@ const DEFAULT_MAINTAINERS = new Set([
 const MAINTAINER_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 
 const HARD_RISK =
-  /\b(security|ssrf|xss|csrf|rce|auth(?:entication|n|z)?|oauth|authori[sz](?:e|ation|ed)|tokens?|secrets?|credentials?|proxy|redact(?:ion)?|chmod|permissions?|sandbox|pairing|approvals?|authorized[- ]sender|account[- ]bound|trust[- ]boundary|config(?:uration)?|migration|migrate|compatibility|session[- ]state|message[- ]delivery|auth[- ]provider|security[- ]boundary|release|workflow|codeql|dependabot)\b/i;
+  /\b(security|ssrf|xss|csrf|rce|auth(?:entication|n|z)?|oauth|authori[sz](?:e|ation|ed)|secrets?|credentials?|proxy|redact(?:ion)?|chmod|permissions?|sandbox|pairing|approvals?|authorized[- ]sender|account[- ]bound|trust[- ]boundary|config(?:uration)?|migration|migrate|compatibility|session[- ]state|message[- ]delivery|auth[- ]provider|security[- ]boundary|release|workflow|codeql|dependabot)\b/i;
+const SENSITIVE_TOKEN =
+  /\b(?:access|api|auth|bearer|refresh|session)[ -]+tokens?\b|\btokens?[ -]+(?:exposure|handling|leak|redaction|refresh|rotation|storage|validation)\b/i;
+const HARD_RISK_LABEL =
+  /^(?:(?:area|merge-risk):.*\b(?:auth|oauth|permissions?|proxy|redaction|sandbox|secrets?|security|credentials?|tokens?)\b|auth|oauth|permissions?|proxy|redaction|sandbox|secrets?|security(?:-sensitive)?|credentials?|tokens?)/i;
 const UI_RISK =
   /\b(ui|control ui|web[- ]?ui|frontend|visual|translation|i18n|android|ios|camera|scrolling|layout|css)\b/i;
 const HIGH_RISK_PATH =
@@ -40,6 +44,8 @@ const LOW_SIGNAL_TITLE =
 const ODD_MICRO_TITLE =
   /\b(?:add|clear|close|destroy|guard|rename|replace|switch|use)\b.{0,40}\b(?:header|literal|log(?:ging)?|null check|object\.hasown|optional chaining|timer|timeout|user[- ]agent|warning)\b/i;
 const FEATURE_TITLE = /^(?:feat|feature)(?:\([^)]*\))?:/i;
+const FEATURE_SHAPED_TITLE =
+  /\b(?:add|allow|enable|introduce|support)\b.{0,60}\b(?:flag|format|integration|option|provider|syntax|timezone)\b/i;
 const TEST_PATH =
   /(?:^|\/)(?:test|tests|__tests__|__snapshots__)(?:\/|$)|\.(?:test|spec)\.[^.]+$|\.snap$/i;
 const DOC_PATH = /^(?:docs\/|README(?:\.|$)|CHANGELOG\.md$)|\.md$/i;
@@ -157,6 +163,22 @@ function normalizedRiskPath(path) {
     .toLowerCase();
 }
 
+function normalizedRiskText(text) {
+  return String(text)
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .toLowerCase();
+}
+
+function linkedIssueNumbers(pr) {
+  const body = String(pr.body ?? "");
+  return [
+    ...body.matchAll(
+      /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:https:\/\/github\.com\/openclaw\/openclaw\/issues\/)?#?(\d+)\b/gi,
+    ),
+  ].map((match) => Number.parseInt(match[1], 10));
+}
+
 function hasFileDelta(file) {
   return (
     typeof file !== "string" &&
@@ -213,9 +235,36 @@ function fileDelta(file) {
   return Number(file.additions ?? 0) + Number(file.deletions ?? 0);
 }
 
+function overlappingPrNumbers(prsToCheck) {
+  const groups = new Map();
+
+  for (const pr of prsToCheck) {
+    const productionPaths = changedFiles(pr)
+      .map(filePath)
+      .filter((path) => path && !TEST_PATH.test(path) && !DOC_PATH.test(path))
+      .map(normalizedRiskPath)
+      .sort();
+    const issues = linkedIssueNumbers(pr).sort((left, right) => left - right);
+    if (productionPaths.length === 0 || issues.length === 0) continue;
+
+    const key = `${issues.join(",")}::${productionPaths.join("|")}`;
+    const numbers = groups.get(key) ?? [];
+    numbers.push(Number(pr.number));
+    groups.set(key, numbers);
+  }
+
+  return new Set(
+    [...groups.values()].filter((numbers) => numbers.length > 1).flat(),
+  );
+}
+
+const overlappingCandidates = requireHydrated ? overlappingPrNumbers(uniquePrs) : new Set();
+
 function analyze(pr) {
   const labels = labelNames(pr);
-  const text = [pr.title ?? "", ...labels].join(" | ");
+  const title = String(pr.title ?? "");
+  const normalizedTitle = normalizedRiskText(title);
+  const text = [title, ...labels].join(" | ");
   const files = changedFiles(pr);
   const paths = files.map(filePath).filter(Boolean);
   const declaredFileCount = requireHydrated
@@ -311,7 +360,13 @@ function analyze(pr) {
     reasons.push("maintainer-owned");
   }
   if (explicitSkips.has(Number(pr.number))) reasons.push("explicitly skipped");
-  if (HARD_RISK.test(text)) reasons.push("high-risk or compatibility surface");
+  if (
+    HARD_RISK.test(normalizedTitle) ||
+    SENSITIVE_TOKEN.test(normalizedTitle) ||
+    labels.some((label) => HARD_RISK_LABEL.test(label))
+  ) {
+    reasons.push("high-risk or compatibility surface");
+  }
   if (UI_RISK.test(text)) reasons.push("UI or native-app surface");
   if (paths.some((path) => HIGH_RISK_PATH.test(normalizedRiskPath(path)))) {
     reasons.push("high-risk path surface");
@@ -320,6 +375,7 @@ function analyze(pr) {
     reasons.push("UI or native-app path");
   }
   if (FEATURE_TITLE.test(pr.title ?? "")) reasons.push("feature work");
+  if (FEATURE_SHAPED_TITLE.test(pr.title ?? "")) reasons.push("feature-shaped fix");
   if (LOW_SIGNAL_TITLE.test(pr.title ?? "")) reasons.push("low-signal change type");
   if (ODD_MICRO_TITLE.test(pr.title ?? "")) reasons.push("odd mechanical micro-fix");
   if (normalizedLabels.includes("dependencies-changed")) reasons.push("dependency change");
@@ -346,6 +402,9 @@ function analyze(pr) {
     reasons.push("production diff above 500 lines");
   }
   if (requireHydrated && fileCount > 12) reasons.push("more than 12 changed files");
+  if (requireHydrated && overlappingCandidates.has(Number(pr.number))) {
+    reasons.push("overlapping candidate for the same issue and owner files");
+  }
   if (
     pr.mergeable === false ||
     String(pr.mergeable ?? "").toUpperCase() === "CONFLICTING" ||
@@ -353,7 +412,9 @@ function analyze(pr) {
   ) {
     reasons.push("dirty or conflicting");
   }
+  if (mergeState === "UNSTABLE") reasons.push("unstable merge state");
   if (failedChecks.length > 0) reasons.push("failing checks");
+  if (pendingChecks.length > 0) reasons.push("pending checks");
 
   let score = 0;
   if (
@@ -393,7 +454,6 @@ function analyze(pr) {
   if (requireHydrated && fileCount >= 2 && fileCount <= 8) score += 4;
   if (/needs proof|waiting on author/i.test(text)) score -= 12;
   if (/merge-risk:/i.test(text)) score -= 8;
-  if (pendingChecks.length > 0) score -= 5;
 
   return {
     number: pr.number,

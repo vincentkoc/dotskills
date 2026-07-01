@@ -110,6 +110,137 @@ test("keeps a focused non-trivial production and regression-test fix", () => {
   assert.equal(output.selected[0].productionFiles, 1);
 });
 
+test("does not treat a compatibility risk label as proof of a hard-risk surface", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(memory-wiki): prevent distinct titles from overwriting each other",
+      labels: [
+        { name: "rating: diamond lobster" },
+        { name: "merge-risk: compatibility" },
+      ],
+      files: [
+        { filename: "extensions/memory-wiki/src/slug.ts", additions: 45, deletions: 14 },
+        { filename: "extensions/memory-wiki/src/slug.test.ts", additions: 80, deletions: 0 },
+      ],
+    }),
+  );
+
+  assert.equal(output.rejected.length, 0);
+  assert.equal(output.selected.length, 1);
+});
+
+test("does not confuse model token estimation with credential handling", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(agents): use CJK-aware token estimation for tool results",
+      files: [
+        { filename: "src/agents/tool-result-overflow.ts", additions: 65, deletions: 20 },
+        { filename: "src/agents/tool-result-overflow.test.ts", additions: 90, deletions: 0 },
+      ],
+    }),
+  );
+
+  assert.equal(output.rejected.length, 0);
+  assert.equal(output.selected.length, 1);
+});
+
+test("normalizes CamelCase secret terminology before risk filtering", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(gateway): resolve configured SecretRefs",
+      files: [
+        { filename: "src/gateway/configured-state.ts", additions: 45, deletions: 10 },
+        { filename: "src/gateway/configured-state.test.ts", additions: 70, deletions: 0 },
+      ],
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("high-risk or compatibility surface"));
+});
+
+test("rejects a hard-risk credential label even with a neutral title and path", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(cli): report configured state consistently",
+      labels: [{ name: "merge-risk: credentials" }],
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("high-risk or compatibility surface"));
+});
+
+test("rejects an area-prefixed auth label even with a neutral title and path", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(cli): report configured state consistently",
+      labels: [{ name: "area: auth" }],
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("high-risk or compatibility surface"));
+});
+
+test("rejects CamelCase API token handling without relying on the changed path", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(cli): validate apiToken expiry",
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("high-risk or compatibility surface"));
+});
+
+test("rejects feature-shaped public syntax changes disguised as fixes", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(cron): Support HH:MM[:SS] syntax for --at",
+      files: [
+        { filename: "src/cron/parse-at.ts", additions: 45, deletions: 10 },
+        { filename: "src/cron/parse-at.test.ts", additions: 70, deletions: 0 },
+      ],
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("feature-shaped fix"));
+});
+
+test("rejects an unstable merge state", () => {
+  const output = runHydrated(hydratedPr({ mergeable_state: "unstable" }));
+
+  assert.equal(output.selected.length, 0);
+  assert.deepEqual(output.rejected[0].reasons, ["unstable merge state"]);
+});
+
+test("rejects overlapping candidates for the same issue and owner files", () => {
+  const shared = {
+    body: "Fixes #98557",
+    files: [
+      { filename: "src/retry.ts", additions: 15, deletions: 5 },
+      { filename: "src/retry.test.ts", additions: 10, deletions: 0 },
+    ],
+  };
+  const output = runHydratedMany(
+    [
+      hydratedPr({ ...shared, number: 98597 }),
+      hydratedPr({ ...shared, number: 98604 }),
+    ],
+    [],
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.equal(output.rejected.length, 2);
+  for (const pr of output.rejected) {
+    assert.ok(
+      pr.reasons.includes("overlapping candidate for the same issue and owner files"),
+    );
+  }
+});
+
 test("excludes terminal decisions from a persisted decision ledger", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "openclaw-pr-ledger-"));
   const ledgerPath = path.join(directory, "ledger.json");
@@ -143,7 +274,7 @@ test("deduplicates repeated REST pages by PR number", () => {
 });
 
 for (const olderConclusion of ["FAILURE", "SUCCESS"]) {
-  test(`prefers a newer in-progress check over an older ${olderConclusion.toLowerCase()} check`, () => {
+  test(`treats a newer in-progress check as pending instead of an older ${olderConclusion.toLowerCase()} result`, () => {
     const output = runHydrated(
       hydratedPr({
         statusCheckRollup: [
@@ -163,8 +294,8 @@ for (const olderConclusion of ["FAILURE", "SUCCESS"]) {
       }),
     );
 
-    assert.equal(output.rejected.length, 0);
-    assert.equal(output.selected.length, 1);
-    assert.equal(output.selected[0].score, 15);
+    assert.equal(output.selected.length, 0);
+    assert.equal(output.rejected.length, 1);
+    assert.deepEqual(output.rejected[0].reasons, ["pending checks"]);
   });
 }

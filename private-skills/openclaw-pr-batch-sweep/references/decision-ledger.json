@@ -34,7 +34,12 @@
     { "number": 98572, "reason": "broader risky duplicate of 90030" }
   ],
   "rejected": [
+    { "number": 71863, "reason": "Signal forced-kill availability and data-integrity policy" },
+    { "number": 93843, "reason": "persisted memory identity change without migration policy" },
+    { "number": 93868, "reason": "public provider API change at the wrong ownership boundary" },
     { "number": 94081, "reason": "permission-contract regression risk" },
+    { "number": 94050, "reason": "loop detection fix misses ordinary nonzero exec outcomes" },
+    { "number": 95447, "reason": "one-sided core compaction heuristic without tokenizer proof" },
     { "number": 96750, "reason": "low-value duplicate test-only coverage" },
     { "number": 96924, "reason": "unsafe process identification" },
     { "number": 96993, "reason": "invalid size-limit contract" },
