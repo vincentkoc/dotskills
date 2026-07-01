@@ -4,7 +4,7 @@ description: Select, review, repair, validate, and land batches of up to 20 low-
 license: MIT
 metadata:
   internal: true
-  version: "0.2.0"
+  version: "0.2.1"
   spec: agentskills-v1
 ---
 
@@ -52,6 +52,8 @@ Compose the repository skills instead of duplicating them:
    - Hydrate the top 30-40 into a second JSON file and set `HYDRATED_PRS_JSON` to that file path. For every PR, merge `ghx api repos/openclaw/openclaw/pulls/<number>` for authoritative `author_association`, declared `changed_files`, and merge state; `ghx api --paginate repos/openclaw/openclaw/pulls/<number>/files` for every `filename` with both additions and deletions; and live `statusCheckRollup`, including an explicit empty array when no checks exist.
    - When REST returns `mergeable: null` or an unknown merge state, retry that PR fetch up to three times with a two-second delay. If GitHub still has not resolved it, carry the PR as indeterminate instead of admitting it to the final batch.
    - Rerun with `--input "$HYDRATED_PRS_JSON" --hydrated`. Final selection rejects missing author association, partial file hydration, dirty/conflicting state, failed checks, and high-risk changed paths.
+   - Treat pending non-routine checks as not ready. Do not admit them merely because older checks passed.
+   - Risk labels are routing signals, not proof of a risky surface. Judge the title and changed paths; exact security/auth labels remain hard exclusions, while compatibility/availability labels require qualification.
    - Production-size and test/docs-only gates are intentionally deferred until the hydrated pass.
    - Apply the full operator policy. ClawSweeper diamond/platinum labels improve rank but never override a hard exclusion.
 
