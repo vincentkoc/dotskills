@@ -29,7 +29,15 @@ Reject by default:
 - Defensive branches for hypothetical malformed internal state.
 - Patch shapes that add fallback stacks, aliases, or compatibility solely to reduce diff size.
 
-An explicit operator decision may override this gate when the impact is clear and the proof is unusually strong. ClawSweeper rank alone is not an override.
+Before qualification, require a short value case:
+
+- Name the user or operator-visible failure.
+- Name the owner path and the concrete bad outcome.
+- Show failing-before proof or a dependency/source contract that makes the failure unavoidable.
+- Explain why the change is not merely cleanup, defensive hardening, or coverage.
+- Explain why the review and long-term maintenance cost is justified.
+
+If any answer is vague, reject the PR from the batch. An explicit operator decision may override this gate when the impact is clear and the proof is unusually strong. ClawSweeper rank alone is not an override.
 
 ## Preferred Shape
 
@@ -93,6 +101,8 @@ Representative accepted work:
 - #97954: linked user-facing memory-wiki bug with a meaningful focused diff.
 - #96702: built-in command plugin-load avoidance after validating callers and siblings.
 - #95602: test infrastructure accepted only after proving material CI savings, fixture safety, hundreds of focused tests, and exact-head CI.
+- #90030: QMD zero-hit stalls fixed only for the long-lived manager path while preserving the one-shot bootstrap retry.
+- #98497: empty npm failure output repaired through the canonical process result, with exit, signal, and termination coverage; the broader ACPX issue stayed open.
 
 Representative rejects:
 
@@ -102,8 +112,13 @@ Representative rejects:
 - #94081: permission-contract regression risk.
 - #96993: invalid size-limit contract.
 - #96924: unsafe process identification.
+- #98572: broader duplicate that removed retries from every memory backend and added a non-cancelling timeout.
+- #98481: changed a documented inline command contract without a product decision.
+- #96219: increased stuck cron-slot occupancy and therefore required an availability-policy decision.
+- #98514: archive provenance and session-state behavior disguised as a one-line classifier fix.
+- #98545 and #98372: compatibility/default and availability behavior that exceeded a low-risk batch.
 
-Historical one-line exceptions such as #95019 and #96801 required unusually strong package/runtime contract proof. They are not precedent for future batch selection.
+Historical one-line exceptions such as #95019 and #96801 required unusually strong package/runtime contract proof. They are not eligible for a default batch and are not precedent for future selection; the operator must name any such exception explicitly in the current request.
 
 When several PRs repeat fragments of one root cause, prefer one canonical implementation. The UTF cleanup that superseded eight small PRs is the model: land the shared fix, credit useful source work, and close the fragments.
 

@@ -38,6 +38,9 @@ bug:
 root cause:
 current-main proof:
 code/tests/contracts read:
+maintainer value case:
+non-triviality proof:
+VISION.md wash:
 best-fix verdict:
 duplicate/canonical refs:
 risk:
@@ -85,6 +88,7 @@ GitHub mutations performed:
 ## Coordinator Rules
 
 - Keep at most one worker per PR and one PR per worktree.
+- Use four qualification workers and three implementation workers by default; increase only on explicit operator request.
 - Keep qualification read-only.
 - Serialize comments, branch pushes, closes, and merges.
 - Recheck live state immediately before every mutation.

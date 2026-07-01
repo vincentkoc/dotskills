@@ -2,6 +2,9 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -28,8 +31,16 @@ function hydratedPr(overrides = {}) {
 }
 
 function runHydrated(pr) {
-  const result = spawnSync(process.execPath, [scriptPath, "--hydrated"], {
-    input: JSON.stringify([pr]),
+  return runHydratedMany([pr], []);
+}
+
+function runHydratedArgs(pr, args) {
+  return runHydratedMany([pr], args);
+}
+
+function runHydratedMany(prs, args) {
+  const result = spawnSync(process.execPath, [scriptPath, "--hydrated", ...args], {
+    input: JSON.stringify(prs),
     encoding: "utf8",
   });
 
@@ -50,6 +61,85 @@ test("rejects an unresolved REST merge state even when mergeable is true", () =>
 
   assert.equal(output.selected.length, 0);
   assert.deepEqual(output.rejected[0].reasons, ["unresolved merge state"]);
+});
+
+test("rejects a one-line production patch even when tests are large", () => {
+  const output = runHydrated(
+    hydratedPr({
+      files: [
+        { filename: "src/retry.ts", additions: 1, deletions: 0 },
+        { filename: "src/retry.test.ts", additions: 80, deletions: 0 },
+      ],
+      additions: 81,
+      deletions: 0,
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.deepEqual(output.rejected[0].reasons, ["trivial production diff"]);
+});
+
+test("rejects odd mechanical micro-fixes regardless of readiness labels", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix: clear timeout timer after probe",
+      labels: [{ name: "rating: diamond lobster" }, { name: "proof: sufficient" }],
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("low-signal change type"));
+  assert.ok(output.rejected[0].reasons.includes("odd mechanical micro-fix"));
+});
+
+test("keeps a focused non-trivial production and regression-test fix", () => {
+  const output = runHydrated(
+    hydratedPr({
+      files: [
+        { filename: "src/retry.ts", additions: 14, deletions: 4 },
+        { filename: "src/retry.test.ts", additions: 24, deletions: 0 },
+      ],
+      additions: 38,
+      deletions: 4,
+    }),
+  );
+
+  assert.equal(output.rejected.length, 0);
+  assert.equal(output.selected.length, 1);
+  assert.equal(output.selected[0].productionDelta, 18);
+  assert.equal(output.selected[0].productionFiles, 1);
+});
+
+test("excludes terminal decisions from a persisted decision ledger", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "openclaw-pr-ledger-"));
+  const ledgerPath = path.join(directory, "ledger.json");
+  writeFileSync(
+    ledgerPath,
+    JSON.stringify({
+      explicitSkips: [],
+      landed: [{ number: 12345, reason: "already merged" }],
+      closed: [],
+      rejected: [],
+      ignored: [],
+    }),
+  );
+
+  try {
+    const output = runHydratedArgs(hydratedPr(), ["--decision-ledger", ledgerPath]);
+    assert.equal(output.selected.length, 0);
+    assert.deepEqual(output.rejected[0].reasons, ["explicitly skipped"]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("deduplicates repeated REST pages by PR number", () => {
+  const pr = hydratedPr();
+  const output = runHydratedMany([pr, pr, pr], []);
+
+  assert.equal(output.qualifiedCount, 1);
+  assert.equal(output.selected.length, 1);
+  assert.equal(output.selected[0].number, pr.number);
 });
 
 for (const olderConclusion of ["FAILURE", "SUCCESS"]) {

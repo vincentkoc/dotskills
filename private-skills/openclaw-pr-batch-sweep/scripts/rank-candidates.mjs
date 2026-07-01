@@ -37,6 +37,8 @@ const UI_PATH =
   /^(?:apps)(?:\/|$)|(?:^|[\/._-])(?:ui|control-ui|frontend|web-ui|locales?|translations?)(?:[\/._-]|$)|\.(?:css|scss|sass|less|tsx|jsx|vue|svelte)$/i;
 const LOW_SIGNAL_TITLE =
   /^(?:test|docs|chore|refactor|style|i18n)(?:\([^)]*\))?:|\b(typo|rename|formatting|lint|coverage|unit tests?|add tests?|object\.hasown|clear timeout timer|user[- ]agent|logging?|warning when|close readline|destroy read stream|allow always|one-shot command|dangling surrogate)\b/i;
+const ODD_MICRO_TITLE =
+  /\b(?:add|clear|close|destroy|guard|rename|replace|switch|use)\b.{0,40}\b(?:header|literal|log(?:ging)?|null check|object\.hasown|optional chaining|timer|timeout|user[- ]agent|warning)\b/i;
 const FEATURE_TITLE = /^(?:feat|feature)(?:\([^)]*\))?:/i;
 const TEST_PATH =
   /(?:^|\/)(?:test|tests|__tests__|__snapshots__)(?:\/|$)|\.(?:test|spec)\.[^.]+$|\.snap$/i;
@@ -46,6 +48,7 @@ const ROUTINE_CHECK =
 
 const args = process.argv.slice(2);
 let inputPath = "";
+let decisionLedgerPath = "";
 let limit = 40;
 let batchSize = 20;
 let requireHydrated = false;
@@ -65,6 +68,8 @@ for (let index = 0; index < args.length; index += 1) {
   const arg = args[index];
   if (arg === "--input") {
     inputPath = args[++index] ?? "";
+  } else if (arg === "--decision-ledger") {
+    decisionLedgerPath = args[++index] ?? "";
   } else if (arg === "--limit") {
     limit = Number.parseInt(args[++index] ?? "40", 10);
   } else if (arg === "--batch-size") {
@@ -80,11 +85,32 @@ for (let index = 0; index < args.length; index += 1) {
     requireHydrated = true;
   } else if (arg === "--help") {
     console.log(
-      "Usage: rank-candidates.mjs [--input prs.json] [--limit 40] [--batch-size 20] [--exclude 123,456] [--hydrated]",
+      "Usage: rank-candidates.mjs [--input prs.json] [--decision-ledger ledger.json] [--limit 40] [--batch-size 20] [--exclude 123,456] [--hydrated]",
     );
     process.exit(0);
   } else {
     throw new Error(`Unknown argument: ${arg}`);
+  }
+}
+
+if (decisionLedgerPath) {
+  const ledger = JSON.parse(fs.readFileSync(decisionLedgerPath, "utf8"));
+  for (const key of ["explicitSkips", "landed", "closed", "rejected", "ignored"]) {
+    const entries = ledger[key] ?? [];
+    if (!Array.isArray(entries)) {
+      throw new Error(`Decision ledger field ${key} must be an array`);
+    }
+    for (const entry of entries) {
+      const value =
+        typeof entry === "object" && entry !== null
+          ? (entry.number ?? entry.ref ?? entry.url ?? "")
+          : entry;
+      const number = parsePrNumber(String(value));
+      if (number === null) {
+        throw new Error(`Invalid decision ledger PR reference in ${key}: ${String(value)}`);
+      }
+      explicitSkips.add(number);
+    }
   }
 }
 
@@ -100,6 +126,17 @@ const prs = JSON.parse(input);
 if (!Array.isArray(prs)) {
   throw new Error("Expected a JSON array of pull requests");
 }
+const uniquePrs = [
+  ...new Map(
+    prs.map((pr) => {
+      const number = Number(pr.number);
+      if (!Number.isInteger(number) || number < 1) {
+        throw new Error(`Expected a positive PR number, received: ${String(pr.number)}`);
+      }
+      return [number, pr];
+    }),
+  ).values(),
+];
 
 function labelNames(pr) {
   return (pr.labels ?? []).map((label) => (typeof label === "string" ? label : label.name));
@@ -284,6 +321,7 @@ function analyze(pr) {
   }
   if (FEATURE_TITLE.test(pr.title ?? "")) reasons.push("feature work");
   if (LOW_SIGNAL_TITLE.test(pr.title ?? "")) reasons.push("low-signal change type");
+  if (ODD_MICRO_TITLE.test(pr.title ?? "")) reasons.push("odd mechanical micro-fix");
   if (normalizedLabels.includes("dependencies-changed")) reasons.push("dependency change");
   if (requireHydrated && paths.length > 0 && paths.every((path) => TEST_PATH.test(path))) {
     reasons.push("test-only");
@@ -366,6 +404,7 @@ function analyze(pr) {
     productionDeltaKnown,
     totalDelta,
     changedFiles: fileCount,
+    productionFiles: productionFiles.length,
     score,
     rating: labels.find((label) => label.startsWith("rating:")) ?? "",
     status: labels.find((label) => label.startsWith("status:")) ?? "",
@@ -373,7 +412,7 @@ function analyze(pr) {
   };
 }
 
-const analyzed = prs.map(analyze);
+const analyzed = uniquePrs.map(analyze);
 const qualified = analyzed
   .filter((pr) => pr.reasons.length === 0)
   .sort((left, right) => right.score - left.score || right.number - left.number);
