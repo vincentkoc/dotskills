@@ -1,0 +1,7 @@
+interface:
+  display_name: "OpenClaw PR Batch Sweep"
+  short_description: "Run strict low-risk OpenClaw PR batches"
+  default_prompt: "Use $openclaw-pr-batch-sweep to select and drive the next 20 low-risk OpenClaw pull requests."
+
+policy:
+  allow_implicit_invocation: true
