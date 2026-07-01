@@ -10,6 +10,10 @@
   ],
   "landed": [
     { "number": 85296, "reason": "canonical bounded runtime fix after repair" },
+    {
+      "number": 88159,
+      "reason": "canonical logs follow recovery with responsive single-flight probing and explicit at-least-once replay contract"
+    },
     { "number": 90030, "reason": "canonical QMD zero-hit manager fix" },
     { "number": 95019, "reason": "historical named micro-fix exception; not precedent" },
     { "number": 95602, "reason": "material CI savings with broad fixture proof" },
@@ -49,10 +53,15 @@
     { "number": 98351, "reason": "bundled unrelated changes and duplicate hunk" },
     { "number": 98372, "reason": "availability and external-response risk" },
     { "number": 98481, "reason": "documented command-contract product decision" },
+    { "number": 98496, "reason": "overlapping SSRF response-limit work with unrelated churn" },
     { "number": 98505, "reason": "low-value incomplete change" },
     { "number": 98514, "reason": "one-line archive provenance and session-state risk" },
     { "number": 98545, "reason": "compatibility and default-policy change" },
     { "number": 98572, "reason": "broad duplicate with non-cancelling timeout" },
+    { "number": 98604, "reason": "overlapping Telegram message-delivery micro-fix" },
+    { "number": 98609, "reason": "one-line process-boundary allowlist change" },
+    { "number": 98612, "reason": "persisted CLI session and auth failover risk" },
+    { "number": 98613, "reason": "tiny public parser-contract change without linked repro" },
     { "number": 96219, "reason": "availability-policy decision" }
   ],
   "ignored": []
