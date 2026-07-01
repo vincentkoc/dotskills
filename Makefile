@@ -1,4 +1,4 @@
-.PHONY: list validate validate-spec sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry marketplace releases-index check-generated changed-skills ci publish-skill release
+.PHONY: list validate validate-spec test sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry marketplace releases-index check-generated changed-skills ci publish-skill release
 
 list:
 	./bin/agent-skills list
@@ -8,6 +8,9 @@ validate:
 
 validate-spec:
 	./scripts/validate_spec.py
+
+test:
+	node --test private-skills/openclaw-pr-batch-sweep/scripts/*.test.mjs
 
 sync:
 	./bin/agent-skills sync --profile codex,cursor --mode symlink
@@ -42,7 +45,7 @@ check-generated:
 changed-skills:
 	./scripts/changed_skills.sh $(BASE) $(HEAD)
 
-ci: marketplace releases-index validate precommit-run check-generated
+ci: marketplace releases-index validate test precommit-run check-generated
 
 publish-skill:
 	./scripts/publish_skill.sh $(SKILL) $(TAG) $(REPO)
