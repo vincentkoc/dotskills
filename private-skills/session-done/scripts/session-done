@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: session-done [options]
+
+Required: at least one content section.
+
+Options:
+  --session-id VALUE      Session identifier (defaults to CLAUDE_SESSION_ID or timestamp)
+  --branch VALUE          Git branch name (defaults to current branch or unknown)
+  --summary VALUE         Session summary
+  --decisions VALUE       Key decisions
+  --questions VALUE       Open questions
+  --follow-ups VALUE      Follow-up actions
+  --state VALUE           Current state snapshot
+  --reflection VALUE      Self-reflection notes
+  --flashcards VALUE      Flashcards in "Q: ... | A: ..." per line
+  --notes-dir VALUE       Directory for output notes (default: ./.session-notes)
+  --obsidian-dir VALUE    Additional copy target (e.g. Obsidian vault notes folder)
+  --memory-file VALUE      Shared memory file inside notes dir (default: done-shared-memory.md)
+  --help                  Show this help
+
+Environment variables:
+  DONE_NOTES_DIR          Default notes dir
+  DONE_OBSIDIAN_VAULT     Optional Obsidian/PKM notes folder
+  DONE_MEMORY_FILE         Default shared memory filename
+EOF
+}
+
+notes_dir="${DONE_NOTES_DIR:-.session-notes}"
+obsidian_dir="${DONE_OBSIDIAN_VAULT:-}"
+memory_file="${DONE_MEMORY_FILE:-done-shared-memory.md}"
+session_id="${CLAUDE_SESSION_ID:-$(date +%s)}"
+branch="$(git branch --show-current 2>/dev/null || true)"
+summary=""
+decisions=""
+questions=""
+follow_ups=""
+state=""
+reflection=""
+flashcards=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --session-id)
+      session_id="${2:?missing --session-id value}"
+      shift 2
+      ;;
+    --branch)
+      branch="${2:?missing --branch value}"
+      shift 2
+      ;;
+    --summary)
+      summary="${2:?missing --summary value}"
+      shift 2
+      ;;
+    --decisions)
+      decisions="${2:?missing --decisions value}"
+      shift 2
+      ;;
+    --questions)
+      questions="${2:?missing --questions value}"
+      shift 2
+      ;;
+    --follow-ups)
+      follow_ups="${2:?missing --follow-ups value}"
+      shift 2
+      ;;
+    --state)
+      state="${2:?missing --state value}"
+      shift 2
+      ;;
+    --reflection)
+      reflection="${2:?missing --reflection value}"
+      shift 2
+      ;;
+    --flashcards)
+      flashcards="${2:?missing --flashcards value}"
+      shift 2
+      ;;
+    --notes-dir)
+      notes_dir="${2:?missing --notes-dir value}"
+      shift 2
+      ;;
+    --obsidian-dir)
+      obsidian_dir="${2:?missing --obsidian-dir value}"
+      shift 2
+      ;;
+    --memory-file)
+      memory_file="${2:?missing --memory-file value}"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -z "${summary}" && -z "${decisions}" && -z "${questions}" && -z "${follow_ups}" && -z "${state}" && -z "${reflection}" && -z "${flashcards}" ]]; then
+  echo "No content provided. Add at least one of --summary/--decisions/--questions/--follow-ups/--state/--reflection/--flashcards." >&2
+  exit 2
+fi
+
+if [[ -z "${branch}" ]]; then
+  branch="unknown"
+fi
+
+timestamp="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+safe_session_id="$(echo "${session_id}" | tr -cd '[:alnum:]._-' | head -c 48)"
+if [[ -z "${safe_session_id}" ]]; then
+  safe_session_id="session"
+fi
+safe_branch="$(echo "${branch}" | tr -cd '[:alnum:]._-' | head -c 64)"
+if [[ -z "${safe_branch}" ]]; then
+  safe_branch="branch"
+fi
+safe_ts="${timestamp//:/-}"
+
+mkdir -p "${notes_dir}"
+note_file="${notes_dir}/session-${safe_branch}-${safe_session_id}-${safe_ts}.md"
+
+cat > "${note_file}" <<EOF
+# Session teardown
+
+## Metadata
+
+- session_id: ${session_id}
+- branch: ${branch}
+- timestamp_utc: ${timestamp}
+- generator: session-done skill script
+
+## Summary
+
+${summary}
+
+## Decisions
+
+${decisions}
+
+## Open Questions
+
+${questions}
+
+## Follow-ups
+
+${follow_ups}
+
+## State
+
+${state}
+
+## Self-reflection
+
+${reflection}
+
+## Flashcards
+
+${flashcards}
+
+EOF
+
+echo "Wrote session teardown: ${note_file}"
+
+if [[ -n "${obsidian_dir}" ]]; then
+  mkdir -p "${obsidian_dir}"
+  cp "${note_file}" "${obsidian_dir}/"
+  echo "Synced to Obsidian/PKM: ${obsidian_dir}"
+fi
+
+if [[ -n "${memory_file}" ]]; then
+  memory_path="${notes_dir}/${memory_file}"
+  {
+    echo ""
+    echo "## Session ${timestamp}"
+    echo "- session_id: ${session_id}"
+    echo "- branch: ${branch}"
+    echo "- summary: ${summary}"
+    echo "- follow-ups: ${follow_ups}"
+    echo "- reflection: ${reflection}"
+    echo ""
+  } >> "${memory_path}"
+  echo "Updated shared memory: ${memory_path}"
+fi
