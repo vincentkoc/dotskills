@@ -304,6 +304,19 @@ test("rejects explicit config schema changes by title", () => {
   );
 });
 
+test("rejects config merge semantics by title", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(config): preserve provider models during merge",
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(
+    output.rejected[0].reasons.includes("config schema/default/migration surface"),
+  );
+});
+
 test("rejects actual config schema and default surfaces", () => {
   const output = runHydrated(
     hydratedPr({
@@ -417,6 +430,43 @@ test("rejects feature-shaped public syntax changes disguised as fixes", () => {
   assert.equal(output.selected.length, 0);
   assert.ok(output.rejected[0].reasons.includes("feature-shaped fix"));
 });
+
+test("rejects terminal UI work", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(tui): deduplicate assistant messages after reload",
+      files: [
+        { filename: "src/tui/session-view.ts", additions: 20, deletions: 5 },
+        { filename: "src/tui/session-view.test.ts", additions: 30, deletions: 0 },
+      ],
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("UI or native-app surface"));
+  assert.ok(output.rejected[0].reasons.includes("UI or native-app path"));
+});
+
+for (const title of [
+  "fix(discord): bound gateway metadata response reads at 16 MiB",
+  "fix(agents): enforce tool call payload byte limits",
+  "fix(browser): prevent OOM from JSON response",
+]) {
+  test(`rejects response or payload limit hardening: ${title}`, () => {
+    const output = runHydrated(
+      hydratedPr({
+        title,
+      }),
+    );
+
+    assert.equal(output.selected.length, 0);
+    assert.ok(
+      output.rejected[0].reasons.includes(
+        "resource-limit or response-boundary hardening",
+      ),
+    );
+  });
+}
 
 test("rejects an unstable merge state", () => {
   const output = runHydrated(hydratedPr({ mergeable_state: "unstable" }));

@@ -34,17 +34,19 @@ const SENSITIVE_TOKEN =
 const HARD_RISK_LABEL =
   /^(?:(?:area|merge-risk):.*\b(?:auth|availability|oauth|permissions?|proxy|redaction|sandbox|secrets?|security|credentials?|tokens?)\b|auth|availability|oauth|permissions?|proxy|redaction|sandbox|secrets?|security(?:-sensitive)?|credentials?|tokens?)/i;
 const UI_RISK =
-  /\b(ui|control ui|web[- ]?ui|frontend|visual|translation|i18n|android|ios|camera|scrolling|layout|css)\b/i;
+  /\b(ui|tui|terminal ui|control ui|web[- ]?ui|frontend|visual|translation|i18n|android|ios|camera|scrolling|layout|css)\b/i;
 const HIGH_RISK_PATH =
   /^(?:\.github\/|ui\/|apps\/|packages\/(?:gateway-protocol|plugin-sdk)\/|src\/plugin-sdk\/|scripts\/release)|(?:^|[\/._-])(?:auth(?:entication|n|z|orize|orization)?|authori[sz](?:e|ation|ed)|oauth|tokens?|secrets?|credentials?|redact(?:ion)?|chmod|permissions?|approvals?|security|ssrf|xss|csrf|rce|proxy|sandbox|pairing|account-bound|trust-boundary|migrations?|compat(?:ibility)?|legacy|session-state|message-delivery|auth-provider|release|workflow|codeql|dependabot)(?:[._/-]|$)|(?:^|\/)(?:package\.json|pnpm-lock\.yaml|bun\.lock)$/i;
 const CONFIG_RISK_PATH =
   /(?:^|\/)config\/|(?:^|\/)config\.[cm]?[jt]s$|(?:^|[\/._-])config(?:uration)?-(?:defaults?|migration|schema)(?:[._/-]|$)/i;
 const CONFIG_RISK_TITLE =
-  /\bconfig(?:uration)?\s+(?:compatibility|defaults?|migration|schema)\b|\b(?:add|migrate|remove|rename)\b.{0,40}\bconfig(?:uration)?\b/i;
+  /\bconfig(?:uration)?\s+(?:compatibility|defaults?|migration|schema)\b|\b(?:add|migrate|remove|rename)\b.{0,40}\bconfig(?:uration)?\b|\bconfig(?:uration)?\b.{0,40}\b(?:merge|preserve)\b|\b(?:merge|preserve)\b.{0,40}\bconfig(?:uration)?\b/i;
+const RESOURCE_LIMIT_TITLE =
+  /\b(?:bound|enforce|limit|reject)\b.{0,60}\b(?:bytes?|json|oom|payload|response|sse)\b|\boom\b/i;
 const AVAILABILITY_POLICY_TITLE =
   /\b(?:extend|increase|raise|use)\b.{0,50}\b(?:retries|retry budget|slot occupancy|timeout|watchdog)\b|\b(?:retry budget|slot occupancy|watchdog)\b.{0,50}\b(?:budget|duration|limit|timeout)\b|\b(?:retry|retries)\b.{0,40}\b(?:backoff|budget|limit|policy)\b|\b(?:add|change|disable|remove|retry|use)\b.{0,50}\b(?:fall\s+back|fallback)\b|\b(?:fall\s+back|fallback)\b.{0,50}\b(?:after|instead|on|policy|to|when)\b|\b(?:force|forced)\b.{0,30}\b(?:kill|shutdown|terminate|termination)\b|\b(?:sigkill|sigterm)\b|\bexecute\b.{0,20}\btwice\b|\bduplicate\b.{0,40}\b(?:execution|request|run|side effect|tool calls?|turn)\b|\b(?:re-?execute|rerun)\b.{0,40}\b(?:request|run|side effect|tool calls?|turn)\b/i;
 const UI_PATH =
-  /^(?:apps)(?:\/|$)|(?:^|[\/._-])(?:ui|control-ui|frontend|web-ui|locales?|translations?)(?:[\/._-]|$)|\.(?:css|scss|sass|less|tsx|jsx|vue|svelte)$/i;
+  /^(?:apps)(?:\/|$)|(?:^|[\/._-])(?:ui|tui|control-ui|frontend|web-ui|locales?|translations?)(?:[\/._-]|$)|\.(?:css|scss|sass|less|tsx|jsx|vue|svelte)$/i;
 const LOW_SIGNAL_TITLE =
   /^(?:test|docs|chore|refactor|style|i18n)(?:\([^)]*\))?:|\b(typo|rename|formatting|lint|coverage|unit tests?|add tests?|object\.hasown|user[- ]agent|logging?|warning when|close readline|destroy read stream|allow always|one-shot command|dangling surrogate)\b/i;
 const ODD_MICRO_TITLE =
@@ -543,6 +545,9 @@ function analyze(pr) {
   }
   if (AVAILABILITY_POLICY_TITLE.test(normalizedTitle)) {
     reasons.push("availability policy surface");
+  }
+  if (RESOURCE_LIMIT_TITLE.test(normalizedTitle)) {
+    reasons.push("resource-limit or response-boundary hardening");
   }
   if (UI_RISK.test(text)) reasons.push("UI or native-app surface");
   if (paths.some((path) => HIGH_RISK_PATH.test(normalizedRiskPath(path)))) {
