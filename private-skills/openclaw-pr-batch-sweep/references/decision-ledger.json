@@ -36,7 +36,19 @@
     { "number": 98688, "reason": "provider-owned Fal routing and model-capability fix with live contract proof" },
     { "number": 98689, "reason": "strict wizard port parser with focused regression proof" },
     { "number": 98720, "reason": "proven Nostr timer lifecycle leak with focused negative-control tests" },
-    { "number": 98787, "reason": "bounded owner-local retry for content-preserving memory-wiki reads" }
+    { "number": 98787, "reason": "bounded owner-local retry for content-preserving memory-wiki reads" },
+    {
+      "number": 98738,
+      "reason": "MCP stdio dead-session lifecycle repair landed as e845a26fd68e10b258188d3bbefd47830e86d8db"
+    },
+    {
+      "number": 98879,
+      "reason": "narrow node-tar volatile-file disappearance repair landed as e0970cfec57219e461506f438c487586a1a7f2f7"
+    },
+    {
+      "number": 96523,
+      "reason": "embedded OpenAI completions usage persistence repair landed as cb44f40474bd88d3ba2e1c3c3f60767c9f6194e5"
+    }
   ],
   "handledMerged": [
     84288,
@@ -235,6 +247,18 @@
     { "number": 97134, "reason": "source-unaware DeepSeek usage recomputation and durable cost-cache risk" },
     { "number": 97303, "reason": "visible transcript projection changes session-state semantics" },
     { "number": 97513, "reason": "duplicate-reply suppression changes message-delivery behavior" },
+    {
+      "number": 97560,
+      "reason": "destructive storage lifecycle and unresolved explicit-source retention semantics"
+    },
+    {
+      "number": 97252,
+      "reason": "provider-routing and public model-metadata contract widening with incomplete sibling coverage"
+    },
+    {
+      "number": 97135,
+      "reason": "broad progress-message policy can hide genuine unrecovered tool failures"
+    },
     { "number": 96219, "reason": "availability-policy decision" }
   ],
   "ignored": []
