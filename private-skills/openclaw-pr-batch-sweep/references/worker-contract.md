@@ -40,6 +40,8 @@ current-main proof:
 code/tests/contracts read:
 maintainer value case:
 non-triviality proof:
+accepted/rejected pattern match:
+exception gate: n/a | explicit operator override | proven lifecycle micro-fix
 VISION.md wash:
 best-fix verdict:
 duplicate/canonical refs:

@@ -11,6 +11,7 @@ Reject before assigning an implementation lane:
 - Security, SSRF, proxy, auth, OAuth, token, secret, credential, redaction, permission, sandbox, pairing, trust-boundary, or sensitive-data changes.
 - Control UI, web UI, frontend, visual, translation, native UI, or product-design changes.
 - Config schema/default changes, migrations, legacy compatibility, provider/auth routing, public plugin SDK/API, protocol versioning, release, CI/workflow, dependency, or infrastructure policy.
+- Exact availability-risk labels or changes that alter watchdog duration, retry/fallback policy, slot occupancy, forced termination, or duplicate execution behavior.
 - Features, new knobs, new integrations, broad refactors, owner-boundary moves, or changes that need a product decision.
 - Docs-only, test-only, coverage-only, formatting, lint, rename, typo, generated-file, snapshot-only, or cleanup PRs.
 - Dirty branches, unrelated churn, duplicated implementations, fixed-on-main work, or a weaker duplicate of an existing canonical PR.
@@ -119,6 +120,16 @@ Representative rejects:
 - #98545 and #98372: compatibility/default and availability behavior that exceeded a low-risk batch.
 
 Historical one-line exceptions such as #95019 and #96801 required unusually strong package/runtime contract proof. They are not eligible for a default batch and are not precedent for future selection; the operator must name any such exception explicitly in the current request.
+
+The durable ledger separates `landed` selection precedents from `handledMerged` PRs that were observed or completed during prior sweeps. The latter are terminal exclusions, not evidence that their shape should qualify again. This matters for externally merged micro, docs, test, or risky work such as #98496.
+
+The narrow lifecycle exception is #98720, not the weaker #98135. A timer/cleanup micro-fix may qualify only when a linked runtime bug has a concrete leak, hang, event-loop, or dangling-handle outcome; the production change is at least five lines; focused tests are substantial and fail without the fix; and live readiness evidence is strong. A one-file cleanup with screenshots or generic passing tests remains rejected.
+
+Two other accepted patterns remain bounded:
+
+- Existing provider behavior may gain model-local capability metadata when the provider contract is verified live and the change avoids new config, auth routing, protocol, or public plugin SDK surfaces. #98688 qualified only after fallback siblings and per-model limits were proved.
+- Canonical parser reuse may qualify even in a file whose name contains `config` when it changes no schema/default/migration contract and closes a linked input-validation bug. #98689 is the model; generic public parser semantics remain excluded.
+- Owner-local transient read retries may qualify when the error classes, retry count, delay, fail-closed behavior, and sibling paths are explicit. #98787 qualified because it completed an already-shipped pattern on two content-preserving writers; it is not precedent for global retries or availability policy.
 
 When several PRs repeat fragments of one root cause, prefer one canonical implementation. The UTF cleanup that superseded eight small PRs is the model: land the shared fix, credit useful source work, and close the fragments.
 

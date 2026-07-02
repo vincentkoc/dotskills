@@ -28,21 +28,31 @@ const DEFAULT_MAINTAINERS = new Set([
 const MAINTAINER_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 
 const HARD_RISK =
-  /\b(security|ssrf|xss|csrf|rce|auth(?:entication|n|z)?|oauth|authori[sz](?:e|ation|ed)|secrets?|credentials?|proxy|redact(?:ion)?|chmod|permissions?|sandbox|pairing|approvals?|authorized[- ]sender|account[- ]bound|trust[- ]boundary|config(?:uration)?|migration|migrate|compatibility|session[- ]state|message[- ]delivery|auth[- ]provider|security[- ]boundary|release|workflow|codeql|dependabot)\b/i;
+  /\b(security|ssrf|xss|csrf|rce|auth(?:entication|n|z)?|oauth|authori[sz](?:e|ation|ed)|secrets?|credentials?|proxy|redact(?:ion)?|chmod|permissions?|sandbox|pairing|approvals?|authorized[- ]sender|account[- ]bound|trust[- ]boundary|migration|migrate|compatibility|session[- ]state|message[- ]delivery|auth[- ]provider|security[- ]boundary|release|workflow|codeql|dependabot)\b/i;
 const SENSITIVE_TOKEN =
   /\b(?:access|api|auth|bearer|refresh|session)[ -]+tokens?\b|\btokens?[ -]+(?:exposure|handling|leak|redaction|refresh|rotation|storage|validation)\b/i;
 const HARD_RISK_LABEL =
-  /^(?:(?:area|merge-risk):.*\b(?:auth|oauth|permissions?|proxy|redaction|sandbox|secrets?|security|credentials?|tokens?)\b|auth|oauth|permissions?|proxy|redaction|sandbox|secrets?|security(?:-sensitive)?|credentials?|tokens?)/i;
+  /^(?:(?:area|merge-risk):.*\b(?:auth|availability|oauth|permissions?|proxy|redaction|sandbox|secrets?|security|credentials?|tokens?)\b|auth|availability|oauth|permissions?|proxy|redaction|sandbox|secrets?|security(?:-sensitive)?|credentials?|tokens?)/i;
 const UI_RISK =
   /\b(ui|control ui|web[- ]?ui|frontend|visual|translation|i18n|android|ios|camera|scrolling|layout|css)\b/i;
 const HIGH_RISK_PATH =
-  /^(?:\.github\/|ui\/|apps\/|packages\/(?:gateway-protocol|plugin-sdk)\/|src\/plugin-sdk\/|scripts\/release)|(?:^|[\/._-])(?:auth(?:entication|n|z|orize|orization)?|authori[sz](?:e|ation|ed)|oauth|tokens?|secrets?|credentials?|redact(?:ion)?|chmod|permissions?|approvals?|security|ssrf|xss|csrf|rce|proxy|sandbox|pairing|account-bound|trust-boundary|config(?:uration)?|migrations?|compat(?:ibility)?|legacy|session-state|message-delivery|auth-provider|release|workflow|codeql|dependabot)(?:[._/-]|$)|(?:^|\/)(?:package\.json|pnpm-lock\.yaml|bun\.lock)$/i;
+  /^(?:\.github\/|ui\/|apps\/|packages\/(?:gateway-protocol|plugin-sdk)\/|src\/plugin-sdk\/|scripts\/release)|(?:^|[\/._-])(?:auth(?:entication|n|z|orize|orization)?|authori[sz](?:e|ation|ed)|oauth|tokens?|secrets?|credentials?|redact(?:ion)?|chmod|permissions?|approvals?|security|ssrf|xss|csrf|rce|proxy|sandbox|pairing|account-bound|trust-boundary|migrations?|compat(?:ibility)?|legacy|session-state|message-delivery|auth-provider|release|workflow|codeql|dependabot)(?:[._/-]|$)|(?:^|\/)(?:package\.json|pnpm-lock\.yaml|bun\.lock)$/i;
+const CONFIG_RISK_PATH =
+  /(?:^|\/)config\/|(?:^|\/)config\.[cm]?[jt]s$|(?:^|[\/._-])config(?:uration)?-(?:defaults?|migration|schema)(?:[._/-]|$)/i;
+const CONFIG_RISK_TITLE =
+  /\bconfig(?:uration)?\s+(?:compatibility|defaults?|migration|schema)\b|\b(?:add|migrate|remove|rename)\b.{0,40}\bconfig(?:uration)?\b/i;
+const AVAILABILITY_POLICY_TITLE =
+  /\b(?:extend|increase|raise|use)\b.{0,50}\b(?:retries|retry budget|slot occupancy|timeout|watchdog)\b|\b(?:retry budget|slot occupancy|watchdog)\b.{0,50}\b(?:budget|duration|limit|timeout)\b|\b(?:retry|retries)\b.{0,40}\b(?:backoff|budget|limit|policy)\b|\b(?:add|change|disable|remove|retry|use)\b.{0,50}\b(?:fall\s+back|fallback)\b|\b(?:fall\s+back|fallback)\b.{0,50}\b(?:after|instead|on|policy|to|when)\b|\b(?:force|forced)\b.{0,30}\b(?:kill|shutdown|terminate|termination)\b|\b(?:sigkill|sigterm)\b|\bexecute\b.{0,20}\btwice\b|\bduplicate\b.{0,40}\b(?:execution|request|run|side effect|tool calls?|turn)\b|\b(?:re-?execute|rerun)\b.{0,40}\b(?:request|run|side effect|tool calls?|turn)\b/i;
 const UI_PATH =
   /^(?:apps)(?:\/|$)|(?:^|[\/._-])(?:ui|control-ui|frontend|web-ui|locales?|translations?)(?:[\/._-]|$)|\.(?:css|scss|sass|less|tsx|jsx|vue|svelte)$/i;
 const LOW_SIGNAL_TITLE =
-  /^(?:test|docs|chore|refactor|style|i18n)(?:\([^)]*\))?:|\b(typo|rename|formatting|lint|coverage|unit tests?|add tests?|object\.hasown|clear timeout timer|user[- ]agent|logging?|warning when|close readline|destroy read stream|allow always|one-shot command|dangling surrogate)\b/i;
+  /^(?:test|docs|chore|refactor|style|i18n)(?:\([^)]*\))?:|\b(typo|rename|formatting|lint|coverage|unit tests?|add tests?|object\.hasown|user[- ]agent|logging?|warning when|close readline|destroy read stream|allow always|one-shot command|dangling surrogate)\b/i;
 const ODD_MICRO_TITLE =
   /\b(?:add|clear|close|destroy|guard|rename|replace|switch|use)\b.{0,40}\b(?:header|literal|log(?:ging)?|null check|object\.hasown|optional chaining|timer|timeout|user[- ]agent|warning)\b/i;
+const LIFECYCLE_MICRO_ACTION =
+  /\b(?:cancel|clear)\b.{0,40}\b(?:timer|timeout)\b|\b(?:timer|timeout)\b.{0,40}\b(?:cancel|clear)\b/i;
+const LIFECYCLE_MICRO_OUTCOME =
+  /\b(?:dangling (?:handle|timer)s?|event loop (?:hang|stall)|process (?:hang|stall|not exit)|resource leak|stale timer accumulation|timer (?:accumulation|leak))\b/i;
 const FEATURE_TITLE = /^(?:feat|feature)(?:\([^)]*\))?:/i;
 const FEATURE_SHAPED_TITLE =
   /\b(?:add|allow|enable|introduce|support)\b.{0,60}\b(?:flag|format|integration|option|provider|syntax|timezone)\b/i;
@@ -58,7 +68,7 @@ let decisionLedgerPath = "";
 let limit = 40;
 let batchSize = 20;
 let requireHydrated = false;
-const explicitSkips = new Set();
+const terminalDecisions = new Map();
 
 function parsePrNumber(value) {
   const trimmed = value.trim();
@@ -85,7 +95,7 @@ for (let index = 0; index < args.length; index += 1) {
       const number = parsePrNumber(value);
       if (!value.trim()) continue;
       if (number === null) throw new Error(`Invalid --exclude PR reference: ${value}`);
-      explicitSkips.add(number);
+      terminalDecisions.set(number, "explicitly skipped");
     }
   } else if (arg === "--hydrated") {
     requireHydrated = true;
@@ -101,7 +111,14 @@ for (let index = 0; index < args.length; index += 1) {
 
 if (decisionLedgerPath) {
   const ledger = JSON.parse(fs.readFileSync(decisionLedgerPath, "utf8"));
-  for (const key of ["explicitSkips", "landed", "closed", "rejected", "ignored"]) {
+  for (const key of [
+    "explicitSkips",
+    "landed",
+    "handledMerged",
+    "closed",
+    "rejected",
+    "ignored",
+  ]) {
     const entries = ledger[key] ?? [];
     if (!Array.isArray(entries)) {
       throw new Error(`Decision ledger field ${key} must be an array`);
@@ -115,7 +132,15 @@ if (decisionLedgerPath) {
       if (number === null) {
         throw new Error(`Invalid decision ledger PR reference in ${key}: ${String(value)}`);
       }
-      explicitSkips.add(number);
+      const terminalReason = {
+        explicitSkips: "explicitly skipped",
+        landed: "already landed",
+        handledMerged: "already handled and merged",
+        closed: "already closed",
+        rejected: "previously rejected",
+        ignored: "explicitly ignored",
+      }[key];
+      terminalDecisions.set(number, terminalReason);
     }
   }
 }
@@ -128,9 +153,10 @@ if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 20) {
 }
 
 const input = inputPath ? fs.readFileSync(inputPath, "utf8") : fs.readFileSync(0, "utf8");
-const prs = JSON.parse(input);
+const parsedInput = JSON.parse(input);
+const prs = Array.isArray(parsedInput) ? parsedInput : parsedInput.threads;
 if (!Array.isArray(prs)) {
-  throw new Error("Expected a JSON array of pull requests");
+  throw new Error('Expected a JSON array of pull requests or a {"threads": [...]} envelope');
 }
 const uniquePrs = [
   ...new Map(
@@ -145,7 +171,18 @@ const uniquePrs = [
 ];
 
 function labelNames(pr) {
-  return (pr.labels ?? []).map((label) => (typeof label === "string" ? label : label.name));
+  let labels = pr.labels;
+  if (!Array.isArray(labels) && pr.labels_json) {
+    try {
+      labels =
+        typeof pr.labels_json === "string" ? JSON.parse(pr.labels_json) : pr.labels_json;
+    } catch {
+      labels = [];
+    }
+  }
+  return (Array.isArray(labels) ? labels : []).map((label) =>
+    typeof label === "string" ? label : label.name,
+  );
 }
 
 function changedFiles(pr) {
@@ -235,7 +272,74 @@ function fileDelta(file) {
   return Number(file.additions ?? 0) + Number(file.deletions ?? 0);
 }
 
-function overlappingPrNumbers(prsToCheck) {
+function overlapStrength(pr) {
+  const labels = labelNames(pr).map((label) => label.toLowerCase());
+  const files = changedFiles(pr);
+  const testFiles = files.filter((file) => TEST_PATH.test(filePath(file)));
+  const testDelta = testFiles.every(hasFileDelta)
+    ? testFiles.reduce((sum, file) => sum + fileDelta(file), 0)
+    : 0;
+  let score = 0;
+  if (labels.some((label) => label.startsWith("proof:") && /\bsufficient\b/.test(label))) {
+    score += 40;
+  }
+  if (labels.some((label) => label.includes("ready for maintainer look"))) score += 20;
+  if (labels.some((label) => label.startsWith("rating:") && /\bdiamond\b/.test(label))) {
+    score += 15;
+  } else if (
+    labels.some((label) => label.startsWith("rating:") && /\bplatinum\b/.test(label))
+  ) {
+    score += 10;
+  }
+  if (testFiles.length > 0) score += 8;
+  if (testDelta >= 25) score += 5;
+  return score;
+}
+
+function isOverlapEligible(pr) {
+  if (pr.isDraft ?? pr.is_draft ?? pr.draft) return false;
+  if (pr.state && String(pr.state).toUpperCase() !== "OPEN") return false;
+  if (terminalDecisions.has(Number(pr.number))) return false;
+  if (!hasValidCheckRollup(pr)) return false;
+
+  const mergeState = String(
+    pr.mergeable_state ?? pr.merge_state_status ?? pr.mergeStateStatus ?? "",
+  ).toUpperCase();
+  if (
+    pr.mergeable === null ||
+    pr.mergeable === undefined ||
+    pr.mergeable === false ||
+    String(pr.mergeable).toUpperCase() === "CONFLICTING" ||
+    !mergeState ||
+    ["DIRTY", "UNKNOWN", "UNSTABLE"].includes(mergeState)
+  ) {
+    return false;
+  }
+
+  for (const check of latestChecks(checkEntries(pr))) {
+    if (isRoutineCheck(check)) continue;
+    const status = String(check.status ?? "").toUpperCase();
+    const conclusion = String(check.conclusion ?? check.state ?? "").toUpperCase();
+    if (
+      [
+        "ACTION_REQUIRED",
+        "CANCELLED",
+        "ERROR",
+        "FAILURE",
+        "PENDING",
+        "STALE",
+        "STARTUP_FAILURE",
+        "TIMED_OUT",
+      ].includes(conclusion) ||
+      (status && status !== "COMPLETED" && !conclusion)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function overlappingCandidateDecisions(prsToCheck) {
   const groups = new Map();
 
   for (const pr of prsToCheck) {
@@ -248,17 +352,36 @@ function overlappingPrNumbers(prsToCheck) {
     if (productionPaths.length === 0 || issues.length === 0) continue;
 
     const key = `${issues.join(",")}::${productionPaths.join("|")}`;
-    const numbers = groups.get(key) ?? [];
-    numbers.push(Number(pr.number));
-    groups.set(key, numbers);
+    const candidates = groups.get(key) ?? [];
+    candidates.push(pr);
+    groups.set(key, candidates);
   }
 
-  return new Set(
-    [...groups.values()].filter((numbers) => numbers.length > 1).flat(),
-  );
+  const decisions = new Map();
+  for (const candidates of groups.values()) {
+    const eligibleCandidates = candidates.filter(isOverlapEligible);
+    if (eligibleCandidates.length < 2) continue;
+    const ranked = eligibleCandidates
+      .map((pr) => ({ number: Number(pr.number), score: overlapStrength(pr) }))
+      .sort((left, right) => right.score - left.score || right.number - left.number);
+    const topScore = ranked[0].score;
+    const tiedWinners = ranked.filter((entry) => entry.score === topScore);
+    if (tiedWinners.length > 1) {
+      for (const entry of ranked) {
+        decisions.set(entry.number, "overlapping candidates need adjudication");
+      }
+      continue;
+    }
+    for (const entry of ranked.slice(1)) {
+      decisions.set(entry.number, "weaker overlapping candidate");
+    }
+  }
+  return decisions;
 }
 
-const overlappingCandidates = requireHydrated ? overlappingPrNumbers(uniquePrs) : new Set();
+const overlapDecisions = requireHydrated
+  ? overlappingCandidateDecisions(uniquePrs)
+  : new Map();
 
 function analyze(pr) {
   const labels = labelNames(pr);
@@ -283,6 +406,7 @@ function analyze(pr) {
     const path = filePath(file);
     return path && !TEST_PATH.test(path) && !DOC_PATH.test(path);
   });
+  const testFiles = files.filter((file) => TEST_PATH.test(filePath(file)));
   const hasKnownPaths = paths.length > 0;
   const hasPerFileDeltas = productionFiles.length > 0 && productionFiles.every(hasFileDelta);
   const totalDelta = Number(pr.additions ?? 0) + Number(pr.deletions ?? 0);
@@ -295,9 +419,14 @@ function analyze(pr) {
     }
   }
   const productionDeltaKnown = productionDelta !== null;
+  const testDelta =
+    requireHydrated && testFiles.every(hasFileDelta)
+      ? testFiles.reduce((sum, file) => sum + fileDelta(file), 0)
+      : null;
   const fileCount = Number(declaredFileCount ?? paths.length);
   const reasons = [];
-  const author = pr.author?.login ?? pr.user?.login ?? pr.author ?? "";
+  const author =
+    pr.author?.login ?? pr.user?.login ?? pr.author_login ?? pr.author ?? "";
   const normalizedAuthor = String(author).toLowerCase();
   const authorAssociation = String(
     requireHydrated
@@ -305,6 +434,40 @@ function analyze(pr) {
       : (pr.authorAssociation ?? pr.author_association ?? ""),
   ).toUpperCase();
   const normalizedLabels = labels.map((label) => label.toLowerCase());
+  const strongRating = normalizedLabels.some(
+    (label) =>
+      label.startsWith("rating:") && /\b(?:diamond|platinum)\b/.test(label),
+  );
+  const sufficientProof = normalizedLabels.some(
+    (label) => label.startsWith("proof:") && /\bsufficient\b/.test(label),
+  );
+  const readyForMaintainer = normalizedLabels.some((label) =>
+    label.includes("ready for maintainer look"),
+  );
+  const lifecycleEvidenceText = `${title}\n${String(pr.body ?? "")}`;
+  const provisionalLifecycleMicroFix =
+    !requireHydrated &&
+    linkedIssueNumbers(pr).length > 0 &&
+    strongRating &&
+    sufficientProof &&
+    readyForMaintainer &&
+    LIFECYCLE_MICRO_ACTION.test(lifecycleEvidenceText) &&
+    LIFECYCLE_MICRO_OUTCOME.test(lifecycleEvidenceText);
+  const provenLifecycleMicroFix =
+    requireHydrated &&
+    productionDeltaKnown &&
+    productionDelta >= 5 &&
+    productionDelta <= 20 &&
+    productionFiles.length === 1 &&
+    testFiles.length >= 1 &&
+    testDelta !== null &&
+    testDelta >= 25 &&
+    linkedIssueNumbers(pr).length > 0 &&
+    strongRating &&
+    sufficientProof &&
+    readyForMaintainer &&
+    LIFECYCLE_MICRO_ACTION.test(lifecycleEvidenceText) &&
+    LIFECYCLE_MICRO_OUTCOME.test(lifecycleEvidenceText);
   const hasRestMergeState = Object.hasOwn(pr, "mergeable_state");
   const mergeState = String(
     requireHydrated && hasRestMergeState
@@ -314,11 +477,18 @@ function analyze(pr) {
         : (pr.mergeStateStatus ?? pr.merge_state_status ?? pr.mergeable_state ?? ""),
   ).toUpperCase();
   const mergeableValue = String(pr.mergeable ?? "").toUpperCase();
+  const hasResolvedRestMergeable =
+    !requireHydrated ||
+    (Object.hasOwn(pr, "mergeable") &&
+      pr.mergeable !== null &&
+      pr.mergeable !== undefined);
   const hasMergeState = requireHydrated && hasRestMergeState
-    ? Boolean(mergeState && mergeState !== "UNKNOWN")
-    : typeof pr.mergeable === "boolean" ||
-      ["MERGEABLE", "CONFLICTING"].includes(mergeableValue) ||
-      Boolean(mergeState && mergeState !== "UNKNOWN");
+    ? hasResolvedRestMergeable &&
+      Boolean(mergeState && mergeState !== "UNKNOWN")
+    : hasResolvedRestMergeable &&
+      (typeof pr.mergeable === "boolean" ||
+        ["MERGEABLE", "CONFLICTING"].includes(mergeableValue) ||
+        Boolean(mergeState && mergeState !== "UNKNOWN"));
   const hasCheckRollup = hasValidCheckRollup(pr);
   const checks = latestChecks(checkEntries(pr));
   const failedChecks = checks.filter((check) => {
@@ -344,7 +514,7 @@ function analyze(pr) {
     return status !== "" && status !== "COMPLETED" && !conclusion;
   });
 
-  if (pr.isDraft ?? pr.draft) reasons.push("draft");
+  if (pr.isDraft ?? pr.is_draft ?? pr.draft) reasons.push("draft");
   if (
     (pr.state && String(pr.state).toUpperCase() !== "OPEN") ||
     pr.merged === true ||
@@ -359,7 +529,8 @@ function analyze(pr) {
   ) {
     reasons.push("maintainer-owned");
   }
-  if (explicitSkips.has(Number(pr.number))) reasons.push("explicitly skipped");
+  const terminalDecision = terminalDecisions.get(Number(pr.number));
+  if (terminalDecision) reasons.push(terminalDecision);
   if (
     HARD_RISK.test(normalizedTitle) ||
     SENSITIVE_TOKEN.test(normalizedTitle) ||
@@ -367,9 +538,18 @@ function analyze(pr) {
   ) {
     reasons.push("high-risk or compatibility surface");
   }
+  if (CONFIG_RISK_TITLE.test(normalizedTitle)) {
+    reasons.push("config schema/default/migration surface");
+  }
+  if (AVAILABILITY_POLICY_TITLE.test(normalizedTitle)) {
+    reasons.push("availability policy surface");
+  }
   if (UI_RISK.test(text)) reasons.push("UI or native-app surface");
   if (paths.some((path) => HIGH_RISK_PATH.test(normalizedRiskPath(path)))) {
     reasons.push("high-risk path surface");
+  }
+  if (paths.some((path) => CONFIG_RISK_PATH.test(normalizedRiskPath(path)))) {
+    reasons.push("config schema/default/migration surface");
   }
   if (paths.some((path) => UI_PATH.test(normalizedRiskPath(path)))) {
     reasons.push("UI or native-app path");
@@ -377,7 +557,13 @@ function analyze(pr) {
   if (FEATURE_TITLE.test(pr.title ?? "")) reasons.push("feature work");
   if (FEATURE_SHAPED_TITLE.test(pr.title ?? "")) reasons.push("feature-shaped fix");
   if (LOW_SIGNAL_TITLE.test(pr.title ?? "")) reasons.push("low-signal change type");
-  if (ODD_MICRO_TITLE.test(pr.title ?? "")) reasons.push("odd mechanical micro-fix");
+  if (
+    ODD_MICRO_TITLE.test(pr.title ?? "") &&
+    !provisionalLifecycleMicroFix &&
+    !provenLifecycleMicroFix
+  ) {
+    reasons.push("odd mechanical micro-fix");
+  }
   if (normalizedLabels.includes("dependencies-changed")) reasons.push("dependency change");
   if (requireHydrated && paths.length > 0 && paths.every((path) => TEST_PATH.test(path))) {
     reasons.push("test-only");
@@ -392,7 +578,12 @@ function analyze(pr) {
   if (requireHydrated && !authorAssociation) reasons.push("missing author association");
   if (requireHydrated && !hasMergeState) reasons.push("unresolved merge state");
   if (requireHydrated && !hasCheckRollup) reasons.push("missing check rollup");
-  if (requireHydrated && productionDeltaKnown && productionDelta < 10) {
+  if (
+    requireHydrated &&
+    productionDeltaKnown &&
+    productionDelta < 10 &&
+    !provenLifecycleMicroFix
+  ) {
     reasons.push("trivial production diff");
   }
   if (requireHydrated && productionDeltaKnown && fileCount === 1 && productionDelta < 25) {
@@ -402,8 +593,9 @@ function analyze(pr) {
     reasons.push("production diff above 500 lines");
   }
   if (requireHydrated && fileCount > 12) reasons.push("more than 12 changed files");
-  if (requireHydrated && overlappingCandidates.has(Number(pr.number))) {
-    reasons.push("overlapping candidate for the same issue and owner files");
+  const overlapDecision = overlapDecisions.get(Number(pr.number));
+  if (requireHydrated && overlapDecision) {
+    reasons.push(overlapDecision);
   }
   if (
     pr.mergeable === false ||
@@ -465,6 +657,11 @@ function analyze(pr) {
     totalDelta,
     changedFiles: fileCount,
     productionFiles: productionFiles.length,
+    exceptionGate: provenLifecycleMicroFix
+      ? "proven lifecycle micro-fix"
+      : provisionalLifecycleMicroFix
+        ? "provisional lifecycle micro-fix; hydrate"
+        : "",
     score,
     rating: labels.find((label) => label.startsWith("rating:")) ?? "",
     status: labels.find((label) => label.startsWith("status:")) ?? "",

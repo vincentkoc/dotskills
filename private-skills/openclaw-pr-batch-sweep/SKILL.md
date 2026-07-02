@@ -4,7 +4,7 @@ description: Select, review, repair, validate, and land batches of up to 20 low-
 license: MIT
 metadata:
   internal: true
-  version: "0.2.1"
+  version: "0.2.2"
   spec: agentskills-v1
 ---
 
@@ -46,14 +46,14 @@ Compose the repository skills instead of duplicating them:
 2. Discover broadly, then reject aggressively.
    - Start with `gitcrawl`; verify live state with `ghx`.
    - Fetch at least 100 open PRs. Widen toward 1000 when the strict filter yields fewer than 20.
-   - Write the discovery array to a JSON file and set `OPEN_PRS_JSON` to that file path.
+   - Write discovery JSON to a file and set `OPEN_PRS_JSON` to that path. The ranker accepts either a raw PR array or gitcrawl's `{ "threads": [...] }` envelope. It normalizes `labels_json`, `author_login`, and `is_draft`; do not strip those fields before ranking.
    - Combine `handled_refs` and `explicit_skips` into comma-separated `HANDLED_PRS`. Numbers, `#123`, and full pull-request URLs are accepted.
    - Run `scripts/rank-candidates.mjs --input "$OPEN_PRS_JSON" --limit 40 --batch-size 20 --decision-ledger references/decision-ledger.json --exclude "$HANDLED_PRS"` as a first-pass noise filter.
    - Hydrate the top 30-40 into a second JSON file and set `HYDRATED_PRS_JSON` to that file path. For every PR, merge `ghx api repos/openclaw/openclaw/pulls/<number>` for authoritative `author_association`, declared `changed_files`, and merge state; `ghx api --paginate repos/openclaw/openclaw/pulls/<number>/files` for every `filename` with both additions and deletions; and live `statusCheckRollup`, including an explicit empty array when no checks exist.
    - When REST returns `mergeable: null` or an unknown merge state, retry that PR fetch up to three times with a two-second delay. If GitHub still has not resolved it, carry the PR as indeterminate instead of admitting it to the final batch.
    - Rerun with `--input "$HYDRATED_PRS_JSON" --hydrated`. Final selection rejects missing author association, partial file hydration, dirty/conflicting state, failed checks, and high-risk changed paths.
    - Treat pending non-routine checks as not ready. Do not admit them merely because older checks passed.
-   - Risk labels are routing signals, not proof of a risky surface. Judge the title and changed paths; exact security/auth labels remain hard exclusions, while compatibility/availability labels require qualification.
+   - Risk labels are routing signals, not proof of a risky surface. Judge the title and changed paths; exact security/auth and availability labels remain hard exclusions, while compatibility labels require qualification.
    - Production-size and test/docs-only gates are intentionally deferred until the hydrated pass.
    - Apply the full operator policy. ClawSweeper diamond/platinum labels improve rank but never override a hard exclusion.
 
@@ -64,6 +64,7 @@ Compose the repository skills instead of duplicating them:
    - Apply a maintainer-value gate after metadata ranking: state who observes the failure, what breaks, the failing-before proof, why the patch is not merely defensive cleanup, and why review cost is justified.
    - Treat the ranking script as a rejection tool, never as proof that a PR belongs in the batch.
    - Do not admit historical micro-fix exceptions automatically. A one-line or tiny mechanical PR requires the operator to name it explicitly in the current batch.
+   - A proven lifecycle micro-fix may pass only when it closes a linked bug, names a concrete leak/hang/dangling-handle outcome, changes at least five production lines, includes substantial focused regression proof, and carries strong live readiness evidence. Treat this as a narrow evidence exception, not permission to admit generic timer cleanup.
    - Do not pad. If only 13 qualify, the batch is 13.
 
 4. Fan out bounded read-only qualification.
