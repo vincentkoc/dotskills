@@ -48,6 +48,22 @@
     {
       "number": 96523,
       "reason": "embedded OpenAI completions usage persistence repair landed as cb44f40474bd88d3ba2e1c3c3f60767c9f6194e5"
+    },
+    {
+      "number": 98235,
+      "reason": "Feishu video upload duration fix landed as 22d686d13ee4a31701eb18c2dc96aede311452f0"
+    },
+    {
+      "number": 98876,
+      "reason": "terminal home-prefix boundary repair landed as c170e91529eaf0d9582061366992d764e339f516"
+    },
+    {
+      "number": 98877,
+      "reason": "Mattermost peer directory pagination repair landed as a741956448625a240d7b65f4b23c596e59e0b6f7"
+    },
+    {
+      "number": 98994,
+      "reason": "LINE surrogate-safe and grapheme-correct field truncation landed as 02b529a8ccf99f9a0db45934573c2be6db89d94a"
     }
   ],
   "handledMerged": [
@@ -182,6 +198,42 @@
     { "number": 98572, "reason": "broader risky duplicate of 90030" }
   ],
   "rejected": [
+    {
+      "number": 98992,
+      "reason": "feature-shaped public diagnostics and telemetry contract with competing implementations"
+    },
+    {
+      "number": 97269,
+      "reason": "optional edit-error product enhancement with a crowded duplicate cluster"
+    },
+    {
+      "number": 95667,
+      "reason": "session-state and message-delivery retry transcript mutation"
+    },
+    {
+      "number": 95514,
+      "reason": "Feishu message-delivery and external SDK transport contract risk"
+    },
+    {
+      "number": 95384,
+      "reason": "upgrade compatibility and channel-availability decision"
+    },
+    {
+      "number": 96052,
+      "reason": "persisted memory index migration, ranking, and session-state risk"
+    },
+    {
+      "number": 93025,
+      "reason": "public plugin API, privacy, and session-identity contract change"
+    },
+    {
+      "number": 98425,
+      "reason": "resource-limit hardening, exported-helper compatibility, and maintainer-owned repair"
+    },
+    {
+      "number": 97157,
+      "reason": "remote code-install trust boundary and compatibility-policy change"
+    },
     { "number": 71863, "reason": "Signal forced-kill availability and data-integrity policy" },
     { "number": 82495, "reason": "Doctor cross-home security and information-disclosure scope" },
     { "number": 89745, "reason": "compatibility policy for untimestamped legacy usage rows" },

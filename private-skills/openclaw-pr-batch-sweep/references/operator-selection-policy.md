@@ -104,6 +104,7 @@ Representative accepted work:
 - #95602: test infrastructure accepted only after proving material CI savings, fixture safety, hundreds of focused tests, and exact-head CI.
 - #90030: QMD zero-hit stalls fixed only for the long-lived manager path while preserving the one-shot bootstrap retry.
 - #98497: empty npm failure output repaired through the canonical process result, with exit, signal, and termination coverage; the broader ACPX issue stayed open.
+- #98994: LINE text-boundary repair accepted only after checking each field's counting unit, keeping ordinary fields UTF-16-safe, preserving the existing flex cap, and switching rich-menu fields to LINE's documented grapheme-cluster semantics.
 
 Representative rejects:
 
@@ -132,6 +133,8 @@ Two other accepted patterns remain bounded:
 - Owner-local transient read retries may qualify when the error classes, retry count, delay, fail-closed behavior, and sibling paths are explicit. #98787 qualified because it completed an already-shipped pattern on two content-preserving writers; it is not precedent for global retries or availability policy.
 
 When several PRs repeat fragments of one root cause, prefer one canonical implementation. The UTF cleanup that superseded eight small PRs is the model: land the shared fix, credit useful source work, and close the fragments.
+
+For text and payload limits, "Unicode-safe" is not enough. Verify the provider's exact counting unit per field: bytes, UTF-16 code units, Unicode code points, or grapheme clusters. Treat cap expansion as a separate product decision from boundary-safe truncation, and require request-level tests for fields whose unit differs from their siblings.
 
 ## Batch Rule
 
