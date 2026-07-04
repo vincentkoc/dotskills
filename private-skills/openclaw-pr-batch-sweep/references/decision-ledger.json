@@ -64,6 +64,10 @@
     {
       "number": 98994,
       "reason": "LINE surrogate-safe and grapheme-correct field truncation landed as 02b529a8ccf99f9a0db45934573c2be6db89d94a"
+    },
+    {
+      "number": 99852,
+      "reason": "ACPX MCP proxy stdio pipe failure repair landed as 364494623051b16e16450e1d6c6193dbf7bbe0c3"
     }
   ],
   "handledMerged": [
@@ -311,7 +315,83 @@
       "number": 97135,
       "reason": "broad progress-message policy can hide genuine unrecovered tool failures"
     },
-    { "number": 96219, "reason": "availability-policy decision" }
+    { "number": 96219, "reason": "availability-policy decision" },
+    {
+      "number": 98999,
+      "reason": "low-signal CLI help-description cleanup without a runtime bug"
+    },
+    {
+      "number": 99089,
+      "reason": "public CLI pagination product decision without real cursor traversal"
+    },
+    {
+      "number": 99150,
+      "reason": "Discord implicit reply change crosses message-delivery semantics"
+    },
+    {
+      "number": 99179,
+      "reason": "global app-server serialization changes execution and availability semantics"
+    },
+    {
+      "number": 99267,
+      "reason": "feature-shaped config watcher health surface"
+    },
+    {
+      "number": 99379,
+      "reason": "overbuilt heredoc parser misclassifies comments, arithmetic shifts, and ANSI-C delimiters"
+    },
+    {
+      "number": 99400,
+      "reason": "one-line diagnostics-only websocket error wrapping"
+    },
+    {
+      "number": 99416,
+      "reason": "runtime sidecar locking leaves cross-process state races unresolved"
+    },
+    {
+      "number": 99456,
+      "reason": "feature-shaped duplicated hook registry with plugin custom-event false warnings"
+    },
+    {
+      "number": 99527,
+      "reason": "tiny Unicode diagnostic truncation change without a linked product bug"
+    },
+    {
+      "number": 99542,
+      "reason": "six-line performance micro-optimization without the operator-required explicit exception"
+    },
+    {
+      "number": 99791,
+      "reason": "optional provider-model contract changed from a fake-provider test"
+    },
+    {
+      "number": 99842,
+      "reason": "feature-shaped health surface with unresolved dead-letter retention lifecycle"
+    },
+    {
+      "number": 94890,
+      "reason": "diagnostic snapshot micro-change without a linked product bug"
+    },
+    {
+      "number": 98990,
+      "reason": "resource lifecycle change crosses the operator-excluded availability boundary"
+    },
+    {
+      "number": 99067,
+      "reason": "speculative SQLite durability policy change on macOS"
+    },
+    {
+      "number": 99136,
+      "reason": "session compaction changes message-delivery semantics without complete sibling proof"
+    },
+    {
+      "number": 99724,
+      "reason": "runtime hot-reload watcher changes execution and duplicate-watcher behavior"
+    },
+    {
+      "number": 99792,
+      "reason": "new public plugin SDK response API on a security-adjacent boundary"
+    }
   ],
   "ignored": []
 }
