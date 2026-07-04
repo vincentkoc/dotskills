@@ -68,6 +68,14 @@
     {
       "number": 99852,
       "reason": "ACPX MCP proxy stdio pipe failure repair landed as 364494623051b16e16450e1d6c6193dbf7bbe0c3"
+    },
+    {
+      "number": 99960,
+      "reason": "cron persistence rollback and deferred auto-disable notification repair landed as fe3215cbb0f412aff961c8e3370e6cfcca49a7ff"
+    },
+    {
+      "number": 83718,
+      "reason": "memory-core dreaming fence marker promotion guard repair landed as 7a0188cbd20d304a015106cb6d0335649610c95e"
     }
   ],
   "handledMerged": [
