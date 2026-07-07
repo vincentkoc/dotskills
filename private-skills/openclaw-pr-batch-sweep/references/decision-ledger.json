@@ -381,6 +381,10 @@
     {
       "number": 101449,
       "reason": "canonical backup retry temp-path isolation landed as 686b7784689c1d4fac91558fbfaab1bb890dcca8 with native Windows sharing-violation proof, 45 focused tests on sanitized AWS and the final branch, check:changed on Testbox tbx_01kwxs4wabmdy9r2s4n78arr26, clean AutoReview, exact-head CI 28851921811, and native prepare/merge gates; linked issue 101382 closed"
+    },
+    {
+      "number": 101516,
+      "reason": "canonical QQBot UTF-16-safe bounded-preview cleanup landed as ccbd9eb28dfb7a903dbb301ebe42c95fa2c3f05f with contributor credit, 30 owner-local replacements, 118 focused tests and check:changed on Testbox tbx_01kwxwjxbyevbyqwfmgazbzs3y, clean final-head AutoReview, exact-head CI 28854778173 with 64 passing checks, and native prepare/merge gates; contributor fragments 101410, 101426, and 101444 closed"
     }
   ],
   "handledMerged": [
@@ -477,7 +481,8 @@
     100570,
     101230,
     101402,
-    101415
+    101415,
+    100793
   ],
   "closed": [
     {
@@ -959,6 +964,34 @@
     {
       "number": 101436,
       "reason": "closed as a three-line untested no-op stream listener superseded by merged PR 101394, which terminates and settles the child with focused EPIPE coverage"
+    },
+    {
+      "number": 101502,
+      "reason": "closed as destructive junk that replaced runtime code with literal local /tmp placeholder contents and deleted hundreds of lines; canonical detached-child fix remains PR 101489"
+    },
+    {
+      "number": 101491,
+      "reason": "closed as an untested no-op-listener duplicate of canonical detached-child fix PR 101489"
+    },
+    {
+      "number": 101490,
+      "reason": "closed as a partial failing duplicate of canonical detached-child fix PR 101489"
+    },
+    {
+      "number": 101487,
+      "reason": "closed as an untested defensive ChildProcess-guard duplicate of canonical detached-child fix PR 101489"
+    },
+    {
+      "number": 101410,
+      "reason": "closed as the messaging fragment superseded by canonical QQBot UTF-16-safe bounded-preview PR 101516 and landed commit ccbd9eb28dfb7a903dbb301ebe42c95fa2c3f05f with contributor credit"
+    },
+    {
+      "number": 101426,
+      "reason": "closed as the gateway fragment superseded by canonical QQBot UTF-16-safe bounded-preview PR 101516 and landed commit ccbd9eb28dfb7a903dbb301ebe42c95fa2c3f05f with contributor credit"
+    },
+    {
+      "number": 101444,
+      "reason": "closed as the API fragment superseded by canonical QQBot UTF-16-safe bounded-preview PR 101516 and landed commit ccbd9eb28dfb7a903dbb301ebe42c95fa2c3f05f with contributor credit"
     }
   ],
   "rejected": [
@@ -1917,6 +1950,26 @@
     {
       "number": 100860,
       "reason": "exec shell-bleed path validation changes a process-execution security boundary, which is explicitly excluded from the low-risk batch"
+    },
+    {
+      "number": 101506,
+      "reason": "bounded Chrome stderr goal is valid, but the patch drops early recovery markers after 64 KiB, renders the oldest retained tail, and can split UTF-8 bytes; requested redesign and real recovery proof"
+    },
+    {
+      "number": 101493,
+      "reason": "relaxes a fail-closed tool permission boundary and is explicitly excluded from the low-risk non-security batch"
+    },
+    {
+      "number": 101496,
+      "reason": "speculative provider retry and availability policy with inconsistent error classification and no real incident proof"
+    },
+    {
+      "number": 101488,
+      "reason": "adds arbitrary external response-size limits across resource and network boundaries without contract proof"
+    },
+    {
+      "number": 101479,
+      "reason": "changes transcript and session reset semantics by replacing oversized valid reset-hook messages with an empty message set"
     }
   ],
   "ignored": [
