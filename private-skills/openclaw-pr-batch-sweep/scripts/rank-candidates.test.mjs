@@ -870,6 +870,35 @@ test("normalizes gitcrawl thread envelopes without dropping risk labels", () => 
   assert.ok(output.rejected[0].reasons.includes("high-risk or compatibility surface"));
 });
 
+test("ignores issues in gitcrawl thread envelopes", () => {
+  const output = runDiscoveryInput({
+    threads: [
+      {
+        kind: "issue",
+        number: 12344,
+        title: "[Feature]: add a dashboard",
+        author_login: "contributor",
+        is_draft: false,
+        labels_json: "[]",
+        html_url: "https://github.com/openclaw/openclaw/issues/12344",
+      },
+      {
+        kind: "pull_request",
+        number: 12345,
+        title: "fix(process): preserve failure context when stderr is empty",
+        author_login: "contributor",
+        is_draft: false,
+        labels_json: "[]",
+        html_url: "https://github.com/openclaw/openclaw/pull/12345",
+      },
+    ],
+  });
+
+  assert.equal(output.selected.length, 1);
+  assert.equal(output.selected[0].number, 12345);
+  assert.equal(output.rejected.length, 0);
+});
+
 test("excludes terminal decisions from a persisted decision ledger", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "openclaw-pr-ledger-"));
   const ledgerPath = path.join(directory, "ledger.json");

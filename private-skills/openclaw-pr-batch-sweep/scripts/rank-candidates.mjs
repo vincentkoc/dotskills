@@ -173,9 +173,13 @@ const prs = Array.isArray(parsedInput) ? parsedInput : parsedInput.threads;
 if (!Array.isArray(prs)) {
   throw new Error('Expected a JSON array of pull requests or a {"threads": [...]} envelope');
 }
+const pullRequests = prs.filter((item) => {
+  const kind = String(item.kind ?? "").toLowerCase();
+  return kind === "" || kind === "pull_request" || kind === "pull" || kind === "pr";
+});
 const uniquePrs = [
   ...new Map(
-    prs.map((pr) => {
+    pullRequests.map((pr) => {
       const number = Number(pr.number);
       if (!Number.isInteger(number) || number < 1) {
         throw new Error(`Expected a positive PR number, received: ${String(pr.number)}`);

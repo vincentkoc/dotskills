@@ -4,7 +4,7 @@ description: Select, review, repair, validate, and land batches of up to 20 low-
 license: MIT
 metadata:
   internal: true
-  version: "0.2.2"
+  version: "0.2.3"
   spec: agentskills-v1
 ---
 

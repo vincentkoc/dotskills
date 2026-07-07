@@ -1028,6 +1028,26 @@
     {
       "number": 101345,
       "reason": "closed because swallowing TTS stdout errors could accept truncated audio and the added tests only wrote normal data and never emitted the claimed stream failures"
+    },
+    {
+      "number": 101569,
+      "reason": "closed as the untested two-line session-history stream-error fragment superseded by canonical PR 101571"
+    },
+    {
+      "number": 101544,
+      "reason": "closed as a narrower compaction telemetry duplicate superseded by canonical PR 101033"
+    },
+    {
+      "number": 101486,
+      "reason": "closed as behavior-neutral static-analysis cleanup across multiple agent mechanisms with no concrete bug or user impact"
+    },
+    {
+      "number": 98845,
+      "reason": "closed as five-line diagnostic parser churn because the caller already reports contextual Discord gateway metadata failure"
+    },
+    {
+      "number": 91943,
+      "reason": "closed after fresh live Feishu evidence showed the proposed 750 ms cadence change did not improve the multi-minute streaming tail"
     }
   ],
   "rejected": [
@@ -2006,6 +2026,34 @@
     {
       "number": 101479,
       "reason": "changes transcript and session reset semantics by replacing oversized valid reset-hook messages with an empty message set"
+    },
+    {
+      "number": 101477,
+      "reason": "arbitrary cron quarantine sidecar size cap is tiny security and persisted-state compatibility hardening without a concrete user failure"
+    },
+    {
+      "number": 101469,
+      "reason": "arbitrary HOOK.md size cap is tiny untrusted-package security hardening and fragments the hook metadata read policy"
+    },
+    {
+      "number": 89818,
+      "reason": "real provider stop-sequence omission remains outside the low-risk batch because the branch is dirty and changes three outbound compatibility contracts without live provider proof"
+    },
+    {
+      "number": 92287,
+      "reason": "bundles core follow-up typing lifecycle, Telegram delivery policy, and a public Plugin SDK type under exact compatibility risk"
+    },
+    {
+      "number": 88683,
+      "reason": "broad XL updater and registry-policy subsystem is dirty, compatibility-sensitive, and far outside the bounded bugfix batch"
+    },
+    {
+      "number": 101563,
+      "reason": "valid IRC reconnect-status repair changes readiness and availability semantics while retry and backoff policy remains unresolved"
+    },
+    {
+      "number": 101536,
+      "reason": "incorrect ACP ledger size accounting uses whole shared-database page count so unrelated state can trigger retention behavior"
     }
   ],
   "ignored": [
