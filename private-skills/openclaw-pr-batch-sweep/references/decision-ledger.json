@@ -889,6 +889,14 @@
     {
       "number": 97023,
       "reason": "closed because its hybrid custom-tool fixture matches neither Anthropic nor OpenAI dependency contracts and conversion can erase real OpenAI free-form semantics"
+    },
+    {
+      "number": 98085,
+      "reason": "closed as superseded by the authorization-aware device and node approval guidance landed in PRs 98115, 98146, and 99414"
+    },
+    {
+      "number": 96643,
+      "reason": "closed as superseded by the normalized options-shaped LINE filename propagation landed in PR 96403"
     }
   ],
   "rejected": [
@@ -1751,6 +1759,38 @@
     {
       "number": 101337,
       "reason": "technically plausible fallback-status copy still changes provider/session observability semantics, stays below the batch production-value bar, and lacks a real fallback proof"
+    },
+    {
+      "number": 101370,
+      "reason": "13-line process-stream lifecycle hardening has red CI and no real spawned-child reproduction"
+    },
+    {
+      "number": 98828,
+      "reason": "doctor repair deletes persisted plugin install records and needs dedicated state-migration review"
+    },
+    {
+      "number": 96274,
+      "reason": "model-facing identity prompt changes session semantics and duplicate the canonical identity resolver"
+    },
+    {
+      "number": 95982,
+      "reason": "incorrect nine-line shared JSON parser compatibility patch is dirty and breaks valid punctuation-before-path cases"
+    },
+    {
+      "number": 96793,
+      "reason": "nine-line Telegram thread-label patch changes session metadata, repeats a duplicate cluster, and lacks live forum proof"
+    },
+    {
+      "number": 96127,
+      "reason": "tool-search compatibility shim guesses malformed argument ownership and can silently delete legitimate target-tool fields"
+    },
+    {
+      "number": 99330,
+      "reason": "diagnostic-only update warning duplicates lifecycle branches without fixing stale gateway behavior"
+    },
+    {
+      "number": 98737,
+      "reason": "tiny duplicated Z.AI provider-header change lacks live API proof and sits in an auth-onboarding boundary"
     }
   ],
   "ignored": [
