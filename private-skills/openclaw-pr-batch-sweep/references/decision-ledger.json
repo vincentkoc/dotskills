@@ -353,6 +353,10 @@
     {
       "number": 96157,
       "reason": "canonical sqlite-vec 4096 KNN ceiling and filtered-recall fallback repair landed as 333a77fde3cab391f583d8e108c6d2edafe90fe8 with real 4097-row dependency proof, 22 focused tests, clean AutoReview, exact-head CI 28831006734, and native prepare/merge gates"
+    },
+    {
+      "number": 89997,
+      "reason": "protocol stdout startup repair for bare ACP and exact MCP serve landed as ffa6ebda4cd048e7d6d60c803d15d995af7870e7 with Commander 15 required-option contract proof, 97 focused tests, clean AutoReview, exact-head CI 28833349628, and native prepare/merge gates; linked issue 98167 closed"
     }
   ],
   "handledMerged": [
@@ -784,6 +788,10 @@
     {
       "number": 100806,
       "reason": "contributor closed after focused proof passed but the required real Telegram and Mantis behavior proof was unavailable"
+    },
+    {
+      "number": 97373,
+      "reason": "closed as superseded by the exact-scoped ACP and MCP protocol stdout startup repair landed in PR 89997 as ffa6ebda4cd048e7d6d60c803d15d995af7870e7"
     }
   ],
   "rejected": [
