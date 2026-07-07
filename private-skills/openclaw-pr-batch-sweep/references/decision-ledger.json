@@ -409,6 +409,14 @@
     {
       "number": 101650,
       "reason": "Discord and Nextcloud Talk metadata cache bounds landed as 936136a707ade820799f8949de2304cabccebfb5 with contributor credit, same-author fragment 101662 consolidated under the VISION tiny-PR rule, shared pruneMapToMaxSize ownership, private limits, 57 focused tests, exact changed gates on Testbox tbx_01kwybm52cwzvxb4qb6w7hsvar, clean final-head AutoReview, exact-head CI 28870314607, and native prepare/merge gates"
+    },
+    {
+      "number": 101450,
+      "reason": "trajectory snapshot and pointer reads were bounded and landed as f92ed16e605ed8984ee2e07cb2ff557398b6f5cd with focused regression proof, check:changed on Blacksmith Testbox tbx_01kwyf5q0v4bfdq4ndm36s6a38, clean final-head AutoReview, exact-head CI 28878769900 admission and critical gates, and native prepare/merge gates"
+    },
+    {
+      "number": 101589,
+      "reason": "canonical all-agent usage-cache concurrency repair landed as e5c224754c18837852995e8aba3d2e463927bf77 after correcting the unsupported SQLite mechanism, sharing the sibling 12-load policy, preserving all-or-nothing errors, proving 12-of-13 deterministic scheduling plus complete aggregation in 62 focused tests, passing check:changed on Blacksmith Testbox tbx_01kwyrv80bmm6hxj5xxyyatsdb, clean final-head AutoReview, exact-head CI 28885384161, and native prepare/merge gates; issue 101552 and duplicates 101578/101581 closed"
     }
   ],
   "handledMerged": [
@@ -1092,6 +1100,14 @@
     {
       "number": 101662,
       "reason": "closed after its Nextcloud Talk cache-cap fragment was consolidated into the same-author canonical PR 101650 and landed as 936136a707ade820799f8949de2304cabccebfb5"
+    },
+    {
+      "number": 101578,
+      "reason": "closed after canonical PR 101589 landed as e5c224754c18837852995e8aba3d2e463927bf77; its valid shared-limit direction was retained, but the canonical repair corrected the SQLite mechanism and used deterministic rather than timer-based concurrency proof"
+    },
+    {
+      "number": 101581,
+      "reason": "closed as the weaker duplicate after canonical PR 101589 landed as e5c224754c18837852995e8aba3d2e463927bf77; it introduced an arbitrary local limit of 8, duplicated sibling policy, lacked regression coverage, and repeated the unsupported SQLite mechanism"
     }
   ],
   "rejected": [
