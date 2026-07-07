@@ -46,7 +46,7 @@ const RESOURCE_LIMIT_TITLE =
 const AVAILABILITY_POLICY_TITLE =
   /\b(?:bound|extend|increase|raise|use)\b.{0,50}\b(?:retries|retry budget|slot occupancy|timeout|watchdog)\b|\b(?:retry budget|slot occupancy|watchdog)\b.{0,50}\b(?:budget|duration|limit|timeout)\b|\b(?:retry|retries)\b.{0,40}\b(?:backoff|budget|limit|policy)\b|\b(?:add|change|disable|remove|retry|use)\b.{0,50}\b(?:fall\s+back|fallback)\b|\b(?:fall\s+back|fallback)\b.{0,50}\b(?:after|instead|on|policy|to|when)\b|\b(?:force|forced)\b.{0,30}\b(?:kill|shutdown|terminate|termination)\b|\b(?:sigkill|sigterm)\b|\bexecute\b.{0,20}\btwice\b|\bduplicate\b.{0,40}\b(?:execution|request|run|side effect|tool calls?|turn)\b|\b(?:re-?execute|rerun)\b.{0,40}\b(?:request|run|side effect|tool calls?|turn)\b/i;
 const SESSION_DELIVERY_RISK_TITLE =
-  /\b(?:sessions?|session[_-]?id|transcript|history)\b.{0,60}\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b|\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b.{0,60}\b(?:sessions?|session[_-]?id|transcript|history)\b|\b(?:dedup|duplicate|replay|reprocess)\w*\b.{0,60}\b(?:inbound|message|reply|turn|webhook)\b|\b(?:delivery mirror|message delivery)\b|\b(?:send|reply)\b.{0,40}\b(?:fall\s+back|fallback)\b/i;
+  /\b(?:sessions?|session[_-]?id|transcript|history)\b.{0,60}\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b|\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b.{0,60}\b(?:sessions?|session[_-]?id|transcript|history)\b|\b(?:dedup|duplicate|replay|reprocess)\w*\b.{0,60}\b(?:inbound|message|reply|turn|webhook)\b|\b(?:delivery mirror|message delivery)\b|\b(?:send|reply)\b.{0,40}\b(?:fall\s+back|fallback)\b|\b(?:cron|reply|run|status|thread|target)\b.{0,60}\bdelivery\b|\bdelivery\b.{0,60}\b(?:backoff|error|fail|retry|status)\b/i;
 const UI_PATH =
   /^(?:apps)(?:\/|$)|(?:^|[\/._-])(?:ui|tui|control-ui|frontend|web-ui|locales?|translations?)(?:[\/._-]|$)|\.(?:css|scss|sass|less|tsx|jsx|vue|svelte)$/i;
 const LOW_SIGNAL_TITLE =
@@ -435,6 +435,9 @@ function analyze(pr) {
   const author =
     pr.author?.login ?? pr.user?.login ?? pr.author_login ?? pr.author ?? "";
   const normalizedAuthor = String(author).toLowerCase();
+  const authorType = String(
+    pr.author?.type ?? pr.user?.type ?? pr.author_type ?? "",
+  ).toUpperCase();
   const authorAssociation = String(
     requireHydrated
       ? (pr.author_association ?? pr.authorAssociation ?? "")
@@ -532,6 +535,8 @@ function analyze(pr) {
   if (
     MAINTAINER_ASSOCIATIONS.has(authorAssociation) ||
     DEFAULT_MAINTAINERS.has(normalizedAuthor) ||
+    authorType === "BOT" ||
+    normalizedAuthor.endsWith("[bot]") ||
     normalizedLabels.includes("maintainer")
   ) {
     reasons.push("maintainer-owned");

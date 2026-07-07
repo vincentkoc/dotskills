@@ -168,6 +168,8 @@ for (const title of [
   "fix(sms): replayed webhooks process again after high inbound traffic",
   "fix(agents): send session_id affinity header to Responses backend",
   "fix: prevent delivery mirror prompt contamination",
+  "fix(cron): keep isolated run status ok when delivery fails",
+  "fix(googlechat): preserve thread targets through reply delivery",
 ]) {
   test(`rejects session or delivery semantics: ${title}`, () => {
     const output = runHydrated(hydratedPr({ title }));
@@ -178,6 +180,17 @@ for (const title of [
     );
   });
 }
+
+test("rejects bot-authored queue work", () => {
+  const output = runHydrated(
+    hydratedPr({
+      author: { login: "clawsweeper[bot]", type: "Bot" },
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("maintainer-owned"));
+});
 
 for (const title of [
   "fix(ci): include runtime resources in build artifact",
