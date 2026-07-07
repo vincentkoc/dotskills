@@ -44,11 +44,16 @@ const CONFIG_RISK_TITLE =
 const RESOURCE_LIMIT_TITLE =
   /\b(?:bound|enforce|limit|reject)\b.{0,60}\b(?:bytes?|json|oom|payload|response|sse)\b|\boom\b/i;
 const AVAILABILITY_POLICY_TITLE =
-  /\b(?:extend|increase|raise|use)\b.{0,50}\b(?:retries|retry budget|slot occupancy|timeout|watchdog)\b|\b(?:retry budget|slot occupancy|watchdog)\b.{0,50}\b(?:budget|duration|limit|timeout)\b|\b(?:retry|retries)\b.{0,40}\b(?:backoff|budget|limit|policy)\b|\b(?:add|change|disable|remove|retry|use)\b.{0,50}\b(?:fall\s+back|fallback)\b|\b(?:fall\s+back|fallback)\b.{0,50}\b(?:after|instead|on|policy|to|when)\b|\b(?:force|forced)\b.{0,30}\b(?:kill|shutdown|terminate|termination)\b|\b(?:sigkill|sigterm)\b|\bexecute\b.{0,20}\btwice\b|\bduplicate\b.{0,40}\b(?:execution|request|run|side effect|tool calls?|turn)\b|\b(?:re-?execute|rerun)\b.{0,40}\b(?:request|run|side effect|tool calls?|turn)\b/i;
+  /\b(?:bound|extend|increase|raise|use)\b.{0,50}\b(?:retries|retry budget|slot occupancy|timeout|watchdog)\b|\b(?:retry budget|slot occupancy|watchdog)\b.{0,50}\b(?:budget|duration|limit|timeout)\b|\b(?:retry|retries)\b.{0,40}\b(?:backoff|budget|limit|policy)\b|\b(?:add|change|disable|remove|retry|use)\b.{0,50}\b(?:fall\s+back|fallback)\b|\b(?:fall\s+back|fallback)\b.{0,50}\b(?:after|instead|on|policy|to|when)\b|\b(?:force|forced)\b.{0,30}\b(?:kill|shutdown|terminate|termination)\b|\b(?:sigkill|sigterm)\b|\bexecute\b.{0,20}\btwice\b|\bduplicate\b.{0,40}\b(?:execution|request|run|side effect|tool calls?|turn)\b|\b(?:re-?execute|rerun)\b.{0,40}\b(?:request|run|side effect|tool calls?|turn)\b/i;
+const SESSION_DELIVERY_RISK_TITLE =
+  /\b(?:sessions?|session[_-]?id|transcript|history)\b.{0,60}\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b|\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b.{0,60}\b(?:sessions?|session[_-]?id|transcript|history)\b|\b(?:dedup|duplicate|replay|reprocess)\w*\b.{0,60}\b(?:inbound|message|reply|turn|webhook)\b|\b(?:delivery mirror|message delivery)\b|\b(?:send|reply)\b.{0,40}\b(?:fall\s+back|fallback)\b/i;
 const UI_PATH =
   /^(?:apps)(?:\/|$)|(?:^|[\/._-])(?:ui|tui|control-ui|frontend|web-ui|locales?|translations?)(?:[\/._-]|$)|\.(?:css|scss|sass|less|tsx|jsx|vue|svelte)$/i;
 const LOW_SIGNAL_TITLE =
-  /^(?:test|docs|chore|refactor|style|i18n)(?:\([^)]*\))?:|\b(typo|rename|formatting|lint|coverage|unit tests?|add tests?|object\.hasown|user[- ]agent|logging?|warning when|close readline|destroy read stream|allow always|one-shot command|dangling surrogate)\b/i;
+  /^(?:test|docs|chore|refactor|style|i18n|ci|build|infra)(?:\([^)]*\))?:|^(?:fix|chore)\((?:test|docs|ci|build|infra)\):|\b(typo|rename|formatting|lint|coverage|unit tests?|add tests?|object\.hasown|user[- ]agent|logging?|warning when|close readline|destroy read stream|allow always|one-shot command|dangling surrogate)\b/i;
+const TEST_INFRA_TITLE = /\b(?:fixture-only|live smoke|test fixture|test harness)\b/i;
+const DIAGNOSTIC_MICRO_TITLE =
+  /\b(?:diagnostic|error|failure|warning)\b.{0,50}\b(?:cause|context|copy|guidance|hint|message|wording)\b|\b(?:improve|clarify|enrich|wrap)\b.{0,50}\b(?:diagnostic|error|failure|warning)\b|\b(?:guidance|hint|wording)\b/i;
 const ODD_MICRO_TITLE =
   /\b(?:add|clear|close|destroy|guard|rename|replace|switch|use)\b.{0,40}\b(?:header|literal|log(?:ging)?|null check|object\.hasown|optional chaining|timer|timeout|user[- ]agent|warning)\b/i;
 const LIFECYCLE_MICRO_ACTION =
@@ -313,7 +318,7 @@ function isOverlapEligible(pr) {
     pr.mergeable === false ||
     String(pr.mergeable).toUpperCase() === "CONFLICTING" ||
     !mergeState ||
-    ["DIRTY", "UNKNOWN", "UNSTABLE"].includes(mergeState)
+    ["DIRTY", "UNKNOWN"].includes(mergeState)
   ) {
     return false;
   }
@@ -546,6 +551,9 @@ function analyze(pr) {
   if (AVAILABILITY_POLICY_TITLE.test(normalizedTitle)) {
     reasons.push("availability policy surface");
   }
+  if (SESSION_DELIVERY_RISK_TITLE.test(normalizedTitle)) {
+    reasons.push("session or message-delivery semantics");
+  }
   if (RESOURCE_LIMIT_TITLE.test(normalizedTitle)) {
     reasons.push("resource-limit or response-boundary hardening");
   }
@@ -562,6 +570,7 @@ function analyze(pr) {
   if (FEATURE_TITLE.test(pr.title ?? "")) reasons.push("feature work");
   if (FEATURE_SHAPED_TITLE.test(pr.title ?? "")) reasons.push("feature-shaped fix");
   if (LOW_SIGNAL_TITLE.test(pr.title ?? "")) reasons.push("low-signal change type");
+  if (TEST_INFRA_TITLE.test(pr.title ?? "")) reasons.push("test or infrastructure work");
   if (
     ODD_MICRO_TITLE.test(pr.title ?? "") &&
     !provisionalLifecycleMicroFix &&
@@ -591,6 +600,14 @@ function analyze(pr) {
   ) {
     reasons.push("trivial production diff");
   }
+  if (
+    requireHydrated &&
+    productionDeltaKnown &&
+    productionDelta < 25 &&
+    DIAGNOSTIC_MICRO_TITLE.test(title)
+  ) {
+    reasons.push("diagnostic-only micro-change");
+  }
   if (requireHydrated && productionDeltaKnown && fileCount === 1 && productionDelta < 25) {
     reasons.push("tiny single-file diff");
   }
@@ -609,7 +626,6 @@ function analyze(pr) {
   ) {
     reasons.push("dirty or conflicting");
   }
-  if (mergeState === "UNSTABLE") reasons.push("unstable merge state");
   if (failedChecks.length > 0) reasons.push("failing checks");
   if (pendingChecks.length > 0) reasons.push("pending checks");
 
@@ -651,6 +667,7 @@ function analyze(pr) {
   if (requireHydrated && fileCount >= 2 && fileCount <= 8) score += 4;
   if (/needs proof|waiting on author/i.test(text)) score -= 12;
   if (/merge-risk:/i.test(text)) score -= 8;
+  if (mergeState === "UNSTABLE") score -= 10;
 
   return {
     number: pr.number,

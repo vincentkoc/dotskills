@@ -123,6 +123,87 @@ test("rejects a one-line production patch even when tests are large", () => {
   assert.deepEqual(output.rejected[0].reasons, ["trivial production diff"]);
 });
 
+test("rejects tiny diagnostic wording changes even with broad tests", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(gateway): improve websocket error message context",
+      labels: [
+        { name: "rating: diamond lobster" },
+        { name: "proof: sufficient" },
+      ],
+      files: [
+        { filename: "src/gateway/call.ts", additions: 3, deletions: 0 },
+        { filename: "src/gateway/call.test.ts", additions: 80, deletions: 0 },
+      ],
+      additions: 83,
+      deletions: 0,
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("trivial production diff"));
+  assert.ok(output.rejected[0].reasons.includes("diagnostic-only micro-change"));
+});
+
+test("keeps substantive process failure propagation despite diagnostic wording", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(process): preserve failure context when stderr is empty",
+      files: [
+        { filename: "src/process/result.ts", additions: 22, deletions: 8 },
+        { filename: "src/process/result.test.ts", additions: 45, deletions: 0 },
+      ],
+      additions: 67,
+      deletions: 8,
+    }),
+  );
+
+  assert.equal(output.rejected.length, 0);
+  assert.equal(output.selected.length, 1);
+});
+
+for (const title of [
+  "fix(agents): include sender in duplicate-user-message dedup key",
+  "fix(sessions): reuse successful main sessions after completed runs",
+  "fix(sms): replayed webhooks process again after high inbound traffic",
+  "fix(agents): send session_id affinity header to Responses backend",
+  "fix: prevent delivery mirror prompt contamination",
+]) {
+  test(`rejects session or delivery semantics: ${title}`, () => {
+    const output = runHydrated(hydratedPr({ title }));
+
+    assert.equal(output.selected.length, 0);
+    assert.ok(
+      output.rejected[0].reasons.includes("session or message-delivery semantics"),
+    );
+  });
+}
+
+for (const title of [
+  "fix(ci): include runtime resources in build artifact",
+  "fix(infra): swallow mid-stream errors in live smoke",
+  "build: repair generated fixture inventory",
+  "test(qa): assert full selection metadata",
+  "docs(memory): add CPU-only VPS guidance",
+  "chore: update contributor inventory",
+]) {
+  test(`rejects CI or infrastructure work: ${title}`, () => {
+    const output = runHydrated(hydratedPr({ title }));
+
+    assert.equal(output.selected.length, 0);
+    assert.ok(output.rejected[0].reasons.includes("low-signal change type"));
+  });
+}
+
+test("rejects live-smoke routing even without a CI scope", () => {
+  const output = runHydrated(
+    hydratedPr({ title: "fix: keep Bedrock live smoke on Bedrock runtime" }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("test or infrastructure work"));
+});
+
 test("rejects odd mechanical micro-fixes without linked lifecycle proof", () => {
   const output = runHydrated(
     hydratedPr({
@@ -468,11 +549,12 @@ for (const title of [
   });
 }
 
-test("rejects an unstable merge state", () => {
+test("downgrades an unstable merge state when current checks are green", () => {
   const output = runHydrated(hydratedPr({ mergeable_state: "unstable" }));
 
-  assert.equal(output.selected.length, 0);
-  assert.deepEqual(output.rejected[0].reasons, ["unstable merge state"]);
+  assert.equal(output.rejected.length, 0);
+  assert.equal(output.selected.length, 1);
+  assert.equal(output.selected[0].score, 10);
 });
 
 test("keeps the strongest overlapping candidate and rejects the weaker one", () => {
@@ -499,6 +581,41 @@ test("keeps the strongest overlapping candidate and rejects the weaker one", () 
         number: 98604,
         files: [{ filename: "src/retry.ts", additions: 15, deletions: 5 }],
         changed_files: 1,
+      }),
+    ],
+    [],
+  );
+
+  assert.equal(output.selected.length, 1);
+  assert.equal(output.selected[0].number, 98597);
+  assert.equal(output.rejected.length, 1);
+  assert.equal(output.rejected[0].number, 98604);
+  assert.ok(output.rejected[0].reasons.includes("weaker overlapping candidate"));
+});
+
+test("includes green unstable candidates in overlap adjudication", () => {
+  const shared = {
+    body: "Fixes #98557",
+    files: [
+      { filename: "src/retry.ts", additions: 15, deletions: 5 },
+      { filename: "src/retry.test.ts", additions: 10, deletions: 0 },
+    ],
+  };
+  const output = runHydratedMany(
+    [
+      hydratedPr({
+        ...shared,
+        number: 98597,
+        labels: [
+          { name: "rating: diamond lobster" },
+          { name: "proof: sufficient" },
+          { name: "status: ready for maintainer look" },
+        ],
+      }),
+      hydratedPr({
+        ...shared,
+        number: 98604,
+        mergeable_state: "unstable",
       }),
     ],
     [],

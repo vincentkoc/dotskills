@@ -11,6 +11,7 @@ Reject before assigning an implementation lane:
 - Security, SSRF, proxy, auth, OAuth, token, secret, credential, redaction, permission, sandbox, pairing, trust-boundary, or sensitive-data changes.
 - Control UI, web UI, frontend, visual, translation, native UI, or product-design changes.
 - Config schema/default changes, migrations, legacy compatibility, provider/auth routing, public plugin SDK/API, protocol versioning, release, CI/workflow, dependency, or infrastructure policy.
+- Session/transcript persistence, replay, deduplication, identity, recovery, or delivery semantics, including changes disguised as narrow classifier or retry fixes.
 - Exact availability-risk labels or changes that alter watchdog duration, retry/fallback policy, slot occupancy, forced termination, or duplicate execution behavior.
 - Features, new knobs, new integrations, broad refactors, owner-boundary moves, or changes that need a product decision.
 - Docs-only, test-only, coverage-only, formatting, lint, rename, typo, generated-file, snapshot-only, or cleanup PRs.
@@ -26,6 +27,8 @@ Reject by default:
 - Production diffs below roughly 10 changed lines.
 - Single-header, single-literal, one-condition, one-timer, or one-method-substitution patches without a linked, reproducible user-visible bug.
 - Mechanical `Object.hasOwn`, cleanup, close/destroy, timeout-clear, User-Agent, spelling, or logging changes presented without concrete failure evidence.
+- Diagnostic-only error wording, hint, cause-chain, or log-copy changes below 25 production lines, even when they add broad snapshot or assertion coverage.
+- CI, build, live-smoke, fixture-only, and infrastructure repairs unless the operator explicitly selects them for measurable test-system value.
 - Tests that merely restate existing implementation behavior or add coverage without a bug.
 - Defensive branches for hypothetical malformed internal state.
 - Patch shapes that add fallback stacks, aliases, or compatibility solely to reduce diff size.
@@ -70,6 +73,8 @@ Downgrade or reject:
 - `needs proof`, `waiting on author`, dirty/conflicting, or stale head.
 - Compatibility, session-state, auth-provider, security-boundary, message-delivery, or other merge-risk labels.
 - Missing issue context, unexplained generated changes, or repeated proof-refresh commits.
+
+Treat GitHub `UNSTABLE` as a downgrade, not a rejection, when the hydrated latest-check rollup has no failed or pending non-routine checks. It often means the branch needs a refresh or a required check has not been requested yet; qualification may continue, but landing still requires exact-head green proof.
 
 ## Vision Wash
 
@@ -121,6 +126,8 @@ Representative rejects:
 - #98545 and #98372: compatibility/default and availability behavior that exceeded a low-risk batch.
 
 Historical one-line exceptions such as #95019 and #96801 required unusually strong package/runtime contract proof. They are not eligible for a default batch and are not precedent for future selection; the operator must name any such exception explicitly in the current request.
+
+#101219 was completed after already entering an active batch, but its three-line diagnostic wording change is not future selection precedent. Passing hundreds of adjacent assertions does not make a copy-only micro-change worth a fresh maintainer review cycle.
 
 The durable ledger separates `landed` selection precedents from `handledMerged` PRs that were observed or completed during prior sweeps. The latter are terminal exclusions, not evidence that their shape should qualify again. This matters for externally merged micro, docs, test, or risky work such as #98496.
 

@@ -1,42 +1,135 @@
 {
   "explicitSkips": [
-    { "number": 2923, "reason": "operator explicit skip" },
-    { "number": 77784, "reason": "operator explicit skip" },
-    { "number": 89255, "reason": "operator explicit skip" },
-    { "number": 94441, "reason": "operator explicit skip" },
-    { "number": 95080, "reason": "operator explicit skip" },
-    { "number": 95452, "reason": "operator explicit skip" },
-    { "number": 95540, "reason": "operator explicit skip; schemaless external-channel migration" },
-    { "number": 90122, "reason": "operator explicit skip; Control UI" },
-    { "number": 96714, "reason": "operator explicit skip" }
+    {
+      "number": 2923,
+      "reason": "operator explicit skip"
+    },
+    {
+      "number": 77784,
+      "reason": "operator explicit skip"
+    },
+    {
+      "number": 89255,
+      "reason": "operator explicit skip"
+    },
+    {
+      "number": 94441,
+      "reason": "operator explicit skip"
+    },
+    {
+      "number": 95080,
+      "reason": "operator explicit skip"
+    },
+    {
+      "number": 95452,
+      "reason": "operator explicit skip"
+    },
+    {
+      "number": 95540,
+      "reason": "operator explicit skip; schemaless external-channel migration"
+    },
+    {
+      "number": 90122,
+      "reason": "operator explicit skip; Control UI"
+    },
+    {
+      "number": 96714,
+      "reason": "operator explicit skip"
+    }
   ],
   "landed": [
-    { "number": 85296, "reason": "canonical bounded runtime fix after repair" },
+    {
+      "number": 85296,
+      "reason": "canonical bounded runtime fix after repair"
+    },
     {
       "number": 88159,
       "reason": "canonical logs follow recovery with responsive single-flight probing and explicit at-least-once replay contract"
     },
-    { "number": 90030, "reason": "canonical QMD zero-hit manager fix" },
-    { "number": 92283, "reason": "canonical sessions-send target stepping fix after repair" },
-    { "number": 94250, "reason": "Feishu reply delivery target fix after repair" },
-    { "number": 94326, "reason": "memory-wiki reserved index collision fix" },
-    { "number": 95019, "reason": "historical named micro-fix exception; not precedent" },
-    { "number": 95430, "reason": "canonical Anthropic stream recovery fix after repair" },
-    { "number": 95602, "reason": "material CI savings with broad fixture proof" },
-    { "number": 95906, "reason": "completed prior batch item" },
-    { "number": 96702, "reason": "validated built-in command plugin-load fix" },
-    { "number": 96801, "reason": "historical named dependency-integrity exception; not precedent" },
-    { "number": 97954, "reason": "linked user-visible memory-wiki bug" },
-    { "number": 98073, "reason": "malformed Signal JSON regression guard" },
-    { "number": 98125, "reason": "malformed cache recovery with regression proof" },
-    { "number": 98163, "reason": "conservative classifier with negative control" },
-    { "number": 98356, "reason": "provider-owned session reset fix" },
-    { "number": 98494, "reason": "completed prior batch item" },
-    { "number": 98497, "reason": "canonical npm process failure diagnostics" },
-    { "number": 98688, "reason": "provider-owned Fal routing and model-capability fix with live contract proof" },
-    { "number": 98689, "reason": "strict wizard port parser with focused regression proof" },
-    { "number": 98720, "reason": "proven Nostr timer lifecycle leak with focused negative-control tests" },
-    { "number": 98787, "reason": "bounded owner-local retry for content-preserving memory-wiki reads" },
+    {
+      "number": 90030,
+      "reason": "canonical QMD zero-hit manager fix"
+    },
+    {
+      "number": 92283,
+      "reason": "canonical sessions-send target stepping fix after repair"
+    },
+    {
+      "number": 94250,
+      "reason": "Feishu reply delivery target fix after repair"
+    },
+    {
+      "number": 94326,
+      "reason": "memory-wiki reserved index collision fix"
+    },
+    {
+      "number": 95019,
+      "reason": "historical named micro-fix exception; not precedent"
+    },
+    {
+      "number": 95430,
+      "reason": "canonical Anthropic stream recovery fix after repair"
+    },
+    {
+      "number": 95602,
+      "reason": "material CI savings with broad fixture proof"
+    },
+    {
+      "number": 95906,
+      "reason": "completed prior batch item"
+    },
+    {
+      "number": 96702,
+      "reason": "validated built-in command plugin-load fix"
+    },
+    {
+      "number": 96801,
+      "reason": "historical named dependency-integrity exception; not precedent"
+    },
+    {
+      "number": 97954,
+      "reason": "linked user-visible memory-wiki bug"
+    },
+    {
+      "number": 98073,
+      "reason": "malformed Signal JSON regression guard"
+    },
+    {
+      "number": 98125,
+      "reason": "malformed cache recovery with regression proof"
+    },
+    {
+      "number": 98163,
+      "reason": "conservative classifier with negative control"
+    },
+    {
+      "number": 98356,
+      "reason": "provider-owned session reset fix"
+    },
+    {
+      "number": 98494,
+      "reason": "completed prior batch item"
+    },
+    {
+      "number": 98497,
+      "reason": "canonical npm process failure diagnostics"
+    },
+    {
+      "number": 98688,
+      "reason": "provider-owned Fal routing and model-capability fix with live contract proof"
+    },
+    {
+      "number": 98689,
+      "reason": "strict wizard port parser with focused regression proof"
+    },
+    {
+      "number": 98720,
+      "reason": "proven Nostr timer lifecycle leak with focused negative-control tests"
+    },
+    {
+      "number": 98787,
+      "reason": "bounded owner-local retry for content-preserving memory-wiki reads"
+    },
     {
       "number": 98738,
       "reason": "MCP stdio dead-session lifecycle repair landed as e845a26fd68e10b258188d3bbefd47830e86d8db"
@@ -76,6 +169,190 @@
     {
       "number": 83718,
       "reason": "memory-core dreaming fence marker promotion guard repair landed as 7a0188cbd20d304a015106cb6d0335649610c95e"
+    },
+    {
+      "number": 95447,
+      "reason": "monotonic CJK-aware tool-result pressure repair landed as 3dff585de62ed85597258868dffc70dd700a608c"
+    },
+    {
+      "number": 100013,
+      "reason": "shared subagent truncation budget repair landed as 9b78ec8d6f1f1d5bb92d3240d196ecbe168ec81e"
+    },
+    {
+      "number": 100096,
+      "reason": "session maintenance warning duration rollover repair landed as 7d3cfa85dca1a109f58bbfc8ee9cfd42d39558c8"
+    },
+    {
+      "number": 99419,
+      "reason": "canonical shell completion alias and exec-approvals lazy-route repair landed as 1efc7270cd225d0bafd471b3250a38cdbfc9f821"
+    },
+    {
+      "number": 99896,
+      "reason": "canonical repair landed as 5dff031467f1a9c15a77b37461b1a14829f3eaf4"
+    },
+    {
+      "number": 99864,
+      "reason": "canonical Anthropic context usage and compaction accounting repair landed as e6ec74c25430f2df94eb6a99fb5e050ebbdd87ad"
+    },
+    {
+      "number": 100127,
+      "reason": "QQBot gateway disconnect status and recovery repair landed as cbb920c7d9e4a6b7b2be395063ea1aa930c05938"
+    },
+    {
+      "number": 100244,
+      "reason": "canonical backend UTF-16 truncation repair landed as 66081c09ee501d5edd8b0d2f0fa46218f8934833 with exact-head CI 28741038571 and Testbox tbx_01kws0qtfp8bxaxfy381gtqt9z"
+    },
+    {
+      "number": 100484,
+      "reason": "Codex missing mirrored-history startup race repair landed as 17ba49742424ca0963b040a9849614541ed0aab6 with contributor credit preserved"
+    },
+    {
+      "number": 99593,
+      "reason": "channel-owned command description limits repair landed as ca4e8a7dc8efee8dd3daee5d79c8003d746ba893 with exact-head CI 28761130089 and Testbox tbx_01kwtdaeghqm0k2tp9zh8hcenn"
+    },
+    {
+      "number": 99965,
+      "reason": "Telegram accepted-topic typing timing repair landed as 0e0f0b16cd6b59ce10bf2414e287715d2fcde6ed with 33 focused tests, exact-head CI 28761749596, and native topic proof 28707408543"
+    },
+    {
+      "number": 100482,
+      "reason": "Ollama incomplete native stream fallback classification landed as 9d9661e473758f12865d59bc90f43fc47e78318c with 163 focused tests, exact-head CI 28763002390, upstream ollama contract proof, and clean AutoReview"
+    },
+    {
+      "number": 100560,
+      "reason": "Claude CLI bootstrap routing repair landed as e92bfd892a741c56b18e6373ae5b229369fd3c0b with 83 focused tests, exact-head CI 28764892857, clean AutoReview, and corrected narrow fork ancestry"
+    },
+    {
+      "number": 100567,
+      "reason": "gateway usage range timezone repair landed as 37f96bde4d90ada5808d4d44f8c141aa2d4520f9 with 106 focused tests, exact-head CI 28766775222, real gateway RPC proof, Testbox tbx_01kwtqkhk9x2h7nk0k926xb6sy, and clean AutoReview"
+    },
+    {
+      "number": 100611,
+      "reason": "Workboard typed-hook inventory repair landed as 06fbd84d2b1a61c665f39f7da633df0157d03ed8 with 14 focused tests and exact-head CI 28768908837"
+    },
+    {
+      "number": 100582,
+      "reason": "ClickClack top-level quote reply routing repair landed as cbcd6a102c929b74640d472c2d5d2edaf0568cc2 with 20 focused tests, a real local ClickClack server roundtrip, exact-head CI 28769420635, upstream contract proof, and clean AutoReview"
+    },
+    {
+      "number": 100492,
+      "reason": "Anthropic draft-07 tuple schema projection repair landed as aca316ee16f334e3cac35e2d28d24bbdcbad3b7a with focused projection tests, a committed credentialed live regression, exact-head CI 28769454260, and clean AutoReview"
+    },
+    {
+      "number": 100342,
+      "reason": "foreground Gmail watcher renewal rejection repair landed as b6e4cd6bf4ea3da5e479b16e938be9782509250b with 9 focused tests, exact-head CI 28769443161, and clean AutoReview after removing redundant gateway and synthetic proof churn"
+    },
+    {
+      "number": 100522,
+      "reason": "canonical child-process stdout and stderr stream error repair landed as 437b177b7d8bdbe584f7ba37966200d2d72eeb8f with 4 focused tests, real spawned-child before and after proof, exact-head CI 28769646350, and clean AutoReview"
+    },
+    {
+      "number": 100670,
+      "reason": "canonical root-help descriptor alignment landed as c8ddcd116c5fd23214a7e6ee110e5b0589c0e2c4 with 183 focused tests, real CLI help and completion smoke, exact-head hosted gates, clean AutoReview, and AmirF194 co-author credit"
+    },
+    {
+      "number": 99907,
+      "reason": "delayed sessions_send delivery failure notification repair landed as 3d837cce23c6e166eb2a37e095870b19251e6bb2 with 57 focused exact-head CI tests, clean AutoReview, and unrelated Crabbox baseline-drift failure proven"
+    },
+    {
+      "number": 99196,
+      "reason": "canonical persisted plugin-index invalidation repair landed as 0f01930c8eeb05a0b2eae8f696ce74d397582ba3 with 24 focused tests, exact-head CI 28778630093, Testbox tbx_01kwv8shkn0234h325d6we092b, and clean AutoReview"
+    },
+    {
+      "number": 100735,
+      "reason": "canonical heartbeat notify=false fallback suppression landed as 8f2986290d0043194769493b1d5f46e2acf10c78 with 21 focused tests, Testbox tbx_01kwvckk5633zxs88mhjeqd3z8, native Telegram Mantis proof 28779391086, exact-head CI 28785517777, and clean AutoReview"
+    },
+    {
+      "number": 100017,
+      "reason": "canonical memory-wiki lint target normalization landed as a53565f6df9ddf2a66a1001ef248e6a3fc4b07a4 with 58 focused and adjacent tests, Testbox tbx_01kwvg39dfr4k0s7j1bpbh9jmy, exact-head CI 28785965651 including QA Smoke CI, and clean AutoReview"
+    },
+    {
+      "number": 100834,
+      "reason": "quiet heartbeat acknowledgement failure boundary landed as 5c49cec6187d3150abf0245570a6b759ef24929e with 14 focused tests, Testbox tbx_01kwvnr116dzsgcr37jtj8rr5n, patch-identical CI 28791267322 including QA Smoke CI, and clean final-head AutoReview"
+    },
+    {
+      "number": 90867,
+      "reason": "canonical issue 90844 repair landed as c421143b3b2abc88d0996e26a3675c26d70dff9a with exact-head CI, clean AutoReview, and native guarded merge flow"
+    },
+    {
+      "number": 100799,
+      "reason": "IRC post-ready disconnect recovery landed as 5aa7c6267cc06bd5e33679c4f6845046a677cbb5 with 20 focused tests, patch-identical Testbox tbx_01kwvqfqwn03v2drmhf259qw56, exact-head CI 28792948478 including QA Smoke CI, and clean final-head AutoReview"
+    },
+    {
+      "number": 77904,
+      "reason": "validated contributor repair landed as 9344bb8b48daec5c51e1a7ca6d438c1dc6e03a5f with exact-head CI and native strict-drift merge gates"
+    },
+    {
+      "number": 100828,
+      "reason": "duplicate non-streaming final reply repair landed as bab1415b5c2fc66cd17130b44743a0d52639e2e2 with exact-head CI and native strict-drift merge gates"
+    },
+    {
+      "number": 100883,
+      "reason": "Feishu card JSON compatibility repair landed as 25a7708f19ca10c757350ebf68d1e117d0734541 with exact-head CI and native strict-drift merge gates"
+    },
+    {
+      "number": 100832,
+      "reason": "multi-question fallback answer alignment repair landed autonomously through ProjectClownfish as 3c84a8453a9202477b32876c6834ed4b27521536 with exact-head external merge preflight and squash merge"
+    },
+    {
+      "number": 100801,
+      "reason": "cron update patch null-fallback compatibility repair landed autonomously through ProjectClownfish as a98a64649ec00ffdd359126bcf8cd39e1e0a2582 with exact-head external merge preflight and squash merge"
+    },
+    {
+      "number": 100836,
+      "reason": "direct cron.get lookup with bounded legacy fallback landed as 5c2604f8cd859d9c8de5989239ece80536f20763 with 125 focused tests, packaged Docker cron CLI smoke, Testbox tbx_01kwvs0xzs1szbfryw9ddzkedt, exact-head CI 28796023676 including QA Smoke CI, and clean final-head AutoReview"
+    },
+    {
+      "number": 100904,
+      "reason": "memory_get corpus=all missing-file supplement fallback landed as 9042e8020f387334448dc74c9981f0fda36f833e after a typed-contract cleanup and past-EOF negative regression, exact-head CI 28797419795 including QA Smoke CI, clean final-head AutoReview, and native prepare/merge gates"
+    },
+    {
+      "number": 100744,
+      "reason": "shell snapshot stdout pipe failure repair landed as 428ee12423694af9dacb36158462ce639f4b08e6 with 14 focused tests, exact-head CI 28800178740 including QA Smoke CI, clean final-head AutoReview, and native prepare/merge gates"
+    },
+    {
+      "number": 100850,
+      "reason": "logs CLI stream-error child termination repair landed as 9606fe43231bde5bf4491cc2db42c57e74e9bf79 with 40 focused tests, Testbox tbx_01kwvzc16cep8kgrxby4ye0147, exact-head CI 28801822672 including QA Smoke CI, clean final-head AutoReview, and native prepare/merge gates"
+    },
+    {
+      "number": 100855,
+      "reason": "SSH tunnel diagnostic stderr stream-error repair landed as 32cc9b08e6b3d6d7f297bdf1008b6fffc4e00b2b with 39 focused tests, exact-head CI 28804406855 including QA Smoke CI, CodeQL 28804406429, clean final-head AutoReview, and native prepare/merge gates"
+    },
+    {
+      "number": 100900,
+      "reason": "memory-wiki malformed public-artifact host guard and readMemoryArtifacts status alignment landed as ddddb3dec1c67921ba340a3a2da9129253c1dfdb with direct mem0 1.0.14 contract proof, 39 focused tests, exact-head hosted CI including QA Smoke CI and the memory runtime quality lane, clean final-head AutoReview, and native prepare/merge gates"
+    },
+    {
+      "number": 100902,
+      "reason": "memory-wiki partial shared-manager contract errors landed as edbf204537a47312a9921489f662d971852eb09b with direct mem0 1.0.14 contract proof, 43 focused query and talk sibling tests, exact-head hosted CI 28794665007 including QA Smoke CI, clean final-head AutoReview, and native prepare/merge gates"
+    },
+    {
+      "number": 101007,
+      "reason": "tool_search_code bounded stderr tail landed as 9ef7fff57098353652f4739a5720ce72f24546bd with newest-diagnostic repair, 61 focused tests, clean final-head AutoReview, exact-head CI 28813839220 including QA Smoke CI, and native prepare/merge gates"
+    },
+    {
+      "number": 101029,
+      "reason": "CLI journal UTF-8 byte-tail boundary repair landed as afcc93bfc73eaa2f5794466f2a941a4d3c14fa0f with 45 focused tests, sanitized AWS Crabbox real-process proof, clean final-head AutoReview, exact-head CI 28814405255 including QA Smoke CI, and native prepare/merge gates"
+    },
+    {
+      "number": 101085,
+      "reason": "sha256File stream-error context repair landed as 4d1ed548f4fb3b67b80a962dddc4ef68a9ca1e8c with deterministic ENOENT cause proof, 5 focused tests, clean final-head AutoReview, exact-head CI 28815454475 including QA Smoke CI, and native prepare/merge gates"
+    },
+    {
+      "number": 94736,
+      "reason": "Discord configured status-reaction hold timing landed as e938461aa2eafb09252da9c3b749ad31d3bdfb7d with 113 focused tests, live Discord 30-second hold proof, clean final-head AutoReview, exact-head CI 28815264612, and native prepare/merge gates; linked issue 78431 closed"
+    },
+    {
+      "number": 99791,
+      "reason": "video auto-selection provider-default repair landed as 565097fc1001b26b36e98458779ac34d7ea43e06 while preserving self-defaulting providers, with 14 focused tests, clean final-head AutoReview, exact-head CI 28817459029 including QA Smoke CI, and native prepare/merge gates"
+    },
+    {
+      "number": 101219,
+      "reason": "cause-neutral Gateway WebSocket 1006 diagnostics repair landed as 7c0d11eac12483f633301a2369f1f6cf21ccc195 with 472 focused tests, clean AutoReview, exact-head CI 28830766164, and native prepare/merge gates"
+    },
+    {
+      "number": 96157,
+      "reason": "canonical sqlite-vec 4096 KNN ceiling and filtered-recall fallback repair landed as 333a77fde3cab391f583d8e108c6d2edafe90fe8 with real 4097-row dependency proof, 22 focused tests, clean AutoReview, exact-head CI 28831006734, and native prepare/merge gates"
     }
   ],
   "handledMerged": [
@@ -161,53 +438,353 @@
     97825,
     97889,
     98188,
-    98496
+    98496,
+    99399,
+    100012,
+    100183,
+    97038,
+    99045,
+    99917,
+    100120,
+    100570
   ],
   "closed": [
-    { "number": 74320, "reason": "superseded by canonical baseline cleanup" },
-    { "number": 90592, "reason": "superseded by credited canonical replacement 95707" },
-    { "number": 90870, "reason": "fixed by merged canonical implementation" },
-    { "number": 90117, "reason": "weaker duplicate of 90030" },
-    { "number": 93330, "reason": "superseded by credited canonical replacement 95706" },
-    { "number": 94081, "reason": "operator-requested close; permission-contract risk" },
-    { "number": 95372, "reason": "superseded by credited canonical replacement 95719" },
-    { "number": 95468, "reason": "duplicate closed after canonical proof" },
-    { "number": 95703, "reason": "superseded by canonical baseline cleanup" },
-    { "number": 95704, "reason": "superseded by canonical baseline cleanup" },
-    { "number": 95741, "reason": "superseded by canonical baseline cleanup" },
-    { "number": 95751, "reason": "superseded by canonical baseline cleanup" },
-    { "number": 95762, "reason": "broader product-boundary variant superseded by 96244" },
-    { "number": 96186, "reason": "broader product-boundary variant superseded by 96244" },
-    { "number": 96259, "reason": "duplicate closed after canonical proof" },
-    { "number": 96260, "reason": "classifier redesign exposed by repeated review findings" },
-    { "number": 96729, "reason": "duplicate closed after canonical proof" },
-    { "number": 96750, "reason": "low-value duplicate test-only coverage" },
-    { "number": 96755, "reason": "duplicate closed after canonical proof" },
-    { "number": 96959, "reason": "dirty overlapping work" },
-    { "number": 96961, "reason": "dirty overlapping work" },
-    { "number": 96924, "reason": "unsafe process identification" },
-    { "number": 96953, "reason": "duplicate closed after canonical proof" },
-    { "number": 96993, "reason": "invalid size-limit contract" },
-    { "number": 97781, "reason": "external SSO response limit and OOM hardening" },
-    { "number": 97782, "reason": "external Feishu response limit and OOM hardening" },
-    { "number": 97823, "reason": "Telegram delivery target parsing and message-routing semantics" },
-    { "number": 97895, "reason": "persisted Claude CLI session failover behavior" },
-    { "number": 97034, "reason": "security-boundary and disconnected-history lane" },
-    { "number": 97734, "reason": "superseded by canonical UTF cleanup c16bb8725a8a" },
-    { "number": 97906, "reason": "junk comment-only PR" },
-    { "number": 97982, "reason": "superseded by canonical UTF cleanup c16bb8725a8a" },
-    { "number": 98018, "reason": "junk test-only PR" },
-    { "number": 98008, "reason": "superseded by canonical UTF cleanup c16bb8725a8a" },
-    { "number": 98058, "reason": "superseded by canonical UTF cleanup c16bb8725a8a" },
-    { "number": 98065, "reason": "superseded by canonical UTF cleanup c16bb8725a8a" },
-    { "number": 98086, "reason": "superseded by canonical UTF cleanup c16bb8725a8a" },
-    { "number": 98127, "reason": "superseded by canonical UTF cleanup c16bb8725a8a" },
-    { "number": 98135, "reason": "weaker untested duplicate superseded by 98720" },
-    { "number": 98136, "reason": "warning and formatting churn" },
-    { "number": 98155, "reason": "superseded by canonical UTF cleanup c16bb8725a8a" },
-    { "number": 98545, "reason": "compatibility and default-policy change" },
-    { "number": 98555, "reason": "duplicate closed after canonical proof" },
-    { "number": 98572, "reason": "broader risky duplicate of 90030" }
+    {
+      "number": 74320,
+      "reason": "superseded by canonical baseline cleanup"
+    },
+    {
+      "number": 90592,
+      "reason": "superseded by credited canonical replacement 95707"
+    },
+    {
+      "number": 90870,
+      "reason": "fixed by merged canonical implementation"
+    },
+    {
+      "number": 90117,
+      "reason": "weaker duplicate of 90030"
+    },
+    {
+      "number": 93330,
+      "reason": "superseded by credited canonical replacement 95706"
+    },
+    {
+      "number": 94081,
+      "reason": "operator-requested close; permission-contract risk"
+    },
+    {
+      "number": 95372,
+      "reason": "superseded by credited canonical replacement 95719"
+    },
+    {
+      "number": 95468,
+      "reason": "duplicate closed after canonical proof"
+    },
+    {
+      "number": 95703,
+      "reason": "superseded by canonical baseline cleanup"
+    },
+    {
+      "number": 95704,
+      "reason": "superseded by canonical baseline cleanup"
+    },
+    {
+      "number": 95741,
+      "reason": "superseded by canonical baseline cleanup"
+    },
+    {
+      "number": 95751,
+      "reason": "superseded by canonical baseline cleanup"
+    },
+    {
+      "number": 95762,
+      "reason": "broader product-boundary variant superseded by 96244"
+    },
+    {
+      "number": 96186,
+      "reason": "broader product-boundary variant superseded by 96244"
+    },
+    {
+      "number": 96259,
+      "reason": "duplicate closed after canonical proof"
+    },
+    {
+      "number": 96260,
+      "reason": "classifier redesign exposed by repeated review findings"
+    },
+    {
+      "number": 96729,
+      "reason": "duplicate closed after canonical proof"
+    },
+    {
+      "number": 96750,
+      "reason": "low-value duplicate test-only coverage"
+    },
+    {
+      "number": 96755,
+      "reason": "duplicate closed after canonical proof"
+    },
+    {
+      "number": 96959,
+      "reason": "dirty overlapping work"
+    },
+    {
+      "number": 96961,
+      "reason": "dirty overlapping work"
+    },
+    {
+      "number": 96924,
+      "reason": "unsafe process identification"
+    },
+    {
+      "number": 96953,
+      "reason": "duplicate closed after canonical proof"
+    },
+    {
+      "number": 96993,
+      "reason": "invalid size-limit contract"
+    },
+    {
+      "number": 97781,
+      "reason": "external SSO response limit and OOM hardening"
+    },
+    {
+      "number": 97782,
+      "reason": "external Feishu response limit and OOM hardening"
+    },
+    {
+      "number": 97823,
+      "reason": "Telegram delivery target parsing and message-routing semantics"
+    },
+    {
+      "number": 97895,
+      "reason": "persisted Claude CLI session failover behavior"
+    },
+    {
+      "number": 97034,
+      "reason": "security-boundary and disconnected-history lane"
+    },
+    {
+      "number": 97734,
+      "reason": "superseded by canonical UTF cleanup c16bb8725a8a"
+    },
+    {
+      "number": 97906,
+      "reason": "junk comment-only PR"
+    },
+    {
+      "number": 97982,
+      "reason": "superseded by canonical UTF cleanup c16bb8725a8a"
+    },
+    {
+      "number": 98018,
+      "reason": "junk test-only PR"
+    },
+    {
+      "number": 98008,
+      "reason": "superseded by canonical UTF cleanup c16bb8725a8a"
+    },
+    {
+      "number": 98058,
+      "reason": "superseded by canonical UTF cleanup c16bb8725a8a"
+    },
+    {
+      "number": 98065,
+      "reason": "superseded by canonical UTF cleanup c16bb8725a8a"
+    },
+    {
+      "number": 98086,
+      "reason": "superseded by canonical UTF cleanup c16bb8725a8a"
+    },
+    {
+      "number": 98127,
+      "reason": "superseded by canonical UTF cleanup c16bb8725a8a"
+    },
+    {
+      "number": 98135,
+      "reason": "weaker untested duplicate superseded by 98720"
+    },
+    {
+      "number": 98136,
+      "reason": "warning and formatting churn"
+    },
+    {
+      "number": 98155,
+      "reason": "superseded by canonical UTF cleanup c16bb8725a8a"
+    },
+    {
+      "number": 98545,
+      "reason": "compatibility and default-policy change"
+    },
+    {
+      "number": 98555,
+      "reason": "duplicate closed after canonical proof"
+    },
+    {
+      "number": 98572,
+      "reason": "broader risky duplicate of 90030"
+    },
+    {
+      "number": 100050,
+      "reason": "invalid provider-session disappearance claim; linked issue closed"
+    },
+    {
+      "number": 99936,
+      "reason": "wrong-boundary Feishu fallback exposed raw transport mention token without reproducing persistence bug"
+    },
+    {
+      "number": 99423,
+      "reason": "duplicate shell completion alias PR closed in favor of canonical 99419"
+    },
+    {
+      "number": 99427,
+      "reason": "defective duplicate shell completion alias PR superseded by canonical 99419"
+    },
+    {
+      "number": 99431,
+      "reason": "duplicate closed after recursive Bash work was incorporated with co-author credit into canonical 99419"
+    },
+    {
+      "number": 99474,
+      "reason": "duplicate shell completion alias PR previously closed in favor of canonical 99419"
+    },
+    {
+      "number": 99491,
+      "reason": "duplicate shell completion alias PR superseded by canonical 99419"
+    },
+    {
+      "number": 100170,
+      "reason": "superseded by canonical Anthropic context usage repair 99864"
+    },
+    {
+      "number": 98711,
+      "reason": "active-memory UTF-16 truncation repair folded with contributor credit into canonical 100244"
+    },
+    {
+      "number": 97908,
+      "reason": "superseded by canonical autoreview parser sync 100210 at 1a7f1133db322845efb8700018db26460697bb60"
+    },
+    {
+      "number": 99575,
+      "reason": "fork update failed after current-main sync; replaced with credited canonical PR 100484"
+    },
+    {
+      "number": 100281,
+      "reason": "wrong-layer non-canonical image-shape workaround; canonical placeholder and aggregate truncation root causes already fixed by 97423 and 98955"
+    },
+    {
+      "number": 100589,
+      "reason": "closed as a broader duplicate of canonical child-process stream error repair 100522"
+    },
+    {
+      "number": 99881,
+      "reason": "closed after current-main proof showed the reported behavior was already fixed"
+    },
+    {
+      "number": 98999,
+      "reason": "conflicting 27-file branch superseded by credited canonical three-file repair 100670"
+    },
+    {
+      "number": 100544,
+      "reason": "weaker root-help drift duplicate superseded by canonical repair 100670 with recurrence contract"
+    },
+    {
+      "number": 100325,
+      "reason": "broader six-file plugin load-path implementation superseded by canonical three-file repair 99196; sibling-path analysis credited in close comment"
+    },
+    {
+      "number": 100777,
+      "reason": "weaker heartbeat notify=false duplicate superseded by 100735, which includes the missing Telegram test-adapter propagation and native Telegram proof lane"
+    },
+    {
+      "number": 100766,
+      "reason": "closed after upstream Codex source disproved the claimed same-item notification reordering premise; linked maintainer issue remains product-decision owned"
+    },
+    {
+      "number": 98800,
+      "reason": "closed as low-value maintainer live-test malformed-env polish with six production lines, no incident, and an oversized standalone proof artifact"
+    },
+    {
+      "number": 100811,
+      "reason": "closed because the production agent loop already applies prepareArguments before validation and execution; the proposed tests bypassed that runtime path with direct execute calls and added a speculative edits wrapper"
+    },
+    {
+      "number": 80915,
+      "reason": "broader memory-wiki title-link implementation superseded by canonical 100017, which also covers slug, query, fragment, and imported source-path targets while preserving case-sensitive path matching"
+    },
+    {
+      "number": 98857,
+      "reason": "closed as low-value malformed optional-env diagnostics polish that still leaves startup failing and has no linked user incident"
+    },
+    {
+      "number": 89897,
+      "reason": "closed as behavior-neutral FLAG_TERMINATOR consistency churn for a fixed CLI token with no planned contract change"
+    },
+    {
+      "number": 85616,
+      "reason": "closed because the shared text-command fast path duplicated command policy and changed authorization-sensitive execution timing after the original delivery symptom was fixed by 86874"
+    },
+    {
+      "number": 99362,
+      "reason": "closed because durable last-compaction status omitted embedded-run failures and could display a stale successful outcome; resolving current critical-path conflicts would not fix the incomplete outcome model"
+    },
+    {
+      "number": 100881,
+      "reason": "closed as the later weaker compaction fail-open duplicate; broad 4xx and summary classifiers can hide auth/request failures and send an over-budget request"
+    },
+    {
+      "number": 100809,
+      "reason": "closed because blanket compaction fail-open policy treats 400/401/403 and generic summary failures as transient without current-main Control UI proof"
+    },
+    {
+      "number": 100874,
+      "reason": "closed because closing shared state after ACP onClosed leaves request admission and untracked gateway work able to reopen the database"
+    },
+    {
+      "number": 100711,
+      "reason": "closed because ledger shutdown opens then directly closes shared state while bypassing canonical cache cleanup and without admission/drain ordering"
+    },
+    {
+      "number": 100710,
+      "reason": "closed because the conflicted shutdown variant closes before ACP admission and in-flight work stop, allowing late state access to reopen the database"
+    },
+    {
+      "number": 100683,
+      "reason": "closed because ACP shutdown retains the reopen race and the gateway database close duplicates existing plugin-state shutdown ownership"
+    },
+    {
+      "number": 100890,
+      "reason": "closed because zeroing shared diagnostic queueDepth on every idle transition can erase real queued follow-ups and suppress stuck-work recovery"
+    },
+    {
+      "number": 100859,
+      "reason": "closed as the weaker duplicate of the landed shell snapshot stdout pipe failure repair in PR 100744"
+    },
+    {
+      "number": 100920,
+      "reason": "closed because the proposed test/runtime contract did not match the current behavior boundary and was not a valid merge candidate"
+    },
+    {
+      "number": 100802,
+      "reason": "closed as superseded by PR 100666 because it optimizes only trim-loop deletions while leaving the ordinary per-write aggregate scan"
+    },
+    {
+      "number": 100869,
+      "reason": "closed after repeated review showed the local shell-string parser loses canonical argv boundaries and misclassifies quoted reminder payloads"
+    },
+    {
+      "number": 100921,
+      "reason": "closed as superseded by deterministic createDeferred-based fast-mode test synchronization landed in PR 100019 as c757675f348db5eb1c33e6da57741813eee1d3d2"
+    },
+    {
+      "number": 87205,
+      "reason": "closed because PR 101213 fixed the actual Windows update and doctor fallback bug with native proof; this PR added broad protocol-mismatch repair suppression"
+    },
+    {
+      "number": 100806,
+      "reason": "contributor closed after focused proof passed but the required real Telegram and Mantis behavior proof was unavailable"
+    }
   ],
   "rejected": [
     {
@@ -246,71 +823,262 @@
       "number": 97157,
       "reason": "remote code-install trust boundary and compatibility-policy change"
     },
-    { "number": 71863, "reason": "Signal forced-kill availability and data-integrity policy" },
-    { "number": 82495, "reason": "Doctor cross-home security and information-disclosure scope" },
-    { "number": 89745, "reason": "compatibility policy for untimestamped legacy usage rows" },
-    { "number": 90750, "reason": "session-state and message-delivery diagnostic cleanup semantics" },
-    { "number": 93293, "reason": "compaction hot-path plugin discovery and duplicate-delivery semantics" },
-    { "number": 93996, "reason": "WhatsApp auth session and fallback lifecycle policy" },
-    { "number": 93843, "reason": "persisted memory identity change without migration policy" },
-    { "number": 93868, "reason": "public provider API change at the wrong ownership boundary" },
-    { "number": 94416, "reason": "Matrix E2EE session-state and duplicate-delivery risk" },
-    { "number": 94081, "reason": "permission-contract regression risk" },
-    { "number": 94050, "reason": "loop detection fix misses ordinary nonzero exec outcomes" },
-    { "number": 95447, "reason": "one-sided core compaction heuristic without tokenizer proof" },
-    { "number": 96178, "reason": "browser action target authorization boundary" },
-    { "number": 96572, "reason": "standalone UTF fragment reserved for canonical consolidation" },
-    { "number": 94649, "reason": "provider-failure transcript repair is session-state sensitive" },
-    { "number": 95347, "reason": "XL QMD timeout and lifecycle rewrite" },
-    { "number": 96750, "reason": "low-value duplicate test-only coverage" },
-    { "number": 96924, "reason": "unsafe process identification" },
-    { "number": 96993, "reason": "invalid size-limit contract" },
-    { "number": 97906, "reason": "comment-only churn" },
-    { "number": 97903, "reason": "accepted-run disconnect fix can duplicate model and tool side effects" },
-    { "number": 97803, "reason": "speculative public SDK error subclass without a consumer" },
-    { "number": 98018, "reason": "test-only work without product value" },
-    { "number": 98037, "reason": "QQ metadata redaction and message-delivery boundary" },
-    { "number": 98053, "reason": "active maintainer work on persisted QQ delivery routing" },
-    { "number": 98136, "reason": "warning and formatting churn" },
-    { "number": 98402, "reason": "durable message queue corruption policy and unrelated churn" },
-    { "number": 98430, "reason": "generic provider fallback violates required model metadata contract" },
-    { "number": 98450, "reason": "browser CDP response limit and OOM hardening" },
-    { "number": 98480, "reason": "external GitHub response limit and OOM hardening" },
-    { "number": 98381, "reason": "speculative malformed dependency-output hardening" },
-    { "number": 98351, "reason": "bundled unrelated changes and duplicate hunk" },
-    { "number": 98372, "reason": "availability and external-response risk" },
-    { "number": 98481, "reason": "documented command-contract product decision" },
-    { "number": 98505, "reason": "low-value incomplete change" },
-    { "number": 98514, "reason": "one-line archive provenance and session-state risk" },
-    { "number": 98527, "reason": "request-time transcript scan and cache on a replay hot path" },
-    { "number": 98579, "reason": "Docker CI retry and infrastructure policy" },
-    { "number": 98545, "reason": "compatibility and default-policy change" },
-    { "number": 98572, "reason": "broad duplicate with non-cancelling timeout" },
-    { "number": 98699, "reason": "persisted cron thread-id representation and message routing" },
-    { "number": 98604, "reason": "overlapping Telegram message-delivery micro-fix" },
-    { "number": 98609, "reason": "one-line process-boundary allowlist change" },
-    { "number": 98612, "reason": "persisted CLI session and auth failover risk" },
-    { "number": 98613, "reason": "tiny public parser-contract change without linked repro" },
-    { "number": 98251, "reason": "local media fallback privacy and message-delivery behavior" },
-    { "number": 98721, "reason": "incomplete UTF fix leaves upstream exec-output cuts unsafe" },
-    { "number": 98733, "reason": "session compaction no-op semantics and incomplete sibling coverage" },
-    { "number": 98840, "reason": "unlinked mechanical stream lifecycle cleanup" },
-    { "number": 97105, "reason": "process-execution trust boundary and maintainer-assigned work" },
-    { "number": 98911, "reason": "documented OTLP shared-endpoint compatibility contract" },
-    { "number": 95824, "reason": "bundles unrelated video endpoint and thinking-format provider changes" },
-    { "number": 96078, "reason": "outbound agent session ownership and message-delivery semantics" },
-    { "number": 96133, "reason": "terminal session recovery before transcript replay" },
-    { "number": 96174, "reason": "cron restart-run persistence and availability semantics" },
-    { "number": 96282, "reason": "session display projection and UI-adjacent behavior" },
-    { "number": 96291, "reason": "Codex memory-flush payload limit hardening" },
-    { "number": 96308, "reason": "Signal target routing and potential misdelivery" },
-    { "number": 96738, "reason": "Signal group mention gating and authorized-sender boundary" },
-    { "number": 96748, "reason": "LLM parser trust and control-escape semantics" },
-    { "number": 96841, "reason": "Claude CLI transcript continuity and session-state behavior" },
-    { "number": 97065, "reason": "Codex transcript cost estimation without low-risk product value" },
-    { "number": 97134, "reason": "source-unaware DeepSeek usage recomputation and durable cost-cache risk" },
-    { "number": 97303, "reason": "visible transcript projection changes session-state semantics" },
-    { "number": 97513, "reason": "duplicate-reply suppression changes message-delivery behavior" },
+    {
+      "number": 71863,
+      "reason": "Signal forced-kill availability and data-integrity policy"
+    },
+    {
+      "number": 82495,
+      "reason": "Doctor cross-home security and information-disclosure scope"
+    },
+    {
+      "number": 89745,
+      "reason": "compatibility policy for untimestamped legacy usage rows"
+    },
+    {
+      "number": 90750,
+      "reason": "session-state and message-delivery diagnostic cleanup semantics"
+    },
+    {
+      "number": 93293,
+      "reason": "compaction hot-path plugin discovery and duplicate-delivery semantics"
+    },
+    {
+      "number": 93996,
+      "reason": "WhatsApp auth session and fallback lifecycle policy"
+    },
+    {
+      "number": 93843,
+      "reason": "persisted memory identity change without migration policy"
+    },
+    {
+      "number": 93868,
+      "reason": "public provider API change at the wrong ownership boundary"
+    },
+    {
+      "number": 94416,
+      "reason": "Matrix E2EE session-state and duplicate-delivery risk"
+    },
+    {
+      "number": 94081,
+      "reason": "permission-contract regression risk"
+    },
+    {
+      "number": 94050,
+      "reason": "loop detection fix misses ordinary nonzero exec outcomes"
+    },
+    {
+      "number": 96178,
+      "reason": "browser action target authorization boundary"
+    },
+    {
+      "number": 96572,
+      "reason": "standalone UTF fragment reserved for canonical consolidation"
+    },
+    {
+      "number": 94649,
+      "reason": "provider-failure transcript repair is session-state sensitive"
+    },
+    {
+      "number": 95347,
+      "reason": "XL QMD timeout and lifecycle rewrite"
+    },
+    {
+      "number": 96750,
+      "reason": "low-value duplicate test-only coverage"
+    },
+    {
+      "number": 96924,
+      "reason": "unsafe process identification"
+    },
+    {
+      "number": 96993,
+      "reason": "invalid size-limit contract"
+    },
+    {
+      "number": 97906,
+      "reason": "comment-only churn"
+    },
+    {
+      "number": 97903,
+      "reason": "accepted-run disconnect fix can duplicate model and tool side effects"
+    },
+    {
+      "number": 97803,
+      "reason": "speculative public SDK error subclass without a consumer"
+    },
+    {
+      "number": 98018,
+      "reason": "test-only work without product value"
+    },
+    {
+      "number": 98037,
+      "reason": "QQ metadata redaction and message-delivery boundary"
+    },
+    {
+      "number": 98053,
+      "reason": "active maintainer work on persisted QQ delivery routing"
+    },
+    {
+      "number": 98136,
+      "reason": "warning and formatting churn"
+    },
+    {
+      "number": 98402,
+      "reason": "durable message queue corruption policy and unrelated churn"
+    },
+    {
+      "number": 98430,
+      "reason": "generic provider fallback violates required model metadata contract"
+    },
+    {
+      "number": 98450,
+      "reason": "browser CDP response limit and OOM hardening"
+    },
+    {
+      "number": 98480,
+      "reason": "external GitHub response limit and OOM hardening"
+    },
+    {
+      "number": 98381,
+      "reason": "speculative malformed dependency-output hardening"
+    },
+    {
+      "number": 98351,
+      "reason": "bundled unrelated changes and duplicate hunk"
+    },
+    {
+      "number": 98372,
+      "reason": "availability and external-response risk"
+    },
+    {
+      "number": 98481,
+      "reason": "documented command-contract product decision"
+    },
+    {
+      "number": 98505,
+      "reason": "low-value incomplete change"
+    },
+    {
+      "number": 98514,
+      "reason": "one-line archive provenance and session-state risk"
+    },
+    {
+      "number": 98527,
+      "reason": "request-time transcript scan and cache on a replay hot path"
+    },
+    {
+      "number": 98579,
+      "reason": "Docker CI retry and infrastructure policy"
+    },
+    {
+      "number": 98545,
+      "reason": "compatibility and default-policy change"
+    },
+    {
+      "number": 98572,
+      "reason": "broad duplicate with non-cancelling timeout"
+    },
+    {
+      "number": 98699,
+      "reason": "persisted cron thread-id representation and message routing"
+    },
+    {
+      "number": 98604,
+      "reason": "overlapping Telegram message-delivery micro-fix"
+    },
+    {
+      "number": 98609,
+      "reason": "one-line process-boundary allowlist change"
+    },
+    {
+      "number": 98612,
+      "reason": "persisted CLI session and auth failover risk"
+    },
+    {
+      "number": 98613,
+      "reason": "tiny public parser-contract change without linked repro"
+    },
+    {
+      "number": 98251,
+      "reason": "local media fallback privacy and message-delivery behavior"
+    },
+    {
+      "number": 98721,
+      "reason": "incomplete UTF fix leaves upstream exec-output cuts unsafe"
+    },
+    {
+      "number": 98733,
+      "reason": "session compaction no-op semantics and incomplete sibling coverage"
+    },
+    {
+      "number": 98840,
+      "reason": "unlinked mechanical stream lifecycle cleanup"
+    },
+    {
+      "number": 97105,
+      "reason": "process-execution trust boundary and maintainer-assigned work"
+    },
+    {
+      "number": 98911,
+      "reason": "documented OTLP shared-endpoint compatibility contract"
+    },
+    {
+      "number": 95824,
+      "reason": "bundles unrelated video endpoint and thinking-format provider changes"
+    },
+    {
+      "number": 96078,
+      "reason": "outbound agent session ownership and message-delivery semantics"
+    },
+    {
+      "number": 96133,
+      "reason": "terminal session recovery before transcript replay"
+    },
+    {
+      "number": 96174,
+      "reason": "cron restart-run persistence and availability semantics"
+    },
+    {
+      "number": 96282,
+      "reason": "session display projection and UI-adjacent behavior"
+    },
+    {
+      "number": 96291,
+      "reason": "Codex memory-flush payload limit hardening"
+    },
+    {
+      "number": 96308,
+      "reason": "Signal target routing and potential misdelivery"
+    },
+    {
+      "number": 96738,
+      "reason": "Signal group mention gating and authorized-sender boundary"
+    },
+    {
+      "number": 96748,
+      "reason": "LLM parser trust and control-escape semantics"
+    },
+    {
+      "number": 96841,
+      "reason": "Claude CLI transcript continuity and session-state behavior"
+    },
+    {
+      "number": 97065,
+      "reason": "Codex transcript cost estimation without low-risk product value"
+    },
+    {
+      "number": 97134,
+      "reason": "source-unaware DeepSeek usage recomputation and durable cost-cache risk"
+    },
+    {
+      "number": 97303,
+      "reason": "visible transcript projection changes session-state semantics"
+    },
+    {
+      "number": 97513,
+      "reason": "duplicate-reply suppression changes message-delivery behavior"
+    },
     {
       "number": 97560,
       "reason": "destructive storage lifecycle and unresolved explicit-source retention semantics"
@@ -323,10 +1091,9 @@
       "number": 97135,
       "reason": "broad progress-message policy can hide genuine unrecovered tool failures"
     },
-    { "number": 96219, "reason": "availability-policy decision" },
     {
-      "number": 98999,
-      "reason": "low-signal CLI help-description cleanup without a runtime bug"
+      "number": 96219,
+      "reason": "availability-policy decision"
     },
     {
       "number": 99089,
@@ -369,10 +1136,6 @@
       "reason": "six-line performance micro-optimization without the operator-required explicit exception"
     },
     {
-      "number": 99791,
-      "reason": "optional provider-model contract changed from a fake-provider test"
-    },
-    {
       "number": 99842,
       "reason": "feature-shaped health surface with unresolved dead-letter retention lifecycle"
     },
@@ -399,6 +1162,282 @@
     {
       "number": 99792,
       "reason": "new public plugin SDK response API on a security-adjacent boundary"
+    },
+    {
+      "number": 99950,
+      "reason": "message-delivery routing semantics exceed the low-risk batch boundary"
+    },
+    {
+      "number": 100005,
+      "reason": "config persistence and compatibility change overlaps canonical PR 98422"
+    },
+    {
+      "number": 99961,
+      "reason": "resource-limit fallback policy overlaps availability-sensitive PRs 96480 and 98858"
+    },
+    {
+      "number": 100001,
+      "reason": "core scheduling and maxConcurrent semantics require a product availability decision"
+    },
+    {
+      "number": 99892,
+      "reason": "redundant diagnostics wrapper and disposable proof script on an SSRF-adjacent surface"
+    },
+    {
+      "number": 99898,
+      "reason": "synthetic impossible rejection path; dependency wait promise resolves only"
+    },
+    {
+      "number": 99894,
+      "reason": "MCP infrastructure diagnostics with an impossible cron parser claim and overlapping work"
+    },
+    {
+      "number": 99606,
+      "reason": "feature-shaped doctor policy with an arbitrary operator threshold"
+    },
+    {
+      "number": 99602,
+      "reason": "CLI output and ergonomics feature rather than a bounded bug repair"
+    },
+    {
+      "number": 99598,
+      "reason": "status UX feature without a qualifying runtime correctness bug"
+    },
+    {
+      "number": 99012,
+      "reason": "valid issue in maintainer-only PR tooling; outside the contributor bugfix queue"
+    },
+    {
+      "number": 99798,
+      "reason": "provider capability assumption without live Copilot contract proof"
+    },
+    {
+      "number": 99402,
+      "reason": "broad backup payload compatibility change"
+    },
+    {
+      "number": 99394,
+      "reason": "Feishu presentation and delivery semantics"
+    },
+    {
+      "number": 99344,
+      "reason": "dirty provider model-schema redesign"
+    },
+    {
+      "number": 99057,
+      "reason": "bundles a CLI display alias with unrelated Matrix event semantics"
+    },
+    {
+      "number": 99053,
+      "reason": "unsafe conflicting message-delivery fallback"
+    },
+    {
+      "number": 99032,
+      "reason": "conflicting QQBot delivery semantics with overlapping work"
+    },
+    {
+      "number": 100450,
+      "reason": "bundles unrelated numeric coercion and LSP lifecycle fixes with synthetic proof"
+    },
+    {
+      "number": 100366,
+      "reason": "model-facing prompt and history rendering product contract"
+    },
+    {
+      "number": 99880,
+      "reason": "pure dead-field cleanup without operational value"
+    },
+    {
+      "number": 99539,
+      "reason": "approval security-adjacent UTF fragment using a non-canonical local implementation"
+    },
+    {
+      "number": 98669,
+      "reason": "third warning-only malformed-transcript duplicate without behavior repair"
+    },
+    {
+      "number": 98705,
+      "reason": "one-line security and message-loss partial fix on Feishu delivery"
+    },
+    {
+      "number": 99094,
+      "reason": "unsafe persistent corrupted sidecar and fallback storage path"
+    },
+    {
+      "number": 98997,
+      "reason": "incomplete compatibility change duplicated by active PR 98658"
+    },
+    {
+      "number": 100343,
+      "reason": "Twitch disconnect status activates availability and restart policy without live proof"
+    },
+    {
+      "number": 100401,
+      "reason": "generic catch converts gateway module failure into silent event loss"
+    },
+    {
+      "number": 99173,
+      "reason": "claimed base64 stack overflow did not reproduce and regression test passes before the fix"
+    },
+    {
+      "number": 99122,
+      "reason": "persistent session sidecar lifecycle conflicts with the SQLite storage direction"
+    },
+    {
+      "number": 99026,
+      "reason": "unapproved provider prompt-default behavior change"
+    },
+    {
+      "number": 99023,
+      "reason": "preferred duplicate shape but still an unapproved provider prompt-default contract"
+    },
+    {
+      "number": 99008,
+      "reason": "weaker duplicate of the unapproved provider prompt-default change"
+    },
+    {
+      "number": 99516,
+      "reason": "global runtime JSON fallback lacks a concrete producer and defined output contract"
+    },
+    {
+      "number": 99490,
+      "reason": "weaker runtime JSON fallback duplicate that can still throw during String conversion"
+    },
+    {
+      "number": 85616,
+      "reason": "shared text-command fast path duplicates command policy and changes authorization-sensitive cross-channel execution timing"
+    },
+    {
+      "number": 99208,
+      "reason": "provider-derived tool aliases add incomplete generic-core compatibility policy, public SDK surface, and transcript identity rewrites"
+    },
+    {
+      "number": 100229,
+      "reason": "cron-specific empty-result guard duplicates incomplete-turn policy and incompletely enumerates valid terminal progress"
+    },
+    {
+      "number": 100338,
+      "reason": "synthetic malformed npm JSON hardening has no observed producer or caller-visible failure"
+    },
+    {
+      "number": 100281,
+      "reason": "provider-wide serializer widening lacked a real non-canonical producer and could drop vision-path Anthropic images"
+    },
+    {
+      "number": 100564,
+      "reason": "one-sided usage range semantics were asymmetric and undocumented, while the canonical timezone-aware resolver already landed in 100567"
+    },
+    {
+      "number": 100592,
+      "reason": "compatibility-sensitive auth and provider routing change exceeds the low-risk batch"
+    },
+    {
+      "number": 100583,
+      "reason": "broad session-state change and maintainer-owned work"
+    },
+    {
+      "number": 100574,
+      "reason": "reasoning and session-state behavior exceeds the low-risk batch"
+    },
+    {
+      "number": 100524,
+      "reason": "unsafe transcript stream handling converts non-ENOENT failures into partial or empty success and settles before close"
+    },
+    {
+      "number": 100543,
+      "reason": "two-line production micro-fix without an operator-approved exception"
+    },
+    {
+      "number": 100523,
+      "reason": "two-line Docker sandbox stream-error fragment is security-adjacent and below the batch value threshold"
+    },
+    {
+      "number": 100605,
+      "reason": "tiny duplicate fragment in the Gemini alias cluster"
+    },
+    {
+      "number": 100553,
+      "reason": "valid cron compaction counter fix is a one-line production micro-change without an operator-approved exception"
+    },
+    {
+      "number": 100510,
+      "reason": "QQBot error-guidance patch is account-shape-specific, weakly proven, and below the batch value threshold"
+    },
+    {
+      "number": 100519,
+      "reason": "independent Gmail watcher stream-error fragment has six production lines and no linked user bug"
+    },
+    {
+      "number": 100521,
+      "reason": "two-line secrets resolver stream-error fragment is security-owned and outside this batch"
+    },
+    {
+      "number": 100722,
+      "reason": "dirty Codex timeout micro-fix misses the side-question sibling path, carries unrelated churn, and touches session-state behavior"
+    },
+    {
+      "number": 100766,
+      "reason": "hypothetical Codex item reordering conflicts with the inspected upstream serialized event contract and adds unbounded session state"
+    },
+    {
+      "number": 100558,
+      "reason": "plausible ACP rejection guard lacks a concrete failing operation, detached-callback regression proof, and resolved mergeability"
+    },
+    {
+      "number": 100733,
+      "reason": "incomplete ACP lifecycle micro-fix hides process-global shared DB ownership behind the ledger API and adds no regression proof"
+    },
+    {
+      "number": 100762,
+      "reason": "two-line Telegram classifier change expands global cooldown and retry policy without a concrete grammY failure or handler-level proof"
+    },
+    {
+      "number": 100684,
+      "reason": "speculative compaction prompt enhancement claims lost ordering that current array processing already preserves and adds timezone-dependent prompt bytes"
+    },
+    {
+      "number": 98800,
+      "reason": "maintainer live-test malformed-env polish has six production lines, no linked incident, and an oversized standalone proof script"
+    },
+    {
+      "number": 98857,
+      "reason": "malformed optional-env diagnostics patch has six production lines, no linked incident, and does not make the failing startup path recover"
+    },
+    {
+      "number": 89897,
+      "reason": "single-token behavior-neutral consistency refactor protects only a hypothetical future FLAG_TERMINATOR contract change"
+    },
+    {
+      "number": 100802,
+      "reason": "partial ACP ledger optimization leaves the common per-write aggregate scan and is weaker than canonical PR 100666"
+    },
+    {
+      "number": 100869,
+      "reason": "valid reminder-accounting bug but the proposed fix grew into incomplete shell grammar; safe repair requires canonical argv-preserving command analysis"
+    },
+    {
+      "number": 101177,
+      "reason": "valid billed-zero usage ambiguity, but public usage API, transcript accounting, and cache compatibility exceed the low-risk batch"
+    },
+    {
+      "number": 101084,
+      "reason": "speculative iMessage stdout and stderr hardening without a concrete incident; treating stderr as fatal is not contract-proven"
+    },
+    {
+      "number": 101009,
+      "reason": "global surrogate normalization sorts before normalization and can emit duplicate JSON keys; defer to the wider canonical UTF cleanup"
+    },
+    {
+      "number": 92196,
+      "reason": "valid multimodal retrieval ranking bug, but persisted memory and agent-context selection policy is outside the low-risk batch"
+    },
+    {
+      "number": 91988,
+      "reason": "valid bootstrap deletion bug, but shipped workspace completion, persisted setup state, and recovery semantics require owner review"
+    },
+    {
+      "number": 91828,
+      "reason": "memory-wiki concurrency, retry, availability, and shared snapshot semantics exceed the batch and partly overlap merged repairs"
     }
   ],
   "ignored": []
