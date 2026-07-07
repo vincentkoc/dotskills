@@ -373,6 +373,10 @@
     {
       "number": 95902,
       "reason": "local Gateway busy-listener RPC diagnostics landed as 70c2e837cd54a227495c66f396b7d25a90f81585 with remote and explicit-target scoping, pattern-only live-listener log selection, single-render output, 69 focused tests, clean final-head AutoReview, exact-head CI 28843147646 including QA Smoke CI, and native prepare/merge gates"
+    },
+    {
+      "number": 96147,
+      "reason": "canonical structured doctor default-account routing contribution landed as 41c0540bdcabc0c7f434ba735bdff7e5e3782889 with single-render preview/fix behavior, opt-in lint selection, 87 focused tests, exact changed gates on Testbox tbx_01kwxmthtv1hv7czc1qjb29704, clean final-head AutoReview, exact-head CI 28848618012, and native prepare/merge gates"
     }
   ],
   "handledMerged": [
@@ -929,6 +933,22 @@
     {
       "number": 92165,
       "reason": "closed as a dirty stale memory-doctor implementation superseded by current target and lint architecture and still incomplete against the canonical issue contract"
+    },
+    {
+      "number": 100658,
+      "reason": "closed as superseded by ledger-scoped cached accounting in PR 100666 because page_count would make ACP replay retention depend on unrelated shared-database pages"
+    },
+    {
+      "number": 101403,
+      "reason": "closed as disproportionate QA-only response hardening with an arbitrary 16 MiB cap, 185 lines of mock tests, no real Crabline limit proof, and failing test types"
+    },
+    {
+      "number": 101404,
+      "reason": "closed as the untested arbitrary 16 MiB Mattermost WebSocket cap duplicate of proof-positive canonical PR 99366"
+    },
+    {
+      "number": 101405,
+      "reason": "closed as an ineffective hosted-catalog streamless-read partial fix superseded by canonical PR 101000 because the shared helper can still materialize the whole body"
     }
   ],
   "rejected": [
