@@ -369,6 +369,10 @@
     {
       "number": 101355,
       "reason": "canonical UTF-16-safe bounded-output consolidation landed as 84e5327720b409cdfbbd7e54e72d7ef211d3ec25 with contributor credit across nine owner-local surfaces, deterministic failing-before proof, 142 focused tests, exact 18-file changed gates on Testbox tbx_01kwxc8jfxq8rtj3t320wfsnwp, clean AutoReview, exact-head CI 28841348302, and native prepare/merge gates"
+    },
+    {
+      "number": 95902,
+      "reason": "local Gateway busy-listener RPC diagnostics landed as 70c2e837cd54a227495c66f396b7d25a90f81585 with remote and explicit-target scoping, pattern-only live-listener log selection, single-render output, 69 focused tests, clean final-head AutoReview, exact-head CI 28843147646 including QA Smoke CI, and native prepare/merge gates"
     }
   ],
   "handledMerged": [
@@ -462,7 +466,8 @@
     99045,
     99917,
     100120,
-    100570
+    100570,
+    101230
   ],
   "closed": [
     {
@@ -860,6 +865,30 @@
     {
       "number": 101309,
       "reason": "closed after its speech TTS-text UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
+    },
+    {
+      "number": 101341,
+      "reason": "closed as superseded by canonical CJK-friendly Markdown emphasis PR 101230 and commit 59097783e2d0273c07d7ecfbec3d982340f9fd57"
+    },
+    {
+      "number": 101342,
+      "reason": "closed because canonical Discord config already restricts autoArchiveDuration to supported values and the PR added wrong-layer runtime fallback for cast-only impossible states"
+    },
+    {
+      "number": 101344,
+      "reason": "closed because the unproven OpenRouter temperature coercion duplicated the shared numeric parser, omitted the documented 0..1 range, and had no linked or live STT proof"
+    },
+    {
+      "number": 101283,
+      "reason": "closed because builder-local thinking omission silently disagreed with resolved thinking, replay, temperature, and tool-choice state; zero and invalid budgets belong in option resolution"
+    },
+    {
+      "number": 99222,
+      "reason": "closed as a broken stale-Cellar Node retry duplicate: detection misses the actual path, require.resolve node cannot find a binary, and later forks retain process.execPath"
+    },
+    {
+      "number": 97023,
+      "reason": "closed because its hybrid custom-tool fixture matches neither Anthropic nor OpenAI dependency contracts and conversion can erase real OpenAI free-form semantics"
     }
   ],
   "rejected": [
@@ -1712,16 +1741,16 @@
       "reason": "Telegram model-selection callback repair changes session semantics and can silently select the wrong model after list drift"
     },
     {
-      "number": 101230,
-      "reason": "dirty 83-file CJK Markdown parser change alters global compatibility and dependency behavior"
-    },
-    {
       "number": 96045,
       "reason": "recurring cron deleteAfterRun behavior is a compatibility, UI, and session-lifecycle product decision"
     },
     {
       "number": 97767,
       "reason": "orphan-child repair changes high-risk process lifecycle and forced-termination behavior across ten files"
+    },
+    {
+      "number": 101337,
+      "reason": "technically plausible fallback-status copy still changes provider/session observability semantics, stays below the batch production-value bar, and lacks a real fallback proof"
     }
   ],
   "ignored": [
