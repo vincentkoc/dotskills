@@ -425,6 +425,10 @@
     {
       "number": 101807,
       "reason": "shell cron reminder evidence repair landed as 3d442153f6f25c866409a135bd88a57538a42061 with contributor credit after replacing mixed-output parsing with conservative direct invocation classification, covering add/create aliases, root options, explicit package executors, portable redirection, and masked-failure rejection; 178 focused tests passed on exact head in AWS Crabbox cbx_b01769ac2169 run_b413f37aecee, all 57 exact-head CI jobs passed in run 28899981646, final AutoReview and native review/prepare/merge gates were clean, issue 52972 closed, and the editable fork branch was restored to a clean three-file rebased history before landing"
+    },
+    {
+      "number": 101703,
+      "reason": "successful agent stop completion logs landed as 6db0506474ceb10c64ea3b5f64e29772fb04280e with contributor credit after mapping severity through the canonical terminal-outcome classifier; 33 focused tests, native build/check, exact-head CI 28871915379, two clean AutoReviews, and native review/prepare/merge gates passed, issue 101678 closed, and direct secretless AWS Crabbox capacity was recorded as unavailable without creating a lease"
     }
   ],
   "handledMerged": [
@@ -1124,6 +1128,14 @@
     {
       "number": 101803,
       "reason": "closed as the narrower conflicting duplicate after canonical PR 101795 landed as dbbab1044e5c587c81deb5a59bd5d84f9adefc2a with complete runtime scanner coverage and exact-head proof"
+    },
+    {
+      "number": 101778,
+      "reason": "closed because the proposed Discord fallback listener cleanup only runs when AbortSignal.any is missing, while every supported OpenClaw Node runtime and current Bun provide it; the regression test manufactured an unsupported runtime by deleting the native API"
+    },
+    {
+      "number": 101693,
+      "reason": "closed because the Tlon channel-history namespace cap was speculative: no issue, heap evidence, or live growth proof established a failure, the test only inserted synthetic keys, and the arbitrary cap of 100 would change cache and network behavior"
     }
   ],
   "rejected": [
@@ -2154,6 +2166,10 @@
     {
       "number": 101735,
       "reason": "tasks.list optimization remains outside the low-risk batch because broad callers still clone and sort the full ledger and the correct bounded selector needs comparator, cursor, deep-offset, and benchmark proof"
+    },
+    {
+      "number": 101838,
+      "reason": "diagnostic-only nodes invoke error wording changes fewer than 25 production lines and adds assertion coverage without enough user-visible product value to justify a batch review cycle"
     }
   ],
   "ignored": [
