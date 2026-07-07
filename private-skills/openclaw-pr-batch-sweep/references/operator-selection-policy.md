@@ -11,7 +11,7 @@ Reject before assigning an implementation lane:
 - Security, SSRF, proxy, auth, OAuth, token, secret, credential, redaction, permission, sandbox, pairing, trust-boundary, or sensitive-data changes.
 - Control UI, web UI, frontend, visual, translation, native UI, or product-design changes.
 - Config schema/default changes, migrations, legacy compatibility, provider/auth routing, public plugin SDK/API, protocol versioning, release, CI/workflow, dependency, or infrastructure policy.
-- Service environment, dotenv loading, daemon PATH construction, or executable-precedence changes.
+- Service environment, dotenv loading, daemon PATH construction, executable-precedence changes, or self-update global-install-root selection.
 - Session/transcript persistence, replay, deduplication, identity, recovery, or delivery semantics, including changes disguised as narrow classifier or retry fixes.
 - Exact availability-risk labels or changes that alter watchdog duration, retry/fallback policy, slot occupancy, forced termination, or duplicate execution behavior.
 - Features, new knobs, new integrations, broad refactors, owner-boundary moves, or changes that need a product decision.
@@ -126,6 +126,8 @@ Representative rejects:
 - #96219: increased stuck cron-slot occupancy and therefore required an availability-policy decision.
 - #98514: archive provenance and session-state behavior disguised as a one-line classifier fix.
 - #98545 and #98372: compatibility/default and availability behavior that exceeded a low-risk batch.
+- #101228: self-update global-root precedence crossed service PATH, version-manager, package staging, and upgrade-compatibility policy.
+- #101249: clean Feishu list pagination was still a partial duplicate without required live tenant proof; the canonical repair also needs bounded `info` pagination and skill guidance.
 
 Historical one-line exceptions such as #95019 and #96801 required unusually strong package/runtime contract proof. They are not eligible for a default batch and are not precedent for future selection; the operator must name any such exception explicitly in the current request.
 

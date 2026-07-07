@@ -224,6 +224,29 @@ test("rejects service PATH and dotenv precedence changes", () => {
 });
 
 for (const title of [
+  "fix(update): keep self-updates on the running install's global root",
+  "fix(update): correct global-install-root selection for self-update",
+]) {
+  test(`rejects self-update global-install-root precedence: ${title}`, () => {
+    const output = runHydrated(
+      hydratedPr({
+        number: 101228,
+        title,
+        files: [
+          { filename: "src/infra/update-global.ts", additions: 34, deletions: 2 },
+          { filename: "src/infra/update-global.test.ts", additions: 134, deletions: 0 },
+        ],
+        additions: 168,
+        deletions: 2,
+      }),
+    );
+
+    assert.equal(output.selected.length, 0);
+    assert.ok(output.rejected[0].reasons.includes("self-update install-root policy surface"));
+  });
+}
+
+for (const title of [
   "fix(ci): include runtime resources in build artifact",
   "fix(infra): swallow mid-stream errors in live smoke",
   "build: repair generated fixture inventory",

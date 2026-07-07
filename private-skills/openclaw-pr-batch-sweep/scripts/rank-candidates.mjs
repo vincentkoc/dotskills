@@ -41,6 +41,8 @@ const CONFIG_RISK_PATH =
   /(?:^|\/)config\/|(?:^|\/)config\.[cm]?[jt]s$|(?:^|[\/._-])config(?:uration)?-(?:defaults?|migration|schema)(?:[._/-]|$)/i;
 const SERVICE_ENV_RISK_PATH =
   /^src\/(?:daemon\/service-env|infra\/(?:dotenv|path-env))(?:\.|\/|$)/i;
+const UPDATE_TARGET_POLICY_TITLE =
+  /\b(?:self[- ]?updates?|updates?)\b.{0,60}\b(?:global[- ](?:install[- ])?root|install[- ]root|npm[- ]prefix|package[- ]root)\b|\b(?:global[- ](?:install[- ])?root|install[- ]root|npm[- ]prefix|package[- ]root)\b.{0,60}\b(?:self[- ]?updates?|updates?)\b/i;
 const CONFIG_RISK_TITLE =
   /\bconfig(?:uration)?\s+(?:compatibility|defaults?|migration|schema)\b|\b(?:add|migrate|remove|rename)\b.{0,40}\bconfig(?:uration)?\b|\bconfig(?:uration)?\b.{0,40}\b(?:merge|preserve)\b|\b(?:merge|preserve)\b.{0,40}\bconfig(?:uration)?\b/i;
 const RESOURCE_LIMIT_TITLE =
@@ -562,6 +564,9 @@ function analyze(pr) {
   }
   if (SESSION_DELIVERY_RISK_TITLE.test(normalizedTitle)) {
     reasons.push("session or message-delivery semantics");
+  }
+  if (UPDATE_TARGET_POLICY_TITLE.test(normalizedTitle)) {
+    reasons.push("self-update install-root policy surface");
   }
   if (RESOURCE_LIMIT_TITLE.test(normalizedTitle)) {
     reasons.push("resource-limit or response-boundary hardening");

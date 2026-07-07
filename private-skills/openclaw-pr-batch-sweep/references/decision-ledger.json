@@ -1602,6 +1602,14 @@
     {
       "number": 101099,
       "reason": "always-on hook timing instrumentation has no concrete bug, benchmark, issue, tests, or proved operator value"
+    },
+    {
+      "number": 101228,
+      "reason": "valid updater bug, but self-update global-root precedence crosses service PATH, version-manager, package staging, and upgrade-compatibility policy; already assigned maintainer work"
+    },
+    {
+      "number": 101249,
+      "reason": "clean Feishu list cursor patch is a partial duplicate without required live tenant proof; the canonical repair also needs bounded info pagination, skill guidance, and overlap cleanup"
     }
   ],
   "ignored": [
