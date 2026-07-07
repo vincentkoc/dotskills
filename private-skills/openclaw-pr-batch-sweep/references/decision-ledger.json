@@ -397,6 +397,10 @@
     {
       "number": 101489,
       "reason": "canonical detached gateway update child-error repair landed as 695fa4e112f1e60371ec6aeadf7cca6ef86609e6 with contributor credit, direct Node child-process proof, caller health-check fallback validation, 26 focused tests, check:changed on Testbox tbx_01kwy2wbcmjfx77se24xffd8ft, clean exact-head AutoReview, exact-head CI 28860048802 with 47 passing jobs, and native prepare/merge gates; linked issue 101458 closed"
+    },
+    {
+      "number": 101571,
+      "reason": "canonical session-history SSE stream-error repair landed as cd0d570164a49c5ec904d03eb12a84037f0c25ba with contributor credit, real Node HTTP request/response and delayed-flush regressions, 52 focused tests, check:changed on Testbox tbx_01kwy51e481axqn4x41apnv2bz, clean exact-head AutoReview, exact-head CI 28863507957 with 47 passing jobs, and native prepare/merge gates; linked issue 101539 closed"
     }
   ],
   "handledMerged": [
