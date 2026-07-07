@@ -417,6 +417,10 @@
     {
       "number": 101589,
       "reason": "canonical all-agent usage-cache concurrency repair landed as e5c224754c18837852995e8aba3d2e463927bf77 after correcting the unsupported SQLite mechanism, sharing the sibling 12-load policy, preserving all-or-nothing errors, proving 12-of-13 deterministic scheduling plus complete aggregation in 62 focused tests, passing check:changed on Blacksmith Testbox tbx_01kwyrv80bmm6hxj5xxyyatsdb, clean final-head AutoReview, exact-head CI 28885384161, and native prepare/merge gates; issue 101552 and duplicates 101578/101581 closed"
+    },
+    {
+      "number": 101795,
+      "reason": "canonical exact-frontmatter-delimiter repair landed as dbbab1044e5c587c81deb5a59bd5d84f9adefc2a with contributor credit, one shared extractor replacing runtime prefix scanners across agent session/prompt, workspace/dev templates, bundle commands, skills, hooks, and workshop proposals, active metadata and body-preservation regressions, 110 focused tests, check:changed on Testbox tbx_01kwywqb0qad3bjj0kh9wg5be8, clean final-head AutoReview, exact-head CI 28889979045, and native prepare/merge gates; issue 101769 and duplicates 101797/101803 closed"
     }
   ],
   "handledMerged": [
@@ -1108,6 +1112,14 @@
     {
       "number": 101581,
       "reason": "closed as the weaker duplicate after canonical PR 101589 landed as e5c224754c18837852995e8aba3d2e463927bf77; it introduced an arbitrary local limit of 8, duplicated sibling policy, lacked regression coverage, and repeated the unsupported SQLite mechanism"
+    },
+    {
+      "number": 101797,
+      "reason": "closed after canonical PR 101795 landed as dbbab1044e5c587c81deb5a59bd5d84f9adefc2a; its shared-extractor and workshop-reuse direction was credited, while the canonical repair also covered active agent session/prompt and workspace/dev template paths"
+    },
+    {
+      "number": 101803,
+      "reason": "closed as the narrower conflicting duplicate after canonical PR 101795 landed as dbbab1044e5c587c81deb5a59bd5d84f9adefc2a with complete runtime scanner coverage and exact-head proof"
     }
   ],
   "rejected": [
@@ -2122,6 +2134,22 @@
     {
       "number": 101655,
       "reason": "valid-looking endpoint repair remains outside the low-risk batch because it duplicates 98911 and changes compatibility-sensitive config endpoint policy and documentation behavior"
+    },
+    {
+      "number": 101776,
+      "reason": "arbitrary 16 MiB BOOT.md cap and silent skip change resource and compatibility policy without a product-defined prompt budget or observed failure"
+    },
+    {
+      "number": 101774,
+      "reason": "arbitrary marketplace manifest byte cap plus new symlink rejection is speculative security/resource hardening without a documented contract or observed failure"
+    },
+    {
+      "number": 101738,
+      "reason": "speculative warning-dedupe cache bound has no demonstrated memory failure, uses an arbitrary 4096 limit, and adds a helper-only test that does not exercise eviction"
+    },
+    {
+      "number": 101735,
+      "reason": "tasks.list optimization remains outside the low-risk batch because broad callers still clone and sort the full ledger and the correct bounded selector needs comparator, cursor, deep-offset, and benchmark proof"
     }
   ],
   "ignored": [

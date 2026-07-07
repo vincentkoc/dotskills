@@ -114,6 +114,7 @@ Representative accepted work:
 - #98497: empty npm failure output repaired through the canonical process result, with exit, signal, and termination coverage; the broader ACPX issue stayed open.
 - #98994: LINE text-boundary repair accepted only after checking each field's counting unit, keeping ordinary fields UTF-16-safe, preserving the existing flex cap, and switching rich-menu fields to LINE's documented grapheme-cluster semantics.
 - #101589: all-agent usage-cache fan-out qualified only after direct callee inspection corrected the unsupported SQLite explanation, one shared sibling concurrency policy replaced competing limits, a deterministic 13-agent regression proved the cap and complete aggregation, and weaker duplicates #101578/#101581 were closed after landing.
+- #101795: exact frontmatter delimiter handling qualified as a linked data-preservation bug only after the canonical branch replaced copied scanners across active agent session/prompt, workspace/dev template, bundle-command, skill, hook, and workshop paths; wrapper-only tests were replaced with active metadata and body-preservation regressions, and overlapping #101797/#101803 were credited and closed after landing.
 
 Representative rejects:
 
@@ -152,6 +153,8 @@ When several PRs repeat fragments of one root cause, prefer one canonical implem
 When one contributor opens related micro-fixes for sibling channel or provider owners, consolidate them into one focused contributor PR when the shared invariant and proof are genuinely the same. Prefer an existing shared helper, keep limits and policy constants private, preserve the contributor's credit, and close the fragments only after the combined PR lands. #101650 consolidating #101662 is the model.
 
 When several contributors address the same valid symptom with different constants or tests, choose one canonical PR only after reading the direct callee and sibling owner path. Reuse the established sibling policy, correct unsupported mechanism claims, require deterministic proof, then credit and close the weaker duplicates after the canonical change lands. #101589 superseding #101578 and #101581 is the model.
+
+For shared parser bugs, grep for cloned scanners and verify the active loader, not just the obvious wrapper named in the issue. A landable canonical repair centralizes delimiter/tokenization behavior, preserves each caller's body-trimming contract, tests a real metadata consumer plus a real body consumer, and closes partial parser duplicates only after the complete branch lands. #101795 is the model.
 
 For text and payload limits, "Unicode-safe" is not enough. Verify the provider's exact counting unit per field: bytes, UTF-16 code units, Unicode code points, or grapheme clusters. Treat cap expansion as a separate product decision from boundary-safe truncation, and require request-level tests for fields whose unit differs from their siblings.
 

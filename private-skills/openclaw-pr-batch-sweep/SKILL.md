@@ -4,7 +4,7 @@ description: Select, review, repair, validate, and land batches of up to 20 low-
 license: MIT
 metadata:
   internal: true
-  version: "0.2.5"
+  version: "0.2.6"
   spec: agentskills-v1
 ---
 
@@ -91,6 +91,7 @@ Compose the repository skills instead of duplicating them:
    - Verify the reported mechanism at the direct callee. Keep a valid symptom, but correct an unsupported database, cache, network, or lifecycle explanation in the PR title/body before landing.
    - Compare against current `origin/main` and search duplicate/fixed-on-main clusters.
    - Fix the owner path, add focused regression proof, and remove unrelated churn.
+   - For shared parser bugs, search every runtime prefix scanner and active loader before choosing the canonical branch. Wrapper-only tests are insufficient: prove at least one active metadata path and one body-preservation path, then delete copied scanners when the shared owner can express the contract.
    - When one contributor opens related micro-fixes for sibling owners, prefer one focused contributor PR using an existing shared helper. Keep policy constants private unless callers need a public contract, preserve credit, and close the fragments after the combined PR lands.
    - Reject the PR if the clean fix becomes a product, security, migration, SDK, config, or broad architecture decision.
    - Run all contributor-head code execution in Testbox/Crabbox. Use local repository wrappers only for coordinator-reviewed, maintainer-owned reconstructions that cannot invoke contributor-controlled setup or hooks.
