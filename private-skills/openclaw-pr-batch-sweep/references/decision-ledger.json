@@ -913,6 +913,22 @@
     {
       "number": 101395,
       "reason": "closed as the weaker duplicate of backup cleanup discussion candidate PR 101397"
+    },
+    {
+      "number": 101260,
+      "reason": "closed as a low-signal private QA-lab fragment with three net production lines, disproportionate proof-script surface, and repeated auto-closed predecessors"
+    },
+    {
+      "number": 101261,
+      "reason": "closed as a low-signal private QA-lab fragment with five net production lines, disproportionate proof-script surface, and proof that did not establish bounded allocation"
+    },
+    {
+      "number": 100969,
+      "reason": "closed as the weaker Signal retry implementation because its detached re-enqueue releases same-key ordering before retry; PR 101004 retains the better in-lane core"
+    },
+    {
+      "number": 92165,
+      "reason": "closed as a dirty stale memory-doctor implementation superseded by current target and lint architecture and still incomplete against the canonical issue contract"
     }
   ],
   "rejected": [
@@ -1851,6 +1867,10 @@
     {
       "number": 101397,
       "reason": "backup EBUSY retry patch lacks a failing regression and reuses the same temp path instead of isolating archive attempts"
+    },
+    {
+      "number": 101004,
+      "reason": "canonical Signal retry core remains outside the low-risk batch because it changes message-delivery ordering, carries 639 lines of duplicate tests, and lacks live Signal proof"
     }
   ],
   "ignored": [
