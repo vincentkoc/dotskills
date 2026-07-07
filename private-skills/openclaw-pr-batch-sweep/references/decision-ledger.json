@@ -792,6 +792,10 @@
     {
       "number": 97373,
       "reason": "closed as superseded by the exact-scoped ACP and MCP protocol stdout startup repair landed in PR 89997 as ffa6ebda4cd048e7d6d60c803d15d995af7870e7"
+    },
+    {
+      "number": 89748,
+      "reason": "contributor closed the shared text-chunking whitespace PR unmerged on July 6, 2026"
     }
   ],
   "rejected": [
@@ -1446,7 +1450,84 @@
     {
       "number": 91828,
       "reason": "memory-wiki concurrency, retry, availability, and shared snapshot semantics exceed the batch and partly overlap merged repairs"
+    },
+    {
+      "number": 95419,
+      "reason": "valid cron bug changes delivery failure classification, scheduler backoff, failure alerts, and operator-visible run status semantics"
+    },
+    {
+      "number": 101033,
+      "reason": "broad compaction repair crosses session and transcript persistence owners and competes with another active implementation"
+    },
+    {
+      "number": 101022,
+      "reason": "five-line production change exports internals for a synthetic test and has no real-world child-process failure reproduction"
+    },
+    {
+      "number": 100666,
+      "reason": "229-line SQLite retention cache changes persisted ACP history behavior and needs a dedicated state review with benchmarks"
+    },
+    {
+      "number": 97285,
+      "reason": "launchd duplicate-manager repair changes daemon recovery and compatibility policy and overlaps PR 97296"
+    },
+    {
+      "number": 95359,
+      "reason": "ClawHub force-install ownership guard is a package trust and compatibility boundary requiring skills and security owner review"
+    },
+    {
+      "number": 95253,
+      "reason": "postinstall warning adds network probing, config parsing, environment policy, and duplicated daemon ownership"
+    },
+    {
+      "number": 95195,
+      "reason": "shared agent-core exec output cap changes a public harness contract and resource availability semantics"
+    },
+    {
+      "number": 93694,
+      "reason": "session reply hydration changes cross-path transcript persistence and message-delivery semantics with failing checks"
+    },
+    {
+      "number": 93198,
+      "reason": "claude-cli context token repair crosses provider routing, config interpretation, persisted session budget, and compaction ownership"
+    },
+    {
+      "number": 92114,
+      "reason": "six-line memory status change conflates persisted vector dimensions with current store availability"
+    },
+    {
+      "number": 91660,
+      "reason": "seven-line memory model backfill changes provider compatibility and persisted index identity semantics"
+    },
+    {
+      "number": 91237,
+      "reason": "OpenRouter long-TTL promotion changes provider cost policy, config defaults, and public wrapper semantics"
+    },
+    {
+      "number": 89040,
+      "reason": "XL embedded-run bootstrap refactor crosses session delivery, availability, hook contracts, and still has red CI without a current-main live reproduction"
+    },
+    {
+      "number": 92833,
+      "reason": "parallel memory and wiki search changes session-memory deadline, cooldown, cancellation, and availability semantics"
+    },
+    {
+      "number": 92524,
+      "reason": "dirty memory retrieval-policy change controls which persisted hits enter agent context and tests a private helper instead of the real search path"
+    },
+    {
+      "number": 91203,
+      "reason": "shared command-progress wording policy affects multiple channels and remains distinct from the merged stale-line replacement fix"
+    },
+    {
+      "number": 87449,
+      "reason": "Mattermost draft boundary repair changes message-delivery sequencing, callback ordering, post splitting, and a public SDK surface"
     }
   ],
-  "ignored": []
+  "ignored": [
+    {
+      "number": 92147,
+      "reason": "draft and conflicting Codex Responses system-prompt PR adds generic config, model-catalog, provider-routing, and public API surfaces"
+    }
+  ]
 }
