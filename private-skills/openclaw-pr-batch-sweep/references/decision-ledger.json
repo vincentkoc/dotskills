@@ -377,6 +377,10 @@
     {
       "number": 96147,
       "reason": "canonical structured doctor default-account routing contribution landed as 41c0540bdcabc0c7f434ba735bdff7e5e3782889 with single-render preview/fix behavior, opt-in lint selection, 87 focused tests, exact changed gates on Testbox tbx_01kwxmthtv1hv7czc1qjb29704, clean final-head AutoReview, exact-head CI 28848618012, and native prepare/merge gates"
+    },
+    {
+      "number": 101449,
+      "reason": "canonical backup retry temp-path isolation landed as 686b7784689c1d4fac91558fbfaab1bb890dcca8 with native Windows sharing-violation proof, 45 focused tests on sanitized AWS and the final branch, check:changed on Testbox tbx_01kwxs4wabmdy9r2s4n78arr26, clean AutoReview, exact-head CI 28851921811, and native prepare/merge gates; linked issue 101382 closed"
     }
   ],
   "handledMerged": [
@@ -471,7 +475,9 @@
     99917,
     100120,
     100570,
-    101230
+    101230,
+    101402,
+    101415
   ],
   "closed": [
     {
@@ -949,6 +955,10 @@
     {
       "number": 101405,
       "reason": "closed as an ineffective hosted-catalog streamless-read partial fix superseded by canonical PR 101000 because the shared helper can still materialize the whole body"
+    },
+    {
+      "number": 101436,
+      "reason": "closed as a three-line untested no-op stream listener superseded by merged PR 101394, which terminates and settles the child with focused EPIPE coverage"
     }
   ],
   "rejected": [
@@ -1891,6 +1901,22 @@
     {
       "number": 101004,
       "reason": "canonical Signal retry core remains outside the low-risk batch because it changes message-delivery ordering, carries 639 lines of duplicate tests, and lacks live Signal proof"
+    },
+    {
+      "number": 101433,
+      "reason": "OpenAI refusal parser fabricates an invalid function-call-adjacent event shape, lacks captured or live SSE proof, can misclassify interleaved refusals, and still loses the message through public lifecycle wrappers"
+    },
+    {
+      "number": 101367,
+      "reason": "OpenRouter image API migration adds a one-consumer public Plugin SDK option, changes provider-wide network behavior, and needs explicit SDK and network-boundary owner review"
+    },
+    {
+      "number": 101280,
+      "reason": "Gradium base-URL trust enforcement changes credential and network-security handling, which is explicitly excluded from the low-risk batch"
+    },
+    {
+      "number": 100860,
+      "reason": "exec shell-bleed path validation changes a process-execution security boundary, which is explicitly excluded from the low-risk batch"
     }
   ],
   "ignored": [
