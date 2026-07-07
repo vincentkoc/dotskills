@@ -365,6 +365,10 @@
     {
       "number": 101220,
       "reason": "Codex guardianWarning projection repair landed as ceb7a4adba0513637ead2d47610b4c7ae44350eb with direct upstream Codex protocol proof, thread-only correlation coverage, 126 focused tests, clean AutoReview, exact-head CI 28836226342, and native prepare/merge gates; linked issue 101207 closed"
+    },
+    {
+      "number": 101355,
+      "reason": "canonical UTF-16-safe bounded-output consolidation landed as 84e5327720b409cdfbbd7e54e72d7ef211d3ec25 with contributor credit across nine owner-local surfaces, deterministic failing-before proof, 142 focused tests, exact 18-file changed gates on Testbox tbx_01kwxc8jfxq8rtj3t320wfsnwp, clean AutoReview, exact-head CI 28841348302, and native prepare/merge gates"
     }
   ],
   "handledMerged": [
@@ -804,6 +808,58 @@
     {
       "number": 89748,
       "reason": "contributor closed the shared text-chunking whitespace PR unmerged on July 6, 2026"
+    },
+    {
+      "number": 95968,
+      "reason": "closed as already fixed by canonical skill-loading resilience repair PR 100440 commit a4b032e5d71005afbbbc6fe3cf1f7e97fb6a172a"
+    },
+    {
+      "number": 96943,
+      "reason": "closed as superseded by bundled source-entry and module-boundary repairs PRs 100737 and 100758"
+    },
+    {
+      "number": 99610,
+      "reason": "closed as the narrower duplicate of canonical watch-node build-readiness PR 99972"
+    },
+    {
+      "number": 100651,
+      "reason": "closed as the narrower duplicate of canonical Codex projector diagnostics PR 99287 after direct upstream typed-status protocol inspection"
+    },
+    {
+      "number": 101297,
+      "reason": "closed after its web-fetch UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
+    },
+    {
+      "number": 101299,
+      "reason": "closed after its voice-call media-log UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
+    },
+    {
+      "number": 101300,
+      "reason": "closed after its Telegram raw-update UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
+    },
+    {
+      "number": 101301,
+      "reason": "closed after its TTS status UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
+    },
+    {
+      "number": 101302,
+      "reason": "closed after its Talk consult-result UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
+    },
+    {
+      "number": 101305,
+      "reason": "closed after its voice-call transcript-log UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
+    },
+    {
+      "number": 101306,
+      "reason": "closed after its Discord response-summary UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
+    },
+    {
+      "number": 101308,
+      "reason": "closed after its media-runner output UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
+    },
+    {
+      "number": 101309,
+      "reason": "closed after its speech TTS-text UTF-16 boundary fix landed with contributor credit in canonical PR 101355"
     }
   ],
   "rejected": [
@@ -1618,6 +1674,54 @@
     {
       "number": 100853,
       "reason": "mechanically sound dead-code cleanup with no linked bug, failing-before behavior, regression test, or user-visible outcome"
+    },
+    {
+      "number": 101284,
+      "reason": "tiny untested Feishu UTF-16 log fragment lacks a meaningful regression path and fails the batch production-value bar"
+    },
+    {
+      "number": 101298,
+      "reason": "UTF-16 audit-context fragment touches the guarded-fetch and SSRF-adjacent path explicitly excluded from this batch"
+    },
+    {
+      "number": 101303,
+      "reason": "prompt-data truncation changes model-visible session prompt semantics"
+    },
+    {
+      "number": 101304,
+      "reason": "realtime voice agent-context truncation changes session prompt semantics"
+    },
+    {
+      "number": 101307,
+      "reason": "Discord thread-title truncation changes model input and channel-visible output behavior"
+    },
+    {
+      "number": 101310,
+      "reason": "memory fast-context truncation changes model-visible prompt content"
+    },
+    {
+      "number": 101311,
+      "reason": "structured prompt-summary truncation changes model-visible session content"
+    },
+    {
+      "number": 101312,
+      "reason": "web-fetch spill truncation touches an SSRF-adjacent persistence path explicitly excluded from this batch"
+    },
+    {
+      "number": 101318,
+      "reason": "Telegram model-selection callback repair changes session semantics and can silently select the wrong model after list drift"
+    },
+    {
+      "number": 101230,
+      "reason": "dirty 83-file CJK Markdown parser change alters global compatibility and dependency behavior"
+    },
+    {
+      "number": 96045,
+      "reason": "recurring cron deleteAfterRun behavior is a compatibility, UI, and session-lifecycle product decision"
+    },
+    {
+      "number": 97767,
+      "reason": "orphan-child repair changes high-risk process lifecycle and forced-termination behavior across ten files"
     }
   ],
   "ignored": [
