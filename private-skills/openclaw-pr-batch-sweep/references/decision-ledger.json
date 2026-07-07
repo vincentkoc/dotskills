@@ -1610,6 +1610,14 @@
     {
       "number": 101249,
       "reason": "clean Feishu list cursor patch is a partial duplicate without required live tenant proof; the canonical repair also needs bounded info pagination, skill guidance, and overlap cleanup"
+    },
+    {
+      "number": 99524,
+      "reason": "real and likely sound, but changes model-visible session recovery priority and carries the exact session-state merge-risk label"
+    },
+    {
+      "number": 100853,
+      "reason": "mechanically sound dead-code cleanup with no linked bug, failing-before behavior, regression test, or user-visible outcome"
     }
   ],
   "ignored": [

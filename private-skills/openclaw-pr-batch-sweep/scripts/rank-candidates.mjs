@@ -32,7 +32,7 @@ const HARD_RISK =
 const SENSITIVE_TOKEN =
   /\b(?:access|api|auth|bearer|refresh|session)[ -]+tokens?\b|\btokens?[ -]+(?:exposure|handling|leak|redaction|refresh|rotation|storage|validation)\b/i;
 const HARD_RISK_LABEL =
-  /^(?:(?:area|merge-risk):.*\b(?:auth|availability|oauth|permissions?|proxy|redaction|sandbox|secrets?|security|credentials?|tokens?)\b|auth|availability|oauth|permissions?|proxy|redaction|sandbox|secrets?|security(?:-sensitive)?|credentials?|tokens?)/i;
+  /^(?:(?:area|merge-risk):.*\b(?:auth|availability|message[- ]delivery|oauth|permissions?|proxy|redaction|sandbox|secrets?|security|session[- ]state|credentials?|tokens?)\b|auth|availability|message[- ]delivery|oauth|permissions?|proxy|redaction|sandbox|secrets?|security(?:-sensitive)?|session[- ]state|credentials?|tokens?)/i;
 const UI_RISK =
   /\b(ui|tui|terminal ui|control ui|web[- ]?ui|frontend|visual|translation|i18n|android|ios|camera|scrolling|layout|css)\b/i;
 const HIGH_RISK_PATH =
@@ -55,6 +55,8 @@ const UI_PATH =
   /^(?:apps)(?:\/|$)|(?:^|[\/._-])(?:ui|tui|control-ui|frontend|web-ui|locales?|translations?)(?:[\/._-]|$)|\.(?:css|scss|sass|less|tsx|jsx|vue|svelte)$/i;
 const LOW_SIGNAL_TITLE =
   /^(?:test|docs|chore|refactor|style|i18n|ci|build|infra)(?:\([^)]*\))?:|^(?:fix|chore)\((?:test|docs|ci|build|infra)\):|\b(typo|rename|formatting|lint|coverage|unit tests?|add tests?|object\.hasown|user[- ]agent|logging?|warning when|close readline|destroy read stream|allow always|one-shot command|dangling surrogate)\b/i;
+const CLEANUP_ONLY_TITLE =
+  /\b(?:remove|delete|drop)\b.{0,50}\b(?:dead|redundant|unused)\b.{0,30}\b(?:branches?|checks?|code|logic|loops?)\b|\bdead[- ]code\b|\bcleanup[- ]only\b/i;
 const TEST_INFRA_TITLE = /\b(?:fixture-only|live smoke|test fixture|test harness)\b/i;
 const DIAGNOSTIC_MICRO_TITLE =
   /\b(?:diagnostic|error|failure|warning)\b.{0,50}\b(?:cause|context|copy|guidance|hint|message|wording)\b|\b(?:improve|clarify|enrich|wrap)\b.{0,50}\b(?:diagnostic|error|failure|warning)\b|\b(?:guidance|hint|wording)\b/i;
@@ -588,6 +590,7 @@ function analyze(pr) {
   if (FEATURE_SHAPED_TITLE.test(pr.title ?? "")) reasons.push("feature-shaped fix");
   if (BUNDLED_FIX_TITLE.test(pr.title ?? "")) reasons.push("bundled multi-topic fix");
   if (LOW_SIGNAL_TITLE.test(pr.title ?? "")) reasons.push("low-signal change type");
+  if (CLEANUP_ONLY_TITLE.test(pr.title ?? "")) reasons.push("cleanup-only change");
   if (TEST_INFRA_TITLE.test(pr.title ?? "")) reasons.push("test or infrastructure work");
   if (
     ODD_MICRO_TITLE.test(pr.title ?? "") &&

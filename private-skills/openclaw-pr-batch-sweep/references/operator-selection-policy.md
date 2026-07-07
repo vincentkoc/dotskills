@@ -74,6 +74,7 @@ Downgrade or reject:
 
 - `needs proof`, `waiting on author`, dirty/conflicting, or stale head.
 - Compatibility, session-state, auth-provider, security-boundary, message-delivery, or other merge-risk labels.
+- Treat exact session-state and message-delivery merge-risk labels as hard batch exclusions, even when the underlying fix is valid and well tested.
 - Missing issue context, unexplained generated changes, or repeated proof-refresh commits.
 
 Treat GitHub `UNSTABLE` as a downgrade, not a rejection, when the hydrated latest-check rollup has no failed or pending non-routine checks. It often means the branch needs a refresh or a required check has not been requested yet; qualification may continue, but landing still requires exact-head green proof.
@@ -128,6 +129,8 @@ Representative rejects:
 - #98545 and #98372: compatibility/default and availability behavior that exceeded a low-risk batch.
 - #101228: self-update global-root precedence crossed service PATH, version-manager, package staging, and upgrade-compatibility policy.
 - #101249: clean Feishu list pagination was still a partial duplicate without required live tenant proof; the canonical repair also needs bounded `info` pagination and skill guidance.
+- #99524: a likely sound fresh-tool-result recovery fix still changed model-visible session-history priority and carried the exact session-state merge-risk label.
+- #100853: mechanically equivalent cron loop deletion was cleanup-only, with no linked bug, failing-before behavior, or user-visible outcome.
 
 Historical one-line exceptions such as #95019 and #96801 required unusually strong package/runtime contract proof. They are not eligible for a default batch and are not precedent for future selection; the operator must name any such exception explicitly in the current request.
 

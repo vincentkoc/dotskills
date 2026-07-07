@@ -183,6 +183,35 @@ for (const title of [
   });
 }
 
+test("rejects an exact session-state merge-risk label", () => {
+  const output = runHydrated(
+    hydratedPr({
+      number: 99524,
+      title: "fix(agents): preserve fresh tool results during aggregate recovery",
+      labels: [{ name: "merge-risk: 🚨 session-state" }],
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("high-risk or compatibility surface"));
+});
+
+test("rejects cleanup-only fixes disguised with a fix scope", () => {
+  const output = runHydrated(
+    hydratedPr({
+      number: 100853,
+      title: "fix(cron): remove redundant loops and dead code in stagger calculations",
+      changed_files: 1,
+      files: [{ filename: "src/cron/service/jobs.ts", additions: 6, deletions: 26 }],
+      additions: 6,
+      deletions: 26,
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("cleanup-only change"));
+});
+
 test("rejects bot-authored queue work", () => {
   const output = runHydrated(
     hydratedPr({
