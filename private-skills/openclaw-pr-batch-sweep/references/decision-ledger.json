@@ -401,6 +401,10 @@
     {
       "number": 101571,
       "reason": "canonical session-history SSE stream-error repair landed as cd0d570164a49c5ec904d03eb12a84037f0c25ba with contributor credit, real Node HTTP request/response and delayed-flush regressions, 52 focused tests, check:changed on Testbox tbx_01kwy51e481axqn4x41apnv2bz, clean exact-head AutoReview, exact-head CI 28863507957 with 47 passing jobs, and native prepare/merge gates; linked issue 101539 closed"
+    },
+    {
+      "number": 101562,
+      "reason": "Slack conversation-info LRU cache bound landed as 4e29b2f5ab4bd917382de069a148d103c35413f0 with contributor credit, shared pruneMapToMaxSize ownership, 7 focused tests, exact changed gates on Testbox tbx_01kwy9f5yj11g6md3fwxvpv3yr, clean final-head AutoReview, exact-head CI 28867053630, and native prepare/merge gates"
     }
   ],
   "handledMerged": [
@@ -1052,6 +1056,26 @@
     {
       "number": 91943,
       "reason": "closed after fresh live Feishu evidence showed the proposed 750 ms cadence change did not improve the multi-minute streaming tail"
+    },
+    {
+      "number": 101531,
+      "reason": "closed as speculative Signal stream micro-hardening: four production lines swallowed generic log-stream errors, with no real signal-cli or gateway failure reproduction"
+    },
+    {
+      "number": 101530,
+      "reason": "closed as an unproven one-line launchd child-error listener whose tests only added an on mock and whose result still reported success before any asynchronous failure"
+    },
+    {
+      "number": 101629,
+      "reason": "closed while canonical issue 101570 remains open for owner and security review; the PR lacked live MiMo proof and broadened Xiaomi-specific output rewriting into core and public Plugin SDK surfaces"
+    },
+    {
+      "number": 101525,
+      "reason": "closed because the three-line Telegram guard and regression fabricated a grammY reaction payload missing its required chat field, while the bot error boundary already catches middleware failures"
+    },
+    {
+      "number": 101636,
+      "reason": "closed as a dirty resurrection of the outer Gmail renewal catch deliberately omitted from canonical merged PR 100342, with committed docs/.local artifacts and no focused regression"
     }
   ],
   "rejected": [
