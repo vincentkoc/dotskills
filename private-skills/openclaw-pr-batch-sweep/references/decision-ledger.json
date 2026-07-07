@@ -385,6 +385,18 @@
     {
       "number": 101516,
       "reason": "canonical QQBot UTF-16-safe bounded-preview cleanup landed as ccbd9eb28dfb7a903dbb301ebe42c95fa2c3f05f with contributor credit, 30 owner-local replacements, 118 focused tests and check:changed on Testbox tbx_01kwxwjxbyevbyqwfmgazbzs3y, clean final-head AutoReview, exact-head CI 28854778173 with 64 passing checks, and native prepare/merge gates; contributor fragments 101410, 101426, and 101444 closed"
+    },
+    {
+      "number": 101484,
+      "reason": "canonical Codex Pro fallback-effort repair landed as f14eb97ae7c5eded219c1901eee7cda44a948438 with direct upstream Codex contract proof, authoritative live metadata handling, 104 focused tests, build and check:changed on Testbox tbx_01kwxzcqc0ah5kegxbk6b73z8p, clean final-head AutoReview, exact-head CI 28857994743 with 47 passing jobs, and native prepare/merge gates"
+    },
+    {
+      "number": 101505,
+      "reason": "Codex app-server stdio stream repair landed as 846195c6b0016508d0479c6dc33c300a3a089669 with protocol stdout closing RPC state and diagnostic stderr warning without teardown, direct upstream Codex transport proof, 31 focused tests, build and check:changed on Testbox tbx_01kwxzcqc0ah5kegxbk6b73z8p, clean final-head AutoReview, exact-head CI 28859268964 with 47 passing jobs, and native prepare/merge gates"
+    },
+    {
+      "number": 101489,
+      "reason": "canonical detached gateway update child-error repair landed as 695fa4e112f1e60371ec6aeadf7cca6ef86609e6 with contributor credit, direct Node child-process proof, caller health-check fallback validation, 26 focused tests, check:changed on Testbox tbx_01kwy2wbcmjfx77se24xffd8ft, clean exact-head AutoReview, exact-head CI 28860048802 with 47 passing jobs, and native prepare/merge gates; linked issue 101458 closed"
     }
   ],
   "handledMerged": [
@@ -992,6 +1004,30 @@
     {
       "number": 101444,
       "reason": "closed as the API fragment superseded by canonical QQBot UTF-16-safe bounded-preview PR 101516 and landed commit ccbd9eb28dfb7a903dbb301ebe42c95fa2c3f05f with contributor credit"
+    },
+    {
+      "number": 101515,
+      "reason": "closed as a duplicate of canonical detached gateway update child-error PR 101489"
+    },
+    {
+      "number": 101518,
+      "reason": "closed because canonical issue 100113 is explicitly maintainer-owned and no-new-fix-pr, while the patch expanded operator-facing telemetry and still synthesized zero input usage when prompt usage was absent"
+    },
+    {
+      "number": 100785,
+      "reason": "closed as an unsafe Codex supervisor no-op stdout error handler that could leave RPC requests hanging; its listener-registration test never emitted an error and its closing reference targeted an unrelated PR"
+    },
+    {
+      "number": 101437,
+      "reason": "closed as an unproven file-transfer stream patch with no focused regression or real dir.fetch reproduction and inconsistent permissive versus fail-closed output-stream behavior"
+    },
+    {
+      "number": 101346,
+      "reason": "closed because it treated diagnostic stderr read failure as archive corruption, could reject a valid tar listing, and had no regression that emitted either stream error"
+    },
+    {
+      "number": 101345,
+      "reason": "closed because swallowing TTS stdout errors could accept truncated audio and the added tests only wrote normal data and never emitted the claimed stream failures"
     }
   ],
   "rejected": [
