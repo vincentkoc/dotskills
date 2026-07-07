@@ -357,6 +357,14 @@
     {
       "number": 89997,
       "reason": "protocol stdout startup repair for bare ACP and exact MCP serve landed as ffa6ebda4cd048e7d6d60c803d15d995af7870e7 with Commander 15 required-option contract proof, 97 focused tests, clean AutoReview, exact-head CI 28833349628, and native prepare/merge gates; linked issue 98167 closed"
+    },
+    {
+      "number": 101245,
+      "reason": "ACP background cancellation status repair landed as c0b6b846ac2993cce058aaa22510f7930278c7dc with cancelled terminal-state propagation, legacy stop-reason inference, 22 focused tests, clean AutoReview, exact-head CI 28836206398, and native prepare/merge gates"
+    },
+    {
+      "number": 101220,
+      "reason": "Codex guardianWarning projection repair landed as ceb7a4adba0513637ead2d47610b4c7ae44350eb with direct upstream Codex protocol proof, thread-only correlation coverage, 126 focused tests, clean AutoReview, exact-head CI 28836226342, and native prepare/merge gates; linked issue 101207 closed"
     }
   ],
   "handledMerged": [
@@ -1522,6 +1530,78 @@
     {
       "number": 87449,
       "reason": "Mattermost draft boundary repair changes message-delivery sequencing, callback ordering, post splitting, and a public SDK surface"
+    },
+    {
+      "number": 85238,
+      "reason": "service PATH and dotenv precedence changes affect daemon launch trust and environment policy, outside the low-risk batch"
+    },
+    {
+      "number": 100998,
+      "reason": "bundles five unrelated channel lifecycle and shutdown fixes instead of one reviewable bug"
+    },
+    {
+      "number": 101118,
+      "reason": "delivery recovery pacing changes retry and availability policy after startup outages"
+    },
+    {
+      "number": 101024,
+      "reason": "persisted outbound recovery changes replay and duplicate-send safety semantics"
+    },
+    {
+      "number": 50463,
+      "reason": "dirty stale feature PR uses a private dependency hook and no longer matches the current missing-tool owner boundary"
+    },
+    {
+      "number": 45315,
+      "reason": "dirty session-state fix can report the wrong active model and misses routed abort delivery"
+    },
+    {
+      "number": 100791,
+      "reason": "global assistant-visible metadata filtering risks silent content loss across channels without a live QQ reproduction"
+    },
+    {
+      "number": 101126,
+      "reason": "redefines done-only task notification semantics and changes cross-channel delivery ordering"
+    },
+    {
+      "number": 88280,
+      "reason": "valid bounded error-cause traversal is contaminated by dirty unrelated browser and lint changes"
+    },
+    {
+      "number": 99417,
+      "reason": "Matrix hidden-reasoning delivery behavior is security-sensitive and overlaps the canonical implementation"
+    },
+    {
+      "number": 93189,
+      "reason": "transcript persistence and filesystem behavior is a security and state boundary"
+    },
+    {
+      "number": 101229,
+      "reason": "changes global Markdown parser compatibility and public rendering semantics"
+    },
+    {
+      "number": 96112,
+      "reason": "Discord chunk-boundary changes affect exact message-delivery behavior"
+    },
+    {
+      "number": 93176,
+      "reason": "workspace bootstrap inheritance changes persisted session state and compatibility behavior"
+    },
+    {
+      "number": 55596,
+      "reason": "dirty conflicting CJK table-rendering change is waiting on author and lacks current-head proof"
+    },
+    {
+      "number": 54904,
+      "reason": "webhook routing changes security, compatibility, and message-delivery boundaries"
+    },
+    {
+      "number": 100146,
+      "reason": "sessions_yield diagnostics change session-state, continuation, and user-visible delivery policy at the wrong decision boundary"
+    },
+    {
+      "number": 101099,
+      "reason": "always-on hook timing instrumentation has no concrete bug, benchmark, issue, tests, or proved operator value"
     }
   ],
   "ignored": [

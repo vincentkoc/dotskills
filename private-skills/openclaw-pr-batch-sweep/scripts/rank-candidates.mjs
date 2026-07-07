@@ -39,6 +39,8 @@ const HIGH_RISK_PATH =
   /^(?:\.github\/|ui\/|apps\/|packages\/(?:gateway-protocol|plugin-sdk)\/|src\/plugin-sdk\/|scripts\/release)|(?:^|[\/._-])(?:auth(?:entication|n|z|orize|orization)?|authori[sz](?:e|ation|ed)|oauth|tokens?|secrets?|credentials?|redact(?:ion)?|chmod|permissions?|approvals?|security|ssrf|xss|csrf|rce|proxy|sandbox|pairing|account-bound|trust-boundary|migrations?|compat(?:ibility)?|legacy|session-state|message-delivery|auth-provider|release|workflow|codeql|dependabot)(?:[._/-]|$)|(?:^|\/)(?:package\.json|pnpm-lock\.yaml|bun\.lock)$/i;
 const CONFIG_RISK_PATH =
   /(?:^|\/)config\/|(?:^|\/)config\.[cm]?[jt]s$|(?:^|[\/._-])config(?:uration)?-(?:defaults?|migration|schema)(?:[._/-]|$)/i;
+const SERVICE_ENV_RISK_PATH =
+  /^src\/(?:daemon\/service-env|infra\/(?:dotenv|path-env))(?:\.|\/|$)/i;
 const CONFIG_RISK_TITLE =
   /\bconfig(?:uration)?\s+(?:compatibility|defaults?|migration|schema)\b|\b(?:add|migrate|remove|rename)\b.{0,40}\bconfig(?:uration)?\b|\bconfig(?:uration)?\b.{0,40}\b(?:merge|preserve)\b|\b(?:merge|preserve)\b.{0,40}\bconfig(?:uration)?\b/i;
 const RESOURCE_LIMIT_TITLE =
@@ -46,7 +48,7 @@ const RESOURCE_LIMIT_TITLE =
 const AVAILABILITY_POLICY_TITLE =
   /\b(?:bound|extend|increase|raise|use)\b.{0,50}\b(?:retries|retry budget|slot occupancy|timeout|watchdog)\b|\b(?:retry budget|slot occupancy|watchdog)\b.{0,50}\b(?:budget|duration|limit|timeout)\b|\b(?:retry|retries)\b.{0,40}\b(?:backoff|budget|limit|policy)\b|\b(?:add|change|disable|remove|retry|use)\b.{0,50}\b(?:fall\s+back|fallback)\b|\b(?:fall\s+back|fallback)\b.{0,50}\b(?:after|instead|on|policy|to|when)\b|\b(?:force|forced)\b.{0,30}\b(?:kill|shutdown|terminate|termination)\b|\b(?:sigkill|sigterm)\b|\bexecute\b.{0,20}\btwice\b|\bduplicate\b.{0,40}\b(?:execution|request|run|side effect|tool calls?|turn)\b|\b(?:re-?execute|rerun)\b.{0,40}\b(?:request|run|side effect|tool calls?|turn)\b/i;
 const SESSION_DELIVERY_RISK_TITLE =
-  /\b(?:sessions?|session[_-]?id|transcript|history)\b.{0,60}\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b|\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b.{0,60}\b(?:sessions?|session[_-]?id|transcript|history)\b|\b(?:dedup|duplicate|replay|reprocess)\w*\b.{0,60}\b(?:inbound|message|reply|turn|webhook)\b|\b(?:delivery mirror|message delivery)\b|\b(?:send|reply)\b.{0,40}\b(?:fall\s+back|fallback)\b|\b(?:cron|reply|run|status|thread|target)\b.{0,60}\bdelivery\b|\bdelivery\b.{0,60}\b(?:backoff|error|fail|retry|status)\b/i;
+  /\b(?:sessions?|session[_-]?id|transcript|history)\b.{0,60}\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b|\b(?:affinity|continuity|dedup|fallback|identity|mirror|persist|recover|replay|resume|reuse|state)\b.{0,60}\b(?:sessions?|session[_-]?id|transcript|history)\b|\b(?:dedup|duplicate|replay|reprocess)\w*\b.{0,60}\b(?:inbound|message|reply|turn|webhook)\b|\b(?:delivery mirror|message delivery)\b|\b(?:send|reply)\b.{0,40}\b(?:fall\s+back|fallback)\b|\b(?:cron|reply|run|status|thread|target)\b.{0,60}\bdelivery\b|\bdelivery\b.{0,60}\b(?:backoff|error|fail|recover|recovery|retry|status|wedge)\b|\b(?:drain|outbound)\b.{0,60}\b(?:recover|recovery|retry)\b/i;
 const UI_PATH =
   /^(?:apps)(?:\/|$)|(?:^|[\/._-])(?:ui|tui|control-ui|frontend|web-ui|locales?|translations?)(?:[\/._-]|$)|\.(?:css|scss|sass|less|tsx|jsx|vue|svelte)$/i;
 const LOW_SIGNAL_TITLE =
@@ -63,6 +65,8 @@ const LIFECYCLE_MICRO_OUTCOME =
 const FEATURE_TITLE = /^(?:feat|feature)(?:\([^)]*\))?:/i;
 const FEATURE_SHAPED_TITLE =
   /\b(?:add|allow|enable|introduce|support)\b.{0,60}\b(?:flag|format|integration|option|provider|syntax|timezone)\b/i;
+const BUNDLED_FIX_TITLE =
+  /\bfix(?:es|ing)?\s+(?:(?:two|three|four|five|six|seven|eight|nine|ten)|\d+)\b.{0,60}\b(?:bugs?|issues?)\b/i;
 const TEST_PATH =
   /(?:^|\/)(?:test|tests|__tests__|__snapshots__)(?:\/|$)|\.(?:test|spec)\.[^.]+$|\.snap$/i;
 const DOC_PATH = /^(?:docs\/|README(?:\.|$)|CHANGELOG\.md$)|\.md$/i;
@@ -569,11 +573,15 @@ function analyze(pr) {
   if (paths.some((path) => CONFIG_RISK_PATH.test(normalizedRiskPath(path)))) {
     reasons.push("config schema/default/migration surface");
   }
+  if (paths.some((path) => SERVICE_ENV_RISK_PATH.test(normalizedRiskPath(path)))) {
+    reasons.push("service environment or PATH precedence surface");
+  }
   if (paths.some((path) => UI_PATH.test(normalizedRiskPath(path)))) {
     reasons.push("UI or native-app path");
   }
   if (FEATURE_TITLE.test(pr.title ?? "")) reasons.push("feature work");
   if (FEATURE_SHAPED_TITLE.test(pr.title ?? "")) reasons.push("feature-shaped fix");
+  if (BUNDLED_FIX_TITLE.test(pr.title ?? "")) reasons.push("bundled multi-topic fix");
   if (LOW_SIGNAL_TITLE.test(pr.title ?? "")) reasons.push("low-signal change type");
   if (TEST_INFRA_TITLE.test(pr.title ?? "")) reasons.push("test or infrastructure work");
   if (

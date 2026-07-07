@@ -170,6 +170,8 @@ for (const title of [
   "fix: prevent delivery mirror prompt contamination",
   "fix(cron): keep isolated run status ok when delivery fails",
   "fix(googlechat): preserve thread targets through reply delivery",
+  "fix: pace delivery recovery after startup outages",
+  "fix(outbound): clear recoveryState on connect-phase errors so drain can retry",
 ]) {
   test(`rejects session or delivery semantics: ${title}`, () => {
     const output = runHydrated(hydratedPr({ title }));
@@ -190,6 +192,35 @@ test("rejects bot-authored queue work", () => {
 
   assert.equal(output.selected.length, 0);
   assert.ok(output.rejected[0].reasons.includes("maintainer-owned"));
+});
+
+test("rejects bundled multi-topic bug-fix PRs", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix(channels): fix five channel lifecycle/shutdown bugs",
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(output.rejected[0].reasons.includes("bundled multi-topic fix"));
+});
+
+test("rejects service PATH and dotenv precedence changes", () => {
+  const output = runHydrated(
+    hydratedPr({
+      title: "fix: include pnpm 11 bins in gateway PATH",
+      files: [
+        { filename: "src/daemon/service-env.ts", additions: 7, deletions: 3 },
+        { filename: "src/infra/dotenv.ts", additions: 2, deletions: 0 },
+        { filename: "src/infra/path-env.ts", additions: 82, deletions: 0 },
+      ],
+    }),
+  );
+
+  assert.equal(output.selected.length, 0);
+  assert.ok(
+    output.rejected[0].reasons.includes("service environment or PATH precedence surface"),
+  );
 });
 
 for (const title of [

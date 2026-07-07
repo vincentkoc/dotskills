@@ -11,11 +11,13 @@ Reject before assigning an implementation lane:
 - Security, SSRF, proxy, auth, OAuth, token, secret, credential, redaction, permission, sandbox, pairing, trust-boundary, or sensitive-data changes.
 - Control UI, web UI, frontend, visual, translation, native UI, or product-design changes.
 - Config schema/default changes, migrations, legacy compatibility, provider/auth routing, public plugin SDK/API, protocol versioning, release, CI/workflow, dependency, or infrastructure policy.
+- Service environment, dotenv loading, daemon PATH construction, or executable-precedence changes.
 - Session/transcript persistence, replay, deduplication, identity, recovery, or delivery semantics, including changes disguised as narrow classifier or retry fixes.
 - Exact availability-risk labels or changes that alter watchdog duration, retry/fallback policy, slot occupancy, forced termination, or duplicate execution behavior.
 - Features, new knobs, new integrations, broad refactors, owner-boundary moves, or changes that need a product decision.
 - Docs-only, test-only, coverage-only, formatting, lint, rename, typo, generated-file, snapshot-only, or cleanup PRs.
 - Dirty branches, unrelated churn, duplicated implementations, fixed-on-main work, or a weaker duplicate of an existing canonical PR.
+- Bundled "fix N bugs" PRs that cross independent lifecycle, channel, or owner paths.
 - PRs whose real proof requires unavailable credentials or an unbounded live environment.
 
 ## Reject Trivial And Odd Changes
