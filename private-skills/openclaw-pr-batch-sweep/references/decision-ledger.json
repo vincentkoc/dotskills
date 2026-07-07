@@ -421,6 +421,10 @@
     {
       "number": 101795,
       "reason": "canonical exact-frontmatter-delimiter repair landed as dbbab1044e5c587c81deb5a59bd5d84f9adefc2a with contributor credit, one shared extractor replacing runtime prefix scanners across agent session/prompt, workspace/dev templates, bundle commands, skills, hooks, and workshop proposals, active metadata and body-preservation regressions, 110 focused tests, check:changed on Testbox tbx_01kwywqb0qad3bjj0kh9wg5be8, clean final-head AutoReview, exact-head CI 28889979045, and native prepare/merge gates; issue 101769 and duplicates 101797/101803 closed"
+    },
+    {
+      "number": 101807,
+      "reason": "shell cron reminder evidence repair landed as 3d442153f6f25c866409a135bd88a57538a42061 with contributor credit after replacing mixed-output parsing with conservative direct invocation classification, covering add/create aliases, root options, explicit package executors, portable redirection, and masked-failure rejection; 178 focused tests passed on exact head in AWS Crabbox cbx_b01769ac2169 run_b413f37aecee, all 57 exact-head CI jobs passed in run 28899981646, final AutoReview and native review/prepare/merge gates were clean, issue 52972 closed, and the editable fork branch was restored to a clean three-file rebased history before landing"
     }
   ],
   "handledMerged": [
