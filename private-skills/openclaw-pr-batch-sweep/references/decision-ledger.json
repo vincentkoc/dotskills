@@ -905,6 +905,14 @@
     {
       "number": 96787,
       "reason": "closed as fixed by the shared memory close-work error reporting landed in PR 100399"
+    },
+    {
+      "number": 101389,
+      "reason": "closed as the untested subset duplicate of the stronger Windows taskkill repair in PR 101392"
+    },
+    {
+      "number": 101395,
+      "reason": "closed as the weaker duplicate of backup cleanup discussion candidate PR 101397"
     }
   ],
   "rejected": [
@@ -1831,6 +1839,18 @@
     {
       "number": 96080,
       "reason": "plugin registry repair adds request-time source-root stat fallback instead of fixing lifecycle-owned persisted refresh"
+    },
+    {
+      "number": 101394,
+      "reason": "voice-call tunnel lifecycle patch bundles two behaviors, leaks pre-ready failed children, and lacks live child-process proof"
+    },
+    {
+      "number": 101392,
+      "reason": "canonical Windows taskkill repair is outside the low-risk batch because it changes shared process lifecycle without live Windows proof"
+    },
+    {
+      "number": 101397,
+      "reason": "backup EBUSY retry patch lacks a failing regression and reuses the same temp path instead of isolating archive attempts"
     }
   ],
   "ignored": [
