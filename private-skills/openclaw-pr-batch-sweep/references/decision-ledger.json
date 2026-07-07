@@ -405,6 +405,10 @@
     {
       "number": 101562,
       "reason": "Slack conversation-info LRU cache bound landed as 4e29b2f5ab4bd917382de069a148d103c35413f0 with contributor credit, shared pruneMapToMaxSize ownership, 7 focused tests, exact changed gates on Testbox tbx_01kwy9f5yj11g6md3fwxvpv3yr, clean final-head AutoReview, exact-head CI 28867053630, and native prepare/merge gates"
+    },
+    {
+      "number": 101650,
+      "reason": "Discord and Nextcloud Talk metadata cache bounds landed as 936136a707ade820799f8949de2304cabccebfb5 with contributor credit, same-author fragment 101662 consolidated under the VISION tiny-PR rule, shared pruneMapToMaxSize ownership, private limits, 57 focused tests, exact changed gates on Testbox tbx_01kwybm52cwzvxb4qb6w7hsvar, clean final-head AutoReview, exact-head CI 28870314607, and native prepare/merge gates"
     }
   ],
   "handledMerged": [
@@ -1076,6 +1080,18 @@
     {
       "number": 101636,
       "reason": "closed as a dirty resurrection of the outer Gmail renewal catch deliberately omitted from canonical merged PR 100342, with committed docs/.local artifacts and no focused regression"
+    },
+    {
+      "number": 101664,
+      "reason": "closed because the stream-error handler settled and removed the child killer before process-tree exit, allowing duplicate errors to retrigger teardown and timers while the regression never emitted close"
+    },
+    {
+      "number": 101635,
+      "reason": "closed as speculative item-edit compatibility that let metadata override canonical direct fields even though current main already forwards prepareArguments and no real provider payload proved the need"
+    },
+    {
+      "number": 101662,
+      "reason": "closed after its Nextcloud Talk cache-cap fragment was consolidated into the same-author canonical PR 101650 and landed as 936136a707ade820799f8949de2304cabccebfb5"
     }
   ],
   "rejected": [
@@ -2082,6 +2098,14 @@
     {
       "number": 101536,
       "reason": "incorrect ACP ledger size accounting uses whole shared-database page count so unrelated state can trigger retention behavior"
+    },
+    {
+      "number": 101611,
+      "reason": "valid-looking Swift compiler repair remains outside the low-risk batch because it changes native chat and session-transcript cancellation semantics and broadens the proof lock"
+    },
+    {
+      "number": 101655,
+      "reason": "valid-looking endpoint repair remains outside the low-risk batch because it duplicates 98911 and changes compatibility-sensitive config endpoint policy and documentation behavior"
     }
   ],
   "ignored": [

@@ -148,6 +148,8 @@ Two other accepted patterns remain bounded:
 
 When several PRs repeat fragments of one root cause, prefer one canonical implementation. The UTF cleanup that superseded eight small PRs is the model: land the shared fix, credit useful source work, and close the fragments.
 
+When one contributor opens related micro-fixes for sibling channel or provider owners, consolidate them into one focused contributor PR when the shared invariant and proof are genuinely the same. Prefer an existing shared helper, keep limits and policy constants private, preserve the contributor's credit, and close the fragments only after the combined PR lands. #101650 consolidating #101662 is the model.
+
 For text and payload limits, "Unicode-safe" is not enough. Verify the provider's exact counting unit per field: bytes, UTF-16 code units, Unicode code points, or grapheme clusters. Treat cap expansion as a separate product decision from boundary-safe truncation, and require request-level tests for fields whose unit differs from their siblings.
 
 ## Batch Rule

@@ -4,7 +4,7 @@ description: Select, review, repair, validate, and land batches of up to 20 low-
 license: MIT
 metadata:
   internal: true
-  version: "0.2.3"
+  version: "0.2.4"
   spec: agentskills-v1
 ---
 
@@ -90,6 +90,7 @@ Compose the repository skills instead of duplicating them:
    - Reproduce or establish strong source/dependency-contract proof before editing.
    - Compare against current `origin/main` and search duplicate/fixed-on-main clusters.
    - Fix the owner path, add focused regression proof, and remove unrelated churn.
+   - When one contributor opens related micro-fixes for sibling owners, prefer one focused contributor PR using an existing shared helper. Keep policy constants private unless callers need a public contract, preserve credit, and close the fragments after the combined PR lands.
    - Reject the PR if the clean fix becomes a product, security, migration, SDK, config, or broad architecture decision.
    - Run all contributor-head code execution in Testbox/Crabbox. Use local repository wrappers only for coordinator-reviewed, maintainer-owned reconstructions that cannot invoke contributor-controlled setup or hooks.
 
@@ -97,6 +98,7 @@ Compose the repository skills instead of duplicating them:
    - Run fresh `$autoreview` on the final head until no accepted/actionable findings remain.
    - Require exact-head focused proof, relevant CI, clean mergeability, and resolved review threads.
    - Use OpenClaw's repository-native PR review/prepare/merge wrapper from the trusted canonical `main` checkout, never a contributor-modified copy.
+   - If exact-head CI exposes a deterministic failure already fixed independently on current `main`, verify the touched paths do not overlap, rebase through the native wrapper, and rerun exact-head CI. Do not copy the unrelated main fix into the contributor diff.
    - Keep editable-fork synchronization inside OpenClaw's native PR wrapper. If `createCommitOnBranch` exceeds GitHub's payload limit after a rebase, retry `${OPENCLAW_ROOT}/scripts/pr prepare-sync-head <PR>` with `OPENCLAW_PR_PUSH_MODE=git OPENCLAW_ALLOW_UNSIGNED_GIT_PUSH=1`; require `maintainerCanModify=true`, the wrapper's exact lease, and an already reviewed prep branch. Do not raw-push around the wrapper.
    - A Testbox warmed from `main` does not automatically carry a contributor PR's commit ancestry. For contributor-head gates, fetch and force-checkout `pull/<PR>/head` inside the box, then overlay only the reviewed maintainer repair files. Do not restore sparse omissions from current `main` onto a stale PR head; that can create lockfile and typecheck mismatches unrelated to the PR.
    - Squash contributor PRs unless the operator says otherwise.
