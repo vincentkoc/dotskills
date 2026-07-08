@@ -1260,6 +1260,18 @@
     {
       "number": 101782,
       "reason": "closed after its valid Slack thread-label UTF-16 repair was conflict-cleaned and consolidated with contributor credit into direct main commit 7e0324263b867d3d47138d1d2b1e9afd1dd2016f; both reachable Slack label paths, full check:changed, and clean final AutoReview passed"
+    },
+    {
+      "number": 101398,
+      "reason": "closed because current main routes production Feishu sends through bounded loadWebMedia before passing Buffers to private upload helpers; the PR hardened a stale string-path branch with no production caller and reintroduced internal test access"
+    },
+    {
+      "number": 101742,
+      "reason": "closed as speculative Feishu cache hardening because the 500 and 256 entry ceilings lack measured heap/RSS failure, eviction API-churn proof, or an owner-defined lifecycle contract and add production reset exports solely for tests"
+    },
+    {
+      "number": 102047,
+      "reason": "closed because synthetic ACP stream listeners only prevent EventEmitter's default throw while potentially leaving initialization pending; no real child failure proved prompt original-error rejection, termination, cleanup, or handle closure"
     }
   ],
   "rejected": [
@@ -2402,6 +2414,18 @@
     {
       "number": 101994,
       "reason": "keyed-answer URL parsing changes a public Plugin SDK compatibility contract and needs dedicated migration, sibling-caller, and external-plugin review outside the low-risk batch"
+    },
+    {
+      "number": 101608,
+      "reason": "real OpenAI Responses early-abort usage bug remains outside the low-risk batch because the patch records incomplete-response usage without mapping terminal max-output semantics to the length stop reason and lacks required live external-API proof"
+    },
+    {
+      "number": 101599,
+      "reason": "plausible Codex supervisor stdout error handling remains outside the batch because proof only destroys parent-side streams synthetically with no observed OS/app-server failure; direct Codex source confirms stdout is JSON-RPC and stderr is diagnostic, but a real trigger and lifecycle proof are still required"
+    },
+    {
+      "number": 101712,
+      "reason": "valid Nextcloud Talk outbound tool-trace sanitizer consistency patch is left open outside the batch because it changes one production line and belongs in a wider missing-channel sanitizer sweep rather than a standalone maintainer cycle"
     }
   ],
   "ignored": [
