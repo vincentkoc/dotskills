@@ -2518,6 +2518,18 @@
     {
       "number": 102103,
       "reason": "plausible canonical exact-limit web fetch truncation fix remains outside the batch because it changes only six production lines and is not a named micro-fix exception"
+    },
+    {
+      "number": 102104,
+      "reason": "QA-lab gateway child stream handling is test-infrastructure runtime work and duplicates listener blocks across spawn paths, so it is outside the contributor bugfix batch"
+    },
+    {
+      "number": 102105,
+      "reason": "Google Meet child-pipe lifecycle patch changes only twelve production lines and relies on listener-count tests rather than proving the session outcome, so it does not clear the micro-fix gate"
+    },
+    {
+      "number": 102106,
+      "reason": "reclassifies Codex command execution replay mutability using a best-effort shell heuristic and expands the public plugin SDK, crossing session, replay, SDK, and security-sensitive semantics"
     }
   ],
   "ignored": [
