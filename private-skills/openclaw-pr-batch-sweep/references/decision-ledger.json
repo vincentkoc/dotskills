@@ -2314,6 +2314,10 @@
     {
       "number": 97302,
       "reason": "valid memory fallback-latch report remains outside the low-risk batch because the PR adds periodic network recovery probes on the memory search hot path and changes embedding-provider fallback and index-identity semantics, carrying availability, compatibility, and provider-behavior risk that needs dedicated live validation"
+    },
+    {
+      "number": 101740,
+      "reason": "speculative Mattermost cache bounding remains outside the low-risk batch because the seven caps are arbitrary without a measured heap failure, eviction can convert memory retention into API churn and rate-limit pressure, and no live sustained-traffic proof establishes safe operating limits"
     }
   ],
   "ignored": [
