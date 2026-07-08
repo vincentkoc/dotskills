@@ -453,6 +453,10 @@
     {
       "number": 84424,
       "reason": "per-agent bootstrap-size doctor diagnostics landed as 22376d80e1639148d1e0e5ddcadd2c91ba1e5b9e with contributor credit after replaying the focused change over current main and preserving both per-file and total-budget remediation guidance; sanitized AWS Crabbox cbx_b170d8b74acb run_f019cc6ab11c passed 24 focused tests and run_fae6e02fc5c1 passed a real doctor CLI scenario, fresh final-head AutoReview was clean, exact-head CI 28916693040 completed with 69 passing checks and no failures, and native review/prepare/merge gates passed"
+    },
+    {
+      "number": 101597,
+      "reason": "Matrix dependency-command stream error lifecycle handling landed as 35d5ea069ae90d9377df69dbdb5c636c05f58ecd with contributor credit after patch-identical native-wrapper rebases; sanitized AWS Crabbox cbx_a369782859a3 run_a6768dcfbd19 passed the final-head 10-test Matrix dependency suite plus targeted format and lint, stress run_f785e18fa042 passed the suite three consecutive times, fresh final-head AutoReview was clean, recent patch-identical CI 28917845974 completed with 63 passing checks and no failures, and native review/prepare/merge gates passed"
     }
   ],
   "handledMerged": [
@@ -2306,6 +2310,10 @@
     {
       "number": 101984,
       "reason": "valid compact token parser repro remains outside the low-risk batch because the proposed fix removes shipped plugin SDK support for compact key=value and hyphen-delimited forms, making it a compatibility-sensitive public helper contract change that needs dedicated migration and sibling-caller review"
+    },
+    {
+      "number": 97302,
+      "reason": "valid memory fallback-latch report remains outside the low-risk batch because the PR adds periodic network recovery probes on the memory search hot path and changes embedding-provider fallback and index-identity semantics, carrying availability, compatibility, and provider-behavior risk that needs dedicated live validation"
     }
   ],
   "ignored": [
