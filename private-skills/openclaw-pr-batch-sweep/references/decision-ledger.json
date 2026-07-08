@@ -1276,6 +1276,14 @@
     {
       "number": 102091,
       "reason": "closed through the dirty auto-response path because the conflicting one-file patch only extracts behavior-neutral constants, has no bug or user impact, and is exactly the refactor-only churn excluded from the batch"
+    },
+    {
+      "number": 102099,
+      "reason": "closed through the dirty auto-response path because the conflicting branch was a weaker duplicate of 102103 in the same web fetch truncation function and changed only eight production lines"
+    },
+    {
+      "number": 102100,
+      "reason": "closed after contributor recreated the previously rejected constants refactor on a clean branch; it remains behavior-neutral readability churn with no concrete bug or measurable maintenance payoff"
     }
   ],
   "rejected": [
@@ -2498,6 +2506,18 @@
     {
       "number": 102062,
       "reason": "OpenRouter video catalog outbound request-policy propagation crosses the security-sensitive network boundary despite platinum and proof-sufficient labels"
+    },
+    {
+      "number": 102101,
+      "reason": "changes gateway trust, authorization, and provider-model override capability boundaries and is explicitly outside the non-security batch"
+    },
+    {
+      "number": 102102,
+      "reason": "13,000-line durable runtime and recovery feature spans UI, gateway protocol, config, sessions, SQLite, CLI, generated schemas, and docs and is far outside bounded bug-fix scope"
+    },
+    {
+      "number": 102103,
+      "reason": "plausible canonical exact-limit web fetch truncation fix remains outside the batch because it changes only six production lines and is not a named micro-fix exception"
     }
   ],
   "ignored": [
