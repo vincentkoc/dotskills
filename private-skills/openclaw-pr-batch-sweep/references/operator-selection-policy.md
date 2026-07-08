@@ -8,7 +8,7 @@ Reject before assigning an implementation lane:
 
 - Draft PRs or maintainer-authored/labeled queue work.
 - Explicitly skipped, previously handled, already rejected, or already superseded PRs.
-- Security, SSRF, proxy, auth, OAuth, token, secret, credential, redaction, permission, sandbox, pairing, trust-boundary, or sensitive-data changes.
+- Security, SSRF, proxy, outbound request-policy propagation, auth, OAuth, token, secret, credential, redaction, permission, sandbox, pairing, trust-boundary, or sensitive-data changes.
 - Control UI, web UI, frontend, visual, translation, native UI, or product-design changes.
 - Config schema/default changes, migrations, legacy compatibility, provider/auth routing, public plugin SDK/API, protocol versioning, release, CI/workflow, dependency, or infrastructure policy.
 - Service environment, dotenv loading, daemon PATH construction, executable-precedence changes, or self-update global-install-root selection.
@@ -33,6 +33,7 @@ Reject by default:
 - CI, build, live-smoke, fixture-only, and infrastructure repairs unless the operator explicitly selects them for measurable test-system value.
 - Tests that merely restate existing implementation behavior or add coverage without a bug.
 - Defensive branches for hypothetical malformed internal state.
+- Arbitrary cache, registry, or in-memory collection caps without a measured resource failure and owner-defined eviction contract.
 - Patch shapes that add fallback stacks, aliases, or compatibility solely to reduce diff size.
 
 Before qualification, require a short value case:

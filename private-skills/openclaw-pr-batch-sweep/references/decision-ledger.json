@@ -2442,6 +2442,62 @@
     {
       "number": 102090,
       "reason": "valid gateway session title and preview UTF-16 truncation repair is left open outside the batch because it is another small session-facing fragment after the canonical UTF consolidation and falls below the operator's standalone value threshold"
+    },
+    {
+      "number": 102092,
+      "reason": "odd micro-fix changes only two one-line production constants across a five-file patch and has failing real-behavior and CI checks, so it does not clear the operator value gate"
+    },
+    {
+      "number": 102093,
+      "reason": "changes public plugin SDK and gateway event-ID semantics and is explicitly outside the low-risk batch"
+    },
+    {
+      "number": 102094,
+      "reason": "Alibaba and Qwen outbound request-policy propagation crosses the network and security-sensitive provider boundary and is explicitly excluded"
+    },
+    {
+      "number": 102095,
+      "reason": "one-production-line provider behavior change depends on an external contract and remains below the operator's standalone value threshold"
+    },
+    {
+      "number": 102096,
+      "reason": "BytePlus outbound request-policy override changes provider, config, and security-sensitive network behavior and is explicitly excluded"
+    },
+    {
+      "number": 93243,
+      "reason": "Mattermost server-side thread-history backfill changes session history and delivery semantics and is explicitly outside the low-risk batch"
+    },
+    {
+      "number": 92939,
+      "reason": "changes default workspace scaffold and git initialization behavior for ACP-managed agents with exact compatibility risk and is outside the batch"
+    },
+    {
+      "number": 102072,
+      "reason": "MiniMax outbound request-policy propagation crosses the security-sensitive network and provider-policy boundary and lacks sufficient proof"
+    },
+    {
+      "number": 102046,
+      "reason": "model fallback transition diagnostics alter fallback semantics while primarily adding diagnostic surface, both excluded from this batch"
+    },
+    {
+      "number": 101741,
+      "reason": "LINE user-profile cache cap is speculative resource hardening without a measured failure or owner-defined eviction contract"
+    },
+    {
+      "number": 101241,
+      "reason": "transient preflight-compaction fallback changes compatibility and availability behavior and is explicitly outside the low-risk batch"
+    },
+    {
+      "number": 65359,
+      "reason": "one-line config schema change carries exact compatibility risk and failing checks, so it is excluded"
+    },
+    {
+      "number": 88103,
+      "reason": "one-file Teams installation-command documentation edit is docs-only and has unresolved mergeability"
+    },
+    {
+      "number": 102062,
+      "reason": "OpenRouter video catalog outbound request-policy propagation crosses the security-sensitive network boundary despite platinum and proof-sufficient labels"
     }
   ],
   "ignored": [
