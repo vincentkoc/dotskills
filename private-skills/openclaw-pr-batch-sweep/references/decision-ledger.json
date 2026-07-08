@@ -1,4 +1,9 @@
 {
+  "auditWatermark": {
+    "openPrThrough": 102264,
+    "auditedAt": "2026-07-08T17:25:46Z",
+    "originMain": "f093c0f2e3c62d9cda68d26b600e9033e2dd8a4c"
+  },
   "explicitSkips": [
     {
       "number": 2923,
@@ -1284,6 +1289,10 @@
     {
       "number": 102100,
       "reason": "closed after contributor recreated the previously rejected constants refactor on a clean branch; it remains behavior-neutral readability churn with no concrete bug or measurable maintenance payoff"
+    },
+    {
+      "number": 102191,
+      "reason": "closed as unrelated mechanical cleanup because the claimed missing return was only required by the PR's own new default branch and the remaining comment and logging edits had no reproduced user-visible bug"
     }
   ],
   "rejected": [
@@ -2530,6 +2539,42 @@
     {
       "number": 102106,
       "reason": "reclassifies Codex command execution replay mutability using a best-effort shell heuristic and expands the public plugin SDK, crossing session, replay, SDK, and security-sensitive semantics"
+    },
+    {
+      "number": 102134,
+      "reason": "outbound request-policy propagation crosses the security-sensitive network and provider-policy boundary"
+    },
+    {
+      "number": 102136,
+      "reason": "outbound request-policy propagation crosses the security-sensitive network and provider-policy boundary"
+    },
+    {
+      "number": 102195,
+      "reason": "ten-line production micro-fix targets a synthetic large-array reference edge and has failing real-behavior proof"
+    },
+    {
+      "number": 102204,
+      "reason": "narrow model-catalog writer retry is plausible, but the submitted PR retries an fs-safe policy error and queues read-only catalog callers behind provider discovery, crossing auth-provider, security-policy, and availability boundaries"
+    },
+    {
+      "number": 102242,
+      "reason": "arbitrary pricing-cache cap and LRU retention change cost-estimate availability and compatibility policy without an owner-defined contract"
+    },
+    {
+      "number": 102254,
+      "reason": "QA-lab malformed-body harness work belongs to test infrastructure and is outside the contributor bugfix batch"
+    },
+    {
+      "number": 102262,
+      "reason": "maintainer-labeled QA and CI workflow refactor is excluded maintainer infrastructure work"
+    },
+    {
+      "number": 102263,
+      "reason": "macOS native UI confirmation dialog is explicitly outside the no-UI batch"
+    },
+    {
+      "number": 102264,
+      "reason": "broad Codex Computer Use feature spans config, schemas, docs, cache reconciliation, retry and timeout policy, process termination, leases, sandbox, and doctor surfaces with failing and pending CI"
     }
   ],
   "ignored": [

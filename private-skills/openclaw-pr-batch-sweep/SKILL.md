@@ -39,6 +39,8 @@ Compose the repository skills instead of duplicating them:
 
 1. Recover and continue the existing queue.
    - Read recent thread state and the batch ledger.
+   - Read `auditWatermark` when present. Use `openPrThrough` as the default floor for newly created PR discovery instead of rehydrating an unchanged live edge.
+   - The watermark is not a terminal decision. An older unhandled PR may re-enter only when its head SHA or risk/readiness state materially changed; terminal ledger entries never re-enter.
    - Verify current `main`, live PR state, repo instructions, `VISION.md`, disk, and worktree health.
    - Keep a handled set containing merged, closed, rejected, ignored, draft, and explicitly skipped PRs.
    - Never recycle prior candidates merely because their metadata changed.
@@ -110,6 +112,7 @@ Compose the repository skills instead of duplicating them:
 8. Close the batch with a ledger.
    - Record each PR as `landed`, `closed`, `rejected`, `blocked`, or `carried`.
    - Append terminal decisions and explicit skips to `references/decision-ledger.json`; do not add merely sampled or still-carried PRs.
+   - After exhausting a live edge, update `auditWatermark` with the highest authoritatively inspected open PR, UTC timestamp, and `origin/main` SHA.
    - Include exact merge SHA, replacement/canonical PR, proof commands or run IDs, and cleanup links.
    - Carry only concrete unresolved work into the next batch.
    - Start the next `next 20` after refreshing the handled set and live queue.
