@@ -433,6 +433,10 @@
     {
       "number": 101902,
       "reason": "memory_get corpus=all supplement-failure handling landed as 1aee742d230e5e50f6f580e19655fa22b21eefee with contributor credit after keeping the catch local to the secondary failure resolver, simplifying the public result-details regression, passing 45 focused tests and exact-head CI 28908031413, completing clean final-head AutoReview and native review/prepare/merge gates, correcting an intermediate GraphQL ancestry expansion through guarded git-push mode, and closing issue 101809 plus duplicate draft 101827"
+    },
+    {
+      "number": 101596,
+      "reason": "Google Meet local audio bridge stdout/stderr error handling landed as 5fd5bf2aee1b803e95a8c985b90f117ced7a21e9 with contributor credit after validating primary, stale-output, and optional barge-in branches; 104 focused tests including a real spawned command pair, formatting, exact-head CI 28909525984, clean final AutoReview, and native review/prepare/merge gates passed"
     }
   ],
   "handledMerged": [
@@ -2186,6 +2190,30 @@
     {
       "number": 101854,
       "reason": "generated-video URL downloads cross the SSRF and provider network-policy boundary, intentionally fail closed for private targets, carry compatibility and security-boundary risk, and lack live provider proof"
+    },
+    {
+      "number": 101730,
+      "reason": "changes gateway MCP JSON-RPC notification response semantics, carries explicit compatibility risk, and needs protocol-contract validation outside the low-risk batch"
+    },
+    {
+      "number": 101852,
+      "reason": "large P0 browser existing-session navigation rewrite carries explicit compatibility risk and is too broad and behavior-sensitive for the low-risk batch"
+    },
+    {
+      "number": 101856,
+      "reason": "Microsoft Teams quote enhancement adds Chat.Read.All message fetches and threads through supplemental-quote authorization, crossing external API and authz boundaries outside the low-risk batch"
+    },
+    {
+      "number": 98320,
+      "reason": "source-correct Feishu media fallback change passes 63 focused tests but external API behavior cannot land without live Feishu proof, which is unavailable in the current environment"
+    },
+    {
+      "number": 98176,
+      "reason": "partial fix in the broader stale channel lifecycle cluster changes availability, message-delivery, and session-state recovery, lacks regression tests, and currently fails lint"
+    },
+    {
+      "number": 101598,
+      "reason": "Microsoft Foundry az login stream handling changes authentication and external CLI teardown behavior and lacks live Azure CLI/device-code proof, outside the low-risk non-auth batch"
     }
   ],
   "ignored": [
