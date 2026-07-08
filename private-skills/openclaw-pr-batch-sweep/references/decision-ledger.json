@@ -429,6 +429,10 @@
     {
       "number": 101703,
       "reason": "successful agent stop completion logs landed as 6db0506474ceb10c64ea3b5f64e29772fb04280e with contributor credit after mapping severity through the canonical terminal-outcome classifier; 33 focused tests, native build/check, exact-head CI 28871915379, two clean AutoReviews, and native review/prepare/merge gates passed, issue 101678 closed, and direct secretless AWS Crabbox capacity was recorded as unavailable without creating a lease"
+    },
+    {
+      "number": 101902,
+      "reason": "memory_get corpus=all supplement-failure handling landed as 1aee742d230e5e50f6f580e19655fa22b21eefee with contributor credit after keeping the catch local to the secondary failure resolver, simplifying the public result-details regression, passing 45 focused tests and exact-head CI 28908031413, completing clean final-head AutoReview and native review/prepare/merge gates, correcting an intermediate GraphQL ancestry expansion through guarded git-push mode, and closing issue 101809 plus duplicate draft 101827"
     }
   ],
   "handledMerged": [
@@ -1136,6 +1140,10 @@
     {
       "number": 101693,
       "reason": "closed because the Tlon channel-history namespace cap was speculative: no issue, heap evidence, or live growth proof established a failure, the test only inserted synthetic keys, and the arbitrary cap of 100 would change cache and network behavior"
+    },
+    {
+      "number": 101827,
+      "reason": "closed as the draft duplicate after canonical non-draft PR 101902 landed the same memory_get supplement-failure guard as 1aee742d230e5e50f6f580e19655fa22b21eefee with focused proof and contributor credit"
     }
   ],
   "rejected": [
@@ -2170,6 +2178,14 @@
     {
       "number": 101838,
       "reason": "diagnostic-only nodes invoke error wording changes fewer than 25 production lines and adds assertion coverage without enough user-visible product value to justify a batch review cycle"
+    },
+    {
+      "number": 101510,
+      "reason": "fixed non-configurable 50 MiB audio and 1 MiB stderr ceilings change existing local TTS compatibility and resource policy, carry explicit compatibility risk, and require a maintainer product decision outside the low-risk batch"
+    },
+    {
+      "number": 101854,
+      "reason": "generated-video URL downloads cross the SSRF and provider network-policy boundary, intentionally fail closed for private targets, carry compatibility and security-boundary risk, and lack live provider proof"
     }
   ],
   "ignored": [
