@@ -449,6 +449,10 @@
     {
       "number": 93402,
       "reason": "Gateway websocket handshake phase diagnostics landed as bf310355387dc77e82f547d0e9557f1cd3532035 with contributor credit after a patch-identical native-wrapper rebase; sanitized AWS Crabbox cbx_814c20b41e15 run_b01c493e8f44 passed 10 files and 148 focused Gateway tests, fresh final-head AutoReview was clean, exact-head CI 28915022156 succeeded, native review/prepare/merge gates passed, and issue 79603 closed"
+    },
+    {
+      "number": 84424,
+      "reason": "per-agent bootstrap-size doctor diagnostics landed as 22376d80e1639148d1e0e5ddcadd2c91ba1e5b9e with contributor credit after replaying the focused change over current main and preserving both per-file and total-budget remediation guidance; sanitized AWS Crabbox cbx_b170d8b74acb run_f019cc6ab11c passed 24 focused tests and run_fae6e02fc5c1 passed a real doctor CLI scenario, fresh final-head AutoReview was clean, exact-head CI 28916693040 completed with 69 passing checks and no failures, and native review/prepare/merge gates passed"
     }
   ],
   "handledMerged": [
@@ -2298,6 +2302,10 @@
     {
       "number": 101983,
       "reason": "current main already guards stdout and stderr error events, while the PR adds kill-on-stream-error availability semantics and leaves the AbortSignal listener armed after early settlement, so it is outside the low-risk batch and not merge-ready"
+    },
+    {
+      "number": 101984,
+      "reason": "valid compact token parser repro remains outside the low-risk batch because the proposed fix removes shipped plugin SDK support for compact key=value and hyphen-delimited forms, making it a compatibility-sensitive public helper contract change that needs dedicated migration and sibling-caller review"
     }
   ],
   "ignored": [
