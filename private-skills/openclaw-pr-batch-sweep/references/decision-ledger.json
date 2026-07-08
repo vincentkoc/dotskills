@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102264,
-    "auditedAt": "2026-07-08T17:25:46Z",
-    "originMain": "f093c0f2e3c62d9cda68d26b600e9033e2dd8a4c"
+    "openPrThrough": 102265,
+    "auditedAt": "2026-07-08T17:33:01Z",
+    "originMain": "0d86f64e602e8c29b87787d823ce498e283ea225"
   },
   "explicitSkips": [
     {
@@ -2575,6 +2575,38 @@
     {
       "number": 102264,
       "reason": "broad Codex Computer Use feature spans config, schemas, docs, cache reconciliation, retry and timeout policy, process termination, leases, sandbox, and doctor surfaces with failing and pending CI"
+    },
+    {
+      "number": 102255,
+      "reason": "materially updated branch still changes duplicate-dispatch and in-flight availability semantics and remains needs-proof"
+    },
+    {
+      "number": 95132,
+      "reason": "maintainer-authored XL dependency and security surface remains outside the contributor bugfix batch"
+    },
+    {
+      "number": 102261,
+      "reason": "182-file dirty branch spans UI, config, protocol, session, and security surfaces"
+    },
+    {
+      "number": 100906,
+      "reason": "maintainer-owned XL setup, config, and delivery work remains outside the contributor bugfix batch"
+    },
+    {
+      "number": 47604,
+      "reason": "dirty Android UI, auth, and security change is explicitly outside the batch"
+    },
+    {
+      "number": 99776,
+      "reason": "maintainer policy, documentation, and infrastructure branch spans 462 files and remains outside the batch"
+    },
+    {
+      "number": 47277,
+      "reason": "dirty compatibility, session, and security change is explicitly outside the batch"
+    },
+    {
+      "number": 102265,
+      "reason": "session retry and fallback policy crosses provider-auth compatibility boundaries and is incorrect because Retry-After values such as 100 ms are parsed as roughly 100 seconds"
     }
   ],
   "ignored": [
