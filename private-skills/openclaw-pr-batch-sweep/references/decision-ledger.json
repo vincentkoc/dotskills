@@ -1272,6 +1272,10 @@
     {
       "number": 102047,
       "reason": "closed because synthetic ACP stream listeners only prevent EventEmitter's default throw while potentially leaving initialization pending; no real child failure proved prompt original-error rejection, termination, cleanup, or handle closure"
+    },
+    {
+      "number": 102091,
+      "reason": "closed through the dirty auto-response path because the conflicting one-file patch only extracts behavior-neutral constants, has no bug or user impact, and is exactly the refactor-only churn excluded from the batch"
     }
   ],
   "rejected": [
@@ -2426,6 +2430,18 @@
     {
       "number": 101712,
       "reason": "valid Nextcloud Talk outbound tool-trace sanitizer consistency patch is left open outside the batch because it changes one production line and belongs in a wider missing-channel sanitizer sweep rather than a standalone maintainer cycle"
+    },
+    {
+      "number": 102088,
+      "reason": "valid malformed nodes --params diagnostic improvement is left open outside the batch because it changes only four production lines and does not clear the operator's non-triviality threshold for another maintainer cycle"
+    },
+    {
+      "number": 102089,
+      "reason": "Twilio webhook diagnostic redaction is explicitly security-sensitive token and signature-boundary work and is left open for the security and voice-call owners"
+    },
+    {
+      "number": 102090,
+      "reason": "valid gateway session title and preview UTF-16 truncation repair is left open outside the batch because it is another small session-facing fragment after the canonical UTF consolidation and falls below the operator's standalone value threshold"
     }
   ],
   "ignored": [
