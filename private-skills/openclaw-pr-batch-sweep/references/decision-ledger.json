@@ -1248,6 +1248,18 @@
     {
       "number": 101938,
       "reason": "closed as the broader and weaker duplicate of 101994 because it changed the public keyed-answer parser contract without a migration plan or complete sibling-caller proof"
+    },
+    {
+      "number": 102007,
+      "reason": "closed after its valid exec output UTF-16 repair was consolidated with contributor credit into direct main commit 7e0324263b867d3d47138d1d2b1e9afd1dd2016f; 68 focused tests, full check:changed on Testbox tbx_01kx05r30pyr2atp458kfa4qew, and clean final AutoReview passed"
+    },
+    {
+      "number": 101818,
+      "reason": "closed after its valid Zalo text and caption UTF-16 repair was consolidated with contributor credit into direct main commit 7e0324263b867d3d47138d1d2b1e9afd1dd2016f; actual send payload tests, full check:changed on Testbox tbx_01kx05r30pyr2atp458kfa4qew, and clean final AutoReview passed"
+    },
+    {
+      "number": 101782,
+      "reason": "closed after its valid Slack thread-label UTF-16 repair was conflict-cleaned and consolidated with contributor credit into direct main commit 7e0324263b867d3d47138d1d2b1e9afd1dd2016f; both reachable Slack label paths, full check:changed, and clean final AutoReview passed"
     }
   ],
   "rejected": [
@@ -2370,18 +2382,6 @@
     {
       "number": 101651,
       "reason": "coherent Docker QA default change remains outside the contributor bugfix batch because it is maintainer CI infrastructure work with automation merge risk"
-    },
-    {
-      "number": 102007,
-      "reason": "valid reachable UTF-16 boundary defense is rejected as a standalone PR and reserved for the wider canonical UTF cleanup with shared focused proof"
-    },
-    {
-      "number": 101818,
-      "reason": "valid boundary-level UTF-16 defense is rejected as a standalone PR and reserved for the wider canonical UTF cleanup with shared focused proof"
-    },
-    {
-      "number": 101782,
-      "reason": "valid reachable Slack thread-label UTF-16 repair is rejected as a standalone PR and reserved for the wider canonical UTF cleanup with an ordinary-thread negative regression"
     },
     {
       "number": 101998,
