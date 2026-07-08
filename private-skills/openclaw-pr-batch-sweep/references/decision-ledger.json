@@ -1164,6 +1164,10 @@
     {
       "number": 98963,
       "reason": "closed as superseded by merged PR 98983 and current-main commit cc5804868fba, which already handles Claude's variadic --mcp-config contract with ordered merges, equals and dash-termination coverage, separate resume/fresh argv selection, live Claude 2.1.201 help confirmation, and 10 passing focused tests"
+    },
+    {
+      "number": 100864,
+      "reason": "closed because it changes the documented steer tool-policy contract without a linked user bug or product decision, blocks only message and sessions_send while leaving other side effects untouched, and incorrectly blocks existing read-only message actions instead of expressing one central typed cross-tool side-effect policy"
     }
   ],
   "rejected": [
