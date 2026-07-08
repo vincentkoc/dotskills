@@ -441,6 +441,10 @@
     {
       "number": 96592,
       "reason": "diagnostics-otel histogram bucket advice landed as 11a0e54ddd369006804c1f9c23ad35fb29f6122e with contributor credit after a maintainer repair preserved every prior OpenTelemetry SDK v2.8.0 finite boundary before extending run/harness duration through one hour and context tokens through two million; 107 focused tests, targeted lint/format, direct SDK export proof, clean final AutoReview, exact-head CI 28912063939 with 47 successful jobs and 10 expected skips, and native review/prepare/merge gates passed"
+    },
+    {
+      "number": 101761,
+      "reason": "canonical browser UTF-16 truncation repair landed as 5bdea31c945505b0b8f0af35f938097d0ca918c8 with contributor credit after all three Playwright and Chrome MCP response/snapshot boundaries moved to the existing safe helper; 27 focused tests, targeted lint/format, clean final AutoReview, 66 successful exact-head checks, and native review/prepare/merge gates passed"
     }
   ],
   "handledMerged": [
@@ -1176,6 +1180,14 @@
     {
       "number": 101970,
       "reason": "closed as superseded by merged PR 97742 and current main; direct mixed text-plus-image proof showed images-only sanitization already preserves explicit tool-result text, while provider replay extracts that text before media placeholders, and 27 focused tests passed"
+    },
+    {
+      "number": 101972,
+      "reason": "closed because every added URL, Windows-path, time, and date regression case already passed unchanged current main, while the new numeric guard broke valid numbered numeric answers such as 1: 42; linked issue 101722 was also closed as not reproduced"
+    },
+    {
+      "number": 101933,
+      "reason": "closed as speculative Chrome stderr hardening: the real-spawn test installed its own listener on an unrelated child and directly destroyed the stream with EPIPE, while the FakeProc test only injected the event; no observed Chrome launch failure justified 11 production lines and 149 synthetic test lines"
     }
   ],
   "rejected": [
@@ -2258,6 +2270,22 @@
     {
       "number": 101800,
       "reason": "speculative Mattermost cache hardening adds four arbitrary process-map caps without a linked issue or measured heap failure, falls below the production-value threshold, and overlaps PR 101740"
+    },
+    {
+      "number": 101815,
+      "reason": "source-correct Discord encoded-dot video classification changes only four production lines without a linked user report; despite focused proof and platinum readiness it remains below the batch value threshold for a fresh maintainer cycle"
+    },
+    {
+      "number": 101935,
+      "reason": "removes dead UND_ERR_CONNECT classifier strings with no current behavior change and adds unrelated Slack preservation coverage; cleanup-only production deletion is below the batch value threshold despite platinum readiness"
+    },
+    {
+      "number": 101940,
+      "reason": "valid oversized media-understanding image bug remains outside the low-risk batch because the branch duplicates a config-only compression policy, omits selected provider/model hard limits, lacks live oversized-image proof, and has a failing CI shard; sibling PRs 101947 and 101953 are weaker variants"
+    },
+    {
+      "number": 101976,
+      "reason": "correct ACP background-task UTF-16 boundary substitutions touch only two production expressions and belong in the wider canonical UTF cleanup rather than a standalone low-risk batch PR"
     }
   ],
   "ignored": [
