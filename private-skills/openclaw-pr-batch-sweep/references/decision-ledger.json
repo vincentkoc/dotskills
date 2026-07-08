@@ -1,7 +1,7 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102265,
-    "auditedAt": "2026-07-08T17:33:01Z",
+    "openPrThrough": 102266,
+    "auditedAt": "2026-07-08T17:37:27Z",
     "originMain": "0d86f64e602e8c29b87787d823ce498e283ea225"
   },
   "explicitSkips": [
@@ -2607,6 +2607,10 @@
     {
       "number": 102265,
       "reason": "session retry and fallback policy crosses provider-auth compatibility boundaries and is incorrect because Retry-After values such as 100 ms are parsed as roughly 100 seconds"
+    },
+    {
+      "number": 102266,
+      "reason": "four-line cross-owner security patch touches channel metadata and install policy, falls below the non-triviality gate, and lacks direct coverage for the install-policy output"
     }
   ],
   "ignored": [
