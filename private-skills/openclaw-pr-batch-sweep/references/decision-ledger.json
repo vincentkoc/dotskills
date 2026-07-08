@@ -445,6 +445,10 @@
     {
       "number": 101761,
       "reason": "canonical browser UTF-16 truncation repair landed as 5bdea31c945505b0b8f0af35f938097d0ca918c8 with contributor credit after all three Playwright and Chrome MCP response/snapshot boundaries moved to the existing safe helper; 27 focused tests, targeted lint/format, clean final AutoReview, 66 successful exact-head checks, and native review/prepare/merge gates passed"
+    },
+    {
+      "number": 93402,
+      "reason": "Gateway websocket handshake phase diagnostics landed as bf310355387dc77e82f547d0e9557f1cd3532035 with contributor credit after a patch-identical native-wrapper rebase; sanitized AWS Crabbox cbx_814c20b41e15 run_b01c493e8f44 passed 10 files and 148 focused Gateway tests, fresh final-head AutoReview was clean, exact-head CI 28915022156 succeeded, native review/prepare/merge gates passed, and issue 79603 closed"
     }
   ],
   "handledMerged": [
@@ -2290,6 +2294,10 @@
     {
       "number": 101976,
       "reason": "correct ACP background-task UTF-16 boundary substitutions touch only two production expressions and belong in the wider canonical UTF cleanup rather than a standalone low-risk batch PR"
+    },
+    {
+      "number": 101983,
+      "reason": "current main already guards stdout and stderr error events, while the PR adds kill-on-stream-error availability semantics and leaves the AbortSignal listener armed after early settlement, so it is outside the low-risk batch and not merge-ready"
     }
   ],
   "ignored": [
