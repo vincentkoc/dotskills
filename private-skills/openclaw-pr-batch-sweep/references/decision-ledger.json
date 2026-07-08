@@ -437,6 +437,10 @@
     {
       "number": 101596,
       "reason": "Google Meet local audio bridge stdout/stderr error handling landed as 5fd5bf2aee1b803e95a8c985b90f117ced7a21e9 with contributor credit after validating primary, stale-output, and optional barge-in branches; 104 focused tests including a real spawned command pair, formatting, exact-head CI 28909525984, clean final AutoReview, and native review/prepare/merge gates passed"
+    },
+    {
+      "number": 96592,
+      "reason": "diagnostics-otel histogram bucket advice landed as 11a0e54ddd369006804c1f9c23ad35fb29f6122e with contributor credit after a maintainer repair preserved every prior OpenTelemetry SDK v2.8.0 finite boundary before extending run/harness duration through one hour and context tokens through two million; 107 focused tests, targeted lint/format, direct SDK export proof, clean final AutoReview, exact-head CI 28912063939 with 47 successful jobs and 10 expected skips, and native review/prepare/merge gates passed"
     }
   ],
   "handledMerged": [
@@ -1148,6 +1152,10 @@
     {
       "number": 101827,
       "reason": "closed as the draft duplicate after canonical non-draft PR 101902 landed the same memory_get supplement-failure guard as 1aee742d230e5e50f6f580e19655fa22b21eefee with focused proof and contributor credit"
+    },
+    {
+      "number": 97098,
+      "reason": "closed as superseded after canonical contributor PR 96592 landed as 11a0e54ddd369006804c1f9c23ad35fb29f6122e; the landed policy uses the same supported OpenTelemetry advice seam at a narrower scope and preserves every prior SDK-default finite bucket instead of applying one layout across unrelated duration metrics"
     }
   ],
   "rejected": [
