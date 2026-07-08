@@ -1188,6 +1188,10 @@
     {
       "number": 101933,
       "reason": "closed as speculative Chrome stderr hardening: the real-spawn test installed its own listener on an unrelated child and directly destroyed the stream with EPIPE, while the FakeProc test only injected the event; no observed Chrome launch failure justified 11 production lines and 149 synthetic test lines"
+    },
+    {
+      "number": 101978,
+      "reason": "closed because the two no-op WriteStream error listeners swallow the only lazy-open failure before closeTempFile installs its handlers; direct Node proof showed the stream then closes while the existing close promise remains pending, and the PR added no failing-before regression for either consumer"
     }
   ],
   "rejected": [
