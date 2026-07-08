@@ -457,6 +457,10 @@
     {
       "number": 101597,
       "reason": "Matrix dependency-command stream error lifecycle handling landed as 35d5ea069ae90d9377df69dbdb5c636c05f58ecd with contributor credit after patch-identical native-wrapper rebases; sanitized AWS Crabbox cbx_a369782859a3 run_a6768dcfbd19 passed the final-head 10-test Matrix dependency suite plus targeted format and lint, stress run_f785e18fa042 passed the suite three consecutive times, fresh final-head AutoReview was clean, recent patch-identical CI 28917845974 completed with 63 passing checks and no failures, and native review/prepare/merge gates passed"
+    },
+    {
+      "number": 102036,
+      "reason": "canonical Lobster schema-default routing repair landed as 8cb92636920b02306f9b50fa82fb4b1313a0237f with contributor credit after a maintainer repair preserved strict cross-mode validation; sanitized AWS Crabbox cbx_c92971815ef7 run_f48d59554de8 passed 52 focused tests, a real embedded run-approval-resume round trip, managed empty-state preservation, and full check:changed, fresh final AutoReview was clean, hosted CI 28920766065 completed with 63 successful checks and no failures, native review/prepare/merge gates passed, and issue 102011 closed"
     }
   ],
   "handledMerged": [
@@ -1204,6 +1208,46 @@
     {
       "number": 101978,
       "reason": "closed because the two no-op WriteStream error listeners swallow the only lazy-open failure before closeTempFile installs its handlers; direct Node proof showed the stream then closes while the existing close promise remains pending, and the PR added no failing-before regression for either consumer"
+    },
+    {
+      "number": 102022,
+      "reason": "closed as superseded by canonical PR 102036 and landed commit 8cb92636920b; it had useful real-runtime proof but handled blank and empty flow state less completely and silently ignored malformed auxiliary managed fields"
+    },
+    {
+      "number": 102043,
+      "reason": "closed as superseded by canonical PR 102036 and landed commit 8cb92636920b; the landed fix retains revision-zero handling while also covering injected empty state, explicit managed empty state, and strict cross-mode validation"
+    },
+    {
+      "number": 101992,
+      "reason": "closed as the weaker helper-only duplicate of provider-owner PR 101832; it lacked focused tests and carried stale declaration/export drift while missing the final Gemini sanitizer path"
+    },
+    {
+      "number": 101942,
+      "reason": "closed because the changed plugin-description formatter branch is not used by the production path, so the PR did not fix a reachable user-visible UTF-16 truncation boundary"
+    },
+    {
+      "number": 101784,
+      "reason": "closed because PreparedSlackMessage.preview has no production consumer; the reachable Slack UTF-16 boundary belongs in the wider canonical cleanup"
+    },
+    {
+      "number": 101845,
+      "reason": "closed because the one-line exact-limit inference change had no observed user-facing failure proving an exact-limit response was complete rather than truncated; a future fix needs an explicit length or overread contract"
+    },
+    {
+      "number": 101955,
+      "reason": "closed with the exact-limit cluster decision in 101845 because it made the same unproved one-line boundary assumption without a concrete complete-response reproduction"
+    },
+    {
+      "number": 101939,
+      "reason": "closed with the exact-limit cluster decision in 101845 because it made the same unproved streamed-response boundary assumption without an explicit stream-length or overread contract"
+    },
+    {
+      "number": 101947,
+      "reason": "closed as the weaker duplicate of provider-owner PR 102002; it changed image preparation without proving selected provider-model hard limits or a real oversized-image request"
+    },
+    {
+      "number": 101938,
+      "reason": "closed as the broader and weaker duplicate of 101994 because it changed the public keyed-answer parser contract without a migration plan or complete sibling-caller proof"
     }
   ],
   "rejected": [
@@ -2318,6 +2362,46 @@
     {
       "number": 101740,
       "reason": "speculative Mattermost cache bounding remains outside the low-risk batch because the seven caps are arbitrary without a measured heap failure, eviction can convert memory retention into API churn and rate-limit pressure, and no live sustained-traffic proof establishes safe operating limits"
+    },
+    {
+      "number": 101832,
+      "reason": "technically the strongest Gemini thinking-disable candidate but explicitly outside the low-risk batch because it changes provider routing and request policy and needs dedicated provider-owner review plus live Google proof"
+    },
+    {
+      "number": 101651,
+      "reason": "coherent Docker QA default change remains outside the contributor bugfix batch because it is maintainer CI infrastructure work with automation merge risk"
+    },
+    {
+      "number": 102007,
+      "reason": "valid reachable UTF-16 boundary defense is rejected as a standalone PR and reserved for the wider canonical UTF cleanup with shared focused proof"
+    },
+    {
+      "number": 101818,
+      "reason": "valid boundary-level UTF-16 defense is rejected as a standalone PR and reserved for the wider canonical UTF cleanup with shared focused proof"
+    },
+    {
+      "number": 101782,
+      "reason": "valid reachable Slack thread-label UTF-16 repair is rejected as a standalone PR and reserved for the wider canonical UTF cleanup with an ordinary-thread negative regression"
+    },
+    {
+      "number": 101998,
+      "reason": "cron restart catch-up changes replay and delivery semantics and is explicitly excluded from the low-risk batch; left open for the cron owner"
+    },
+    {
+      "number": 102025,
+      "reason": "Nextcloud timeout behavior crosses the SSRF-guarded fetch and availability boundary and is explicitly excluded from the non-security batch; left open for the network owner"
+    },
+    {
+      "number": 102013,
+      "reason": "sessions usage concurrency adds an arbitrary limit across session-state and availability behavior without a product-defined contract; left open for dedicated owner review"
+    },
+    {
+      "number": 102002,
+      "reason": "media-understanding compression changes provider payload and configuration semantics without selected provider-model hard-limit proof or live oversized-image validation; left open for the provider owner"
+    },
+    {
+      "number": 101994,
+      "reason": "keyed-answer URL parsing changes a public Plugin SDK compatibility contract and needs dedicated migration, sibling-caller, and external-plugin review outside the low-risk batch"
     }
   ],
   "ignored": [
