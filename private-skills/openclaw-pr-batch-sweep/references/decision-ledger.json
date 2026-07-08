@@ -1168,6 +1168,14 @@
     {
       "number": 100864,
       "reason": "closed because it changes the documented steer tool-policy contract without a linked user bug or product decision, blocks only message and sessions_send while leaving other side effects untouched, and incorrectly blocks existing read-only message actions instead of expressing one central typed cross-tool side-effect policy"
+    },
+    {
+      "number": 101960,
+      "reason": "closed by the dirty auto-response workflow after the stated cron heartbeat fix was found mixed with six unrelated Codex app-server notification, watchdog, forced-abort, and completion-order changes"
+    },
+    {
+      "number": 101970,
+      "reason": "closed as superseded by merged PR 97742 and current main; direct mixed text-plus-image proof showed images-only sanitization already preserves explicit tool-result text, while provider replay extracts that text before media placeholders, and 27 focused tests passed"
     }
   ],
   "rejected": [
@@ -2242,6 +2250,14 @@
     {
       "number": 101934,
       "reason": "correct UTF-16-safe diagnostic formatting change modifies only three production call sites and adds helper-level coverage, falling below the batch value threshold for diagnostic-only micro-patches; left open for normal maintainer or wider canonical UTF cleanup"
+    },
+    {
+      "number": 101968,
+      "reason": "forwarder conflict handling changes an SSRF-guarded network response and message-delivery availability boundary while adding an arbitrary cache cap; explicitly excluded from the low-risk non-SSRF batch and overlaps PR 101743"
+    },
+    {
+      "number": 101800,
+      "reason": "speculative Mattermost cache hardening adds four arbitrary process-map caps without a linked issue or measured heap failure, falls below the production-value threshold, and overlaps PR 101740"
     }
   ],
   "ignored": [
