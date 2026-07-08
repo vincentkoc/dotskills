@@ -2234,6 +2234,14 @@
     {
       "number": 101598,
       "reason": "Microsoft Foundry az login stream handling changes authentication and external CLI teardown behavior and lacks live Azure CLI/device-code proof, outside the low-risk non-auth batch"
+    },
+    {
+      "number": 101952,
+      "reason": "valid linked mid-turn overflow bug remains outside the low-risk batch because the branch changes model-visible session-state and data-loss recovery routing while combining provider-prompt projection alignment with a global relaxation of the conservative tool-result token-density estimator"
+    },
+    {
+      "number": 101934,
+      "reason": "correct UTF-16-safe diagnostic formatting change modifies only three production call sites and adds helper-level coverage, falling below the batch value threshold for diagnostic-only micro-patches; left open for normal maintainer or wider canonical UTF cleanup"
     }
   ],
   "ignored": [
