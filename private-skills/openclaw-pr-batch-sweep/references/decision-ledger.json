@@ -1,7 +1,7 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102802,
-    "auditedAt": "2026-07-09T12:35:48Z",
+    "openPrThrough": 102805,
+    "auditedAt": "2026-07-09T12:37:38Z",
     "originMain": "c8c1f37d2f45f887a979b40c661767baee3bbe75"
   },
   "explicitSkips": [
@@ -3227,6 +3227,14 @@
     {
       "number": 102627,
       "reason": "maintainer-touched Crestodian prompt-history UTF micro-fix is an isolated production substitution with overlapping direct-helper tests"
+    },
+    {
+      "number": 102803,
+      "reason": "maintainer-authored Codex Supervisor packaging follow-up is outside the contributor batch"
+    },
+    {
+      "number": 102805,
+      "reason": "maintainer-owned XL Telegram Mini App feature crosses Control UI, Gateway auth and device bootstrap, Telegram identity validation, Tailscale publication, and public plugin SDK surfaces"
     }
   ],
   "ignored": [
@@ -3241,6 +3249,10 @@
     {
       "number": 102793,
       "reason": "draft maintainer-authored web UI refactor"
+    },
+    {
+      "number": 102804,
+      "reason": "draft Feishu reply-threading micro-fix"
     }
   ]
 }
