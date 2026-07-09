@@ -1,7 +1,7 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102786,
-    "auditedAt": "2026-07-09T12:13:09Z",
+    "openPrThrough": 102793,
+    "auditedAt": "2026-07-09T12:21:26Z",
     "originMain": "f786efddcd88445d6678124341a1c939d5a41bd8"
   },
   "explicitSkips": [
@@ -1449,6 +1449,18 @@
     {
       "number": 102785,
       "reason": "closed as an exact stable-patch duplicate of earlier PR 102782"
+    },
+    {
+      "number": 102519,
+      "reason": "closed because three process-stable plugin warning key spaces had no measured production growth failure, while an arbitrary 4096-entry LRU cap changed warn-once semantics after eviction"
+    },
+    {
+      "number": 102597,
+      "reason": "closed because current main and v2026.6.11 already validate explicit cron delivery channels at the Gateway before mutation; the added thin-CLI warning could false-warn valid external plugin ids"
+    },
+    {
+      "number": 102788,
+      "reason": "closed as a one-line QQBot sender-name substitution without active-path regression proof or sibling identity-contract validation"
     }
   ],
   "rejected": [
@@ -3119,6 +3131,34 @@
     {
       "number": 102786,
       "reason": "recent maintainer-authored voice-control UI work is outside the contributor batch"
+    },
+    {
+      "number": 102445,
+      "reason": "valid-looking cron failure-destination inheritance work changes message-delivery fallback semantics and requires dedicated owner review"
+    },
+    {
+      "number": 102507,
+      "reason": "Telegram self-attribution changes channel identity and conversation-context semantics, while the PR explicitly leaves the streamed-message sibling path unresolved"
+    },
+    {
+      "number": 102554,
+      "reason": "active-memory recall changes model-visible prompt-hook execution and carries compatibility risk across the embedded agent runner"
+    },
+    {
+      "number": 102787,
+      "reason": "QA-lab debug response bounding touches the SSRF response path and adds an unsupported 1 MiB fallback cap in test infrastructure"
+    },
+    {
+      "number": 102789,
+      "reason": "recent maintainer-authored CLI tagline feature work is outside the contributor batch"
+    },
+    {
+      "number": 102790,
+      "reason": "MS Teams Graph timeout policy touches the SSRF request boundary and forced-termination availability semantics"
+    },
+    {
+      "number": 102791,
+      "reason": "recent maintainer-authored provider catalog, docs, script, and web UI feature work is outside the contributor batch"
     }
   ],
   "ignored": [
@@ -3129,6 +3169,10 @@
     {
       "number": 102776,
       "reason": "draft maintainer-authored macOS computer-use node feature"
+    },
+    {
+      "number": 102793,
+      "reason": "draft maintainer-authored web UI refactor"
     }
   ]
 }
