@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102627,
-    "auditedAt": "2026-07-09T10:30:16Z",
-    "originMain": "6a6aba0d5aec1a89e87563e70d907a82fa7ca3a2"
+    "openPrThrough": 102699,
+    "auditedAt": "2026-07-09T11:13:18Z",
+    "originMain": "65b2e7a4e337e7f1ea483ff0b617ccda9b95cb13"
   },
   "explicitSkips": [
     {
@@ -1301,6 +1301,46 @@
     {
       "number": 102415,
       "reason": "closed because NaN comparator results are equality under stable JavaScript sort, so the PR did not demonstrate nondeterminism; its raw-line tiebreak changed persisted trimming semantics, exported a helper only for tests, and targeted a trajectory JSONL path already being removed by the SQLite migration"
+    },
+    {
+      "number": 102629,
+      "reason": "restart-handoff UTF-16 truncation fragment closed after its persisted-row regression and contributor credit landed in canonical commit 0ac8933721f7e47ad679b06c894f4cbdb55b3d14; standalone proof script dropped"
+    },
+    {
+      "number": 102630,
+      "reason": "mixed UTF-16 fragment closed after its safe plugin-list and hook-log sites landed with contributor credit in canonical commit 0ac8933721f7e47ad679b06c894f4cbdb55b3d14; fallback/session and dashboard-label changes were intentionally excluded"
+    },
+    {
+      "number": 102640,
+      "reason": "both duplicate-message diagnostic truncation sites and focused regression landed with contributor credit in canonical commit 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102644,
+      "reason": "normal and telephony TTS debug truncation sites landed with contributor credit and table-driven coverage in canonical commit 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102645,
+      "reason": "long-error warning preview landed with contributor credit in canonical diagnostic cleanup 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102646,
+      "reason": "gateway startup-failure reason and completeBoot regression landed with contributor credit in canonical commit 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102679,
+      "reason": "closed as already fixed on main by canonical UTF-16 diagnostic cleanup 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102683,
+      "reason": "closed as a later near-duplicate of canonical Anthropic provider repair 102537; production patch was materially identical, proof was weaker, and both require the same source-compatible AiTransportHost repair"
+    },
+    {
+      "number": 102684,
+      "reason": "closed as already fixed on main by canonical UTF-16 diagnostic cleanup 0ac8933721f7e47ad679b06c894f4cbdb55b3d14; submitted second-file import was also inserted inside the module comment"
+    },
+    {
+      "number": 102693,
+      "reason": "closed as already fixed on main with focused coverage by canonical UTF-16 diagnostic cleanup 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
     }
   ],
   "rejected": [
@@ -2659,6 +2699,162 @@
     {
       "number": 102623,
       "reason": "persisted cron catch-up state crosses migration, delivery, and availability policy boundaries"
+    },
+    {
+      "number": 102631,
+      "reason": "one-line fallback-reason duplicate overlaps 102662 and crosses user-visible persisted fallback/session state without regression proof"
+    },
+    {
+      "number": 102634,
+      "reason": "valid model-visible input-file truncation bug sits in an SSRF-adjacent media owner and requires separate media/gateway review outside this batch"
+    },
+    {
+      "number": 102635,
+      "reason": "recent maintainer-authored Slack presentation feature is outside the contributor bugfix batch"
+    },
+    {
+      "number": 102636,
+      "reason": "changes agent handoff framing and subagent/session behavior, which is outside the low-risk batch"
+    },
+    {
+      "number": 102637,
+      "reason": "recent maintainer-authored macOS onboarding and Codex authentication behavior is outside the batch"
+    },
+    {
+      "number": 102638,
+      "reason": "block-reply coalescer flush changes message-loss and delivery settlement semantics"
+    },
+    {
+      "number": 102643,
+      "reason": "recent maintainer-authored group-chat usage-limit visibility change crosses delivery policy"
+    },
+    {
+      "number": 102649,
+      "reason": "eight-line shared MIME helper change decodes the whole URL pathname, mishandles malformed earlier segments and encoded separators, and lacks an active non-Discord caller repro"
+    },
+    {
+      "number": 102650,
+      "reason": "Feishu card image embedding is feature work, not a bounded bug fix"
+    },
+    {
+      "number": 102651,
+      "reason": "recent maintainer-authored Telegram streaming feature is outside the contributor bugfix batch"
+    },
+    {
+      "number": 102656,
+      "reason": "one-site QA Matrix artifact truncation fragment leaves many sibling owner paths unchanged and lacks regression proof"
+    },
+    {
+      "number": 102657,
+      "reason": "rate-limit failover classification is security-tagged and crosses fallback/provider availability semantics"
+    },
+    {
+      "number": 102658,
+      "reason": "arbitrary per-chat warning-cache cap lacks a measured resource failure and owner-defined eviction contract"
+    },
+    {
+      "number": 102659,
+      "reason": "arbitrary template-warning cache cap lacks a measured resource failure and owner-defined eviction contract"
+    },
+    {
+      "number": 102660,
+      "reason": "recent maintainer-authored Control UI test work is explicitly excluded"
+    },
+    {
+      "number": 102661,
+      "reason": "recent maintainer-authored iOS approval and capability behavior crosses UI and permission boundaries"
+    },
+    {
+      "number": 102662,
+      "reason": "fallback-state duplicate crosses persisted user-visible session behavior and its proposed trailing-surrogate assertion passes before the fix because the ellipsis follows the broken surrogate"
+    },
+    {
+      "number": 102663,
+      "reason": "recent maintainer-authored macOS Settings UI layout change is explicitly excluded"
+    },
+    {
+      "number": 102668,
+      "reason": "one-line web-media HTML sample truncation is a low-value fragment in a network/media owner"
+    },
+    {
+      "number": 102669,
+      "reason": "one-line launchd daemon-output truncation is service infrastructure micro-churn without a concrete incident"
+    },
+    {
+      "number": 102670,
+      "reason": "one-line migration skill-description truncation is migration micro-churn without a concrete user failure"
+    },
+    {
+      "number": 102671,
+      "reason": "one-line QA Lab CLI error truncation is test-infrastructure micro-churn without material proof"
+    },
+    {
+      "number": 102672,
+      "reason": "LLM slug prompt-facing session content crosses model-visible session behavior"
+    },
+    {
+      "number": 102674,
+      "reason": "external run failure detail changes model-visible agent-runner execution/session behavior"
+    },
+    {
+      "number": 102677,
+      "reason": "recent maintainer-authored macOS dashboard behavior is UI work"
+    },
+    {
+      "number": 102680,
+      "reason": "Discord grapheme-aware chunking changes channel message delivery semantics"
+    },
+    {
+      "number": 102681,
+      "reason": "Mattermost log/error truncation is a tiny diagnostic-only fragment without a linked bug"
+    },
+    {
+      "number": 102682,
+      "reason": "Microsoft Foundry API/CLI error truncation is a tiny provider-diagnostic fragment without active failure proof"
+    },
+    {
+      "number": 102685,
+      "reason": "memory flush error truncation crosses agent-runner memory and session behavior"
+    },
+    {
+      "number": 102686,
+      "reason": "run-diagnostics UTF-16 substitutions are another unproven micro fragment after the canonical diagnostic cleanup"
+    },
+    {
+      "number": 102688,
+      "reason": "recent maintainer-authored Mac approval timestamp work crosses protocol and permission boundaries"
+    },
+    {
+      "number": 102690,
+      "reason": "Telegram grapheme-aware text truncation changes channel delivery semantics"
+    },
+    {
+      "number": 102692,
+      "reason": "LLM slug generator session content is model-visible session behavior"
+    },
+    {
+      "number": 102694,
+      "reason": "Google Meet log truncation is a diagnostic-only micro fragment"
+    },
+    {
+      "number": 102695,
+      "reason": "sanitized media filename truncation is a one-line media micro fragment without an active failing caller"
+    },
+    {
+      "number": 102696,
+      "reason": "public plugin SDK declaration text change is a compatibility-sensitive exported API surface"
+    },
+    {
+      "number": 102697,
+      "reason": "conversation-label truncation is dashboard UI and persisted session-title behavior"
+    },
+    {
+      "number": 102698,
+      "reason": "QA Matrix stdio patch rejects before process-group cleanup, omits stdin, has red OpenGrep, lacks a real incident, and overlaps maintainer draft 101253 that retires this runtime"
+    },
+    {
+      "number": 102699,
+      "reason": "exec approval timestamp schema changes gateway protocol and permission behavior"
     }
   ],
   "ignored": [
