@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102699,
-    "auditedAt": "2026-07-09T11:14:26Z",
-    "originMain": "7abf1c7f85a50e7bfa425b419d2793211fa8c3e8"
+    "openPrThrough": 102742,
+    "auditedAt": "2026-07-09T11:23:54Z",
+    "originMain": "2806195e11277b8cb270212f2b0c293ae18f2234"
   },
   "explicitSkips": [
     {
@@ -1348,6 +1348,38 @@
     {
       "number": 102693,
       "reason": "closed as already fixed on main with focused coverage by canonical UTF-16 diagnostic cleanup 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102702,
+      "reason": "closed because the G-prefix ambiguity patch did not fix the reported C-prefixed MPIM split and made routing disagree with Slack channel policy, mention, allowlist, and authorization classification"
+    },
+    {
+      "number": 102705,
+      "reason": "closed as superseded by the stronger Mattermost sanitizer repair landed in ac710748073016b50455a5fde0f79b581f729c62 from PR 102607"
+    },
+    {
+      "number": 102708,
+      "reason": "closed because it fabricated an AbortError-with-TimeoutError-cause shape, regressed real direct TimeoutError guidance, and claimed a caller-cancellation path that xAI does not wire"
+    },
+    {
+      "number": 102710,
+      "reason": "closed as already fixed on main by canonical UTF-16 diagnostic cleanup 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102711,
+      "reason": "closed as already fixed on main by canonical UTF-16 diagnostic cleanup 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102725,
+      "reason": "closed as already fixed on main with focused coverage by OpenAI image-generation repair 6c3a46fb4183c5ac36f7343403bcf8953e57b6db from PR 102611"
+    },
+    {
+      "number": 102731,
+      "reason": "closed because a global unserializable-value fallback would silently replace parser-facing CLI object and array output with a successful JSON string instead of exposing the producer contract bug"
+    },
+    {
+      "number": 102738,
+      "reason": "closed as a later duplicate of both TTS debug-log truncation sites already landed in canonical UTF-16 diagnostic cleanup 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
     }
   ],
   "rejected": [
@@ -2846,6 +2878,122 @@
     {
       "number": 102699,
       "reason": "exec approval timestamp schema changes gateway protocol and permission behavior"
+    },
+    {
+      "number": 102701,
+      "reason": "auth-list shortcut is feature work on an authentication surface"
+    },
+    {
+      "number": 102703,
+      "reason": "periodic usage-limit reset copy changes provider fallback and user-visible delivery semantics"
+    },
+    {
+      "number": 102707,
+      "reason": "Microsoft Foundry error-body truncation is a tiny provider-diagnostic fragment without an active failure reproduction"
+    },
+    {
+      "number": 102709,
+      "reason": "gateway hook console truncation is a one-site diagnostic fragment without material regression proof"
+    },
+    {
+      "number": 102712,
+      "reason": "clearing Slack room history changes session state and channel delivery behavior"
+    },
+    {
+      "number": 102713,
+      "reason": "memory-flush error truncation crosses agent memory and session behavior"
+    },
+    {
+      "number": 102714,
+      "reason": "maintainer-authored Gateway Host settings redesign is UI work"
+    },
+    {
+      "number": 102715,
+      "reason": "QA Lab web UI truncation is excluded UI work and exports a private helper only for direct tests"
+    },
+    {
+      "number": 102717,
+      "reason": "streaming text truncation changes channel delivery behavior in a one-line fragment"
+    },
+    {
+      "number": 102718,
+      "reason": "draft-compositor truncation changes message delivery behavior in a one-line fragment"
+    },
+    {
+      "number": 102719,
+      "reason": "Gmail setup output truncation is setup-flow micro-churn without a concrete user failure"
+    },
+    {
+      "number": 102720,
+      "reason": "security-scanner evidence truncation is security work"
+    },
+    {
+      "number": 102721,
+      "reason": "queue overflow summary truncation is a diagnostic-only micro fragment without an active failure reproduction"
+    },
+    {
+      "number": 102722,
+      "reason": "WhatsApp session error truncation crosses channel session behavior"
+    },
+    {
+      "number": 102723,
+      "reason": "Crestodian config output truncation is config-surface micro-churn"
+    },
+    {
+      "number": 102724,
+      "reason": "short-term memory promotion truncation changes memory and session behavior"
+    },
+    {
+      "number": 102726,
+      "reason": "agent-core harness output truncation is a one-site runtime micro fragment without a linked failure"
+    },
+    {
+      "number": 102727,
+      "reason": "Inworld TTS error-body truncation is a one-site provider-diagnostic fragment"
+    },
+    {
+      "number": 102728,
+      "reason": "LLM slug prompt truncation is model-visible session behavior and its second ASCII-only slug truncation change is redundant"
+    },
+    {
+      "number": 102729,
+      "reason": "agents CLI session-summary truncation crosses persisted session presentation in a one-line fragment"
+    },
+    {
+      "number": 102732,
+      "reason": "maintainer-authored Telegram command-denial QA work touches authorization behavior"
+    },
+    {
+      "number": 102733,
+      "reason": "maintainer-authored iOS notification management is mobile UI and permission work"
+    },
+    {
+      "number": 102734,
+      "reason": "quick-settings source truncation is Control UI work"
+    },
+    {
+      "number": 102735,
+      "reason": "event-log payload truncation is Control UI work"
+    },
+    {
+      "number": 102737,
+      "reason": "skill-workshop session-label truncation is Control UI and session presentation work"
+    },
+    {
+      "number": 102739,
+      "reason": "Microsoft Foundry connection-test error truncation is a one-site provider-diagnostic fragment"
+    },
+    {
+      "number": 102740,
+      "reason": "Microsoft Foundry CLI error-summary truncation is a one-site provider-diagnostic fragment"
+    },
+    {
+      "number": 102741,
+      "reason": "QA Matrix attachment-preview truncation is test-infrastructure micro-churn without material proof"
+    },
+    {
+      "number": 102742,
+      "reason": "QA Matrix reply-body preview truncation is test-infrastructure micro-churn without material proof"
     }
   ],
   "ignored": [
