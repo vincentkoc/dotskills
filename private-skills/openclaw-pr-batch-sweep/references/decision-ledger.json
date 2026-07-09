@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102793,
-    "auditedAt": "2026-07-09T12:21:26Z",
-    "originMain": "f786efddcd88445d6678124341a1c939d5a41bd8"
+    "openPrThrough": 102798,
+    "auditedAt": "2026-07-09T12:23:40Z",
+    "originMain": "05356790831678d9f28ea554b15e1505e71636e6"
   },
   "explicitSkips": [
     {
@@ -1461,6 +1461,18 @@
     {
       "number": 102788,
       "reason": "closed as a one-line QQBot sender-name substitution without active-path regression proof or sibling identity-contract validation"
+    },
+    {
+      "number": 102794,
+      "reason": "closed as a one-line untested Feishu reply-thread boolean fragment that needed consolidated text, card, and media request-shape coverage"
+    },
+    {
+      "number": 102796,
+      "reason": "closed as a three-line model-list UTF-16 fragment without active CLI rendering proof or a defined terminal cell-width contract"
+    },
+    {
+      "number": 102798,
+      "reason": "closed as a conflicting duplicate already fixed on main by PR 102477 and commit f0d4d4f2fccda02915cfa9d467e660f82ff9bb1d"
     }
   ],
   "rejected": [
@@ -3159,6 +3171,10 @@
     {
       "number": 102791,
       "reason": "recent maintainer-authored provider catalog, docs, script, and web UI feature work is outside the contributor batch"
+    },
+    {
+      "number": 102795,
+      "reason": "recent maintainer-authored QQBot MIME follow-up work is outside the contributor batch"
     }
   ],
   "ignored": [
