@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102266,
-    "auditedAt": "2026-07-08T17:37:27Z",
-    "originMain": "0d86f64e602e8c29b87787d823ce498e283ea225"
+    "openPrThrough": 102627,
+    "auditedAt": "2026-07-09T10:30:16Z",
+    "originMain": "6a6aba0d5aec1a89e87563e70d907a82fa7ca3a2"
   },
   "explicitSkips": [
     {
@@ -466,6 +466,10 @@
     {
       "number": 102036,
       "reason": "canonical Lobster schema-default routing repair landed as 8cb92636920b02306f9b50fa82fb4b1313a0237f with contributor credit after a maintainer repair preserved strict cross-mode validation; sanitized AWS Crabbox cbx_c92971815ef7 run_f48d59554de8 passed 52 focused tests, a real embedded run-approval-resume round trip, managed empty-state preservation, and full check:changed, fresh final AutoReview was clean, hosted CI 28920766065 completed with 63 successful checks and no failures, native review/prepare/merge gates passed, and issue 102011 closed"
+    },
+    {
+      "number": 102347,
+      "reason": "TTS local CLI child-stream lifecycle repair landed as follow-up 45d15aabf9e9b2ab89d33aeca3c650de984cd4d9 with contributor co-author credit after the stale contributor head was merged during review; the canonical close-owned settlement preserves valid OutputPath files across incidental stdout failures, rejects partial stdout fallback, retains stderr diagnostics, and keeps timeout SIGKILL escalation armed through process-error races; 14 focused tests, sanitized AWS Crabbox cbx_454662f30916 run_f1cf34c71dc4 with four real-child scenarios including real ffmpeg telephony, clean final AutoReview, and Testbox tbx_01kx36b8ds569h6tvx2mhcqxsd check:changed passed"
     }
   ],
   "handledMerged": [
@@ -1293,6 +1297,10 @@
     {
       "number": 102191,
       "reason": "closed as unrelated mechanical cleanup because the claimed missing return was only required by the PR's own new default branch and the remaining comment and logging edits had no reproduced user-visible bug"
+    },
+    {
+      "number": 102415,
+      "reason": "closed because NaN comparator results are equality under stable JavaScript sort, so the PR did not demonstrate nondeterminism; its raw-line tiebreak changed persisted trimming semantics, exported a helper only for tests, and targeted a trajectory JSONL path already being removed by the SQLite migration"
     }
   ],
   "rejected": [
@@ -2611,6 +2619,46 @@
     {
       "number": 102266,
       "reason": "four-line cross-owner security patch touches channel metadata and install policy, falls below the non-triviality gate, and lacks direct coverage for the install-policy output"
+    },
+    {
+      "number": 102294,
+      "reason": "persistent Markdown salvage sidecars violate SQLite-first runtime-state ownership and duplicate parser logic"
+    },
+    {
+      "number": 102329,
+      "reason": "four-line production micro-fix is mostly test expansion and does not clear the non-triviality gate"
+    },
+    {
+      "number": 102373,
+      "reason": "channel identity and delivery ordering semantics are explicitly outside the low-risk batch"
+    },
+    {
+      "number": 102379,
+      "reason": "channel identity and delivery ordering semantics are explicitly outside the low-risk batch"
+    },
+    {
+      "number": 102397,
+      "reason": "channel message ordering and delivery semantics are explicitly outside the low-risk batch"
+    },
+    {
+      "number": 102456,
+      "reason": "adds hidden model-facing file_path compatibility aliases across three tools, conflicting with the canonical no-hidden-compat contract"
+    },
+    {
+      "number": 102530,
+      "reason": "approval and permission behavior crosses an explicitly excluded security-sensitive boundary"
+    },
+    {
+      "number": 102537,
+      "reason": "provider behavior remains waiting on author evidence and lacks sufficient current-head proof"
+    },
+    {
+      "number": 102569,
+      "reason": "ACP replace-delta behavior changes session and delivery semantics, which are explicitly outside the batch"
+    },
+    {
+      "number": 102623,
+      "reason": "persisted cron catch-up state crosses migration, delivery, and availability policy boundaries"
     }
   ],
   "ignored": [
