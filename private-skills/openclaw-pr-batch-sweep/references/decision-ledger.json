@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
     "openPrThrough": 102805,
-    "auditedAt": "2026-07-09T12:37:38Z",
-    "originMain": "c8c1f37d2f45f887a979b40c661767baee3bbe75"
+    "auditedAt": "2026-07-09T13:11:17Z",
+    "originMain": "3fd52514e35f9200f35dfdcf7b388979fe7a3e9b"
   },
   "explicitSkips": [
     {
@@ -474,6 +474,10 @@
     {
       "number": 102753,
       "reason": "QQBot inbound MIME classification landed as a49567cdfdb4119bc85e2942ad34afb819acc34d with contributor credit after compare-only normalization fixed successful image delivery, failed-download URL fallback, and extensionless voice routing while preserving raw content types; sanitized AWS Crabbox cbx_26d6df347069 run_ad0d0ec62efb passed 47 focused tests on the exact contributor head, fresh AutoReview was clean, 58 hosted checks passed, and native review/prepare/merge gates completed"
+    },
+    {
+      "number": 102344,
+      "reason": "OpenAI chat-completions refusal rendering landed as 3fd52514e35f9200f35dfdcf7b388979fe7a3e9b with contributor credit after both the agent transport and registered packages/ai assembler gained delta and compatible message refusal parity; sanitized AWS Crabbox cbx_2851fc865f80 run_012f426e336b passed 343 focused tests and run_e55859b20472 passed check:changed, fresh AutoReview was clean, exact-head CI 28990102135 attempt 2 passed, native review/prepare/merge gates completed, and issue 102321 closed"
     }
   ],
   "handledMerged": [
@@ -1501,6 +1505,38 @@
     {
       "number": 102802,
       "reason": "closed as a two-line UI-visible identity UTF fragment that also changed the separate negative maxLength contract without caller proof"
+    },
+    {
+      "number": 102194,
+      "reason": "closed because the contributor branch had drifted to 812 files and +44,023/-6,780 across unrelated UI, provider, docs, and runtime surfaces instead of remaining a reviewable focused fix"
+    },
+    {
+      "number": 102215,
+      "reason": "closed as a six-production-line diagnostic logging micro-change with no linked failure, reproduction, or behavior proof"
+    },
+    {
+      "number": 101884,
+      "reason": "closed as already fixed on main by canonical PR 101896 and commit f2c6a0eda6f1e626f6b7fc7a6beb1be6ff02b22c"
+    },
+    {
+      "number": 101705,
+      "reason": "closed as a speculative 4096-entry config warning LRU that changed warn-once semantics without a measured production failure"
+    },
+    {
+      "number": 101747,
+      "reason": "closed as a six-line Google Chat config warning-cache cap without evidence of unbounded production growth or a linked failure"
+    },
+    {
+      "number": 101749,
+      "reason": "closed as a three-line Telegram warning-cache cap whose synthetic test did not observe the production warning behavior"
+    },
+    {
+      "number": 102058,
+      "reason": "closed as the weaker duplicate of PR 102063 for issue 102014; it carried seven iterative commits and added an unnecessary undocumented session.cleanup_completed exported event on top of the same post-cleanup session.ended move"
+    },
+    {
+      "number": 102342,
+      "reason": "closed as the narrower duplicate superseded by PR 102344 and commit 3fd52514e35f9200f35dfdcf7b388979fe7a3e9b, which covers both the agent and registered packages/ai chat-completions assemblers"
     }
   ],
   "rejected": [
