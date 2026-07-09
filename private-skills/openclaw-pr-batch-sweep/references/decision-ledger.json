@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102742,
-    "auditedAt": "2026-07-09T11:23:54Z",
-    "originMain": "2806195e11277b8cb270212f2b0c293ae18f2234"
+    "openPrThrough": 102747,
+    "auditedAt": "2026-07-09T11:48:47Z",
+    "originMain": "7222e3e1ea17d11488adc4e1251b4c04c6aa1d0d"
   },
   "explicitSkips": [
     {
@@ -570,7 +570,8 @@
     100793,
     102660,
     102661,
-    102663
+    102663,
+    102582
   ],
   "closed": [
     {
@@ -1380,6 +1381,18 @@
     {
       "number": 102738,
       "reason": "closed as a later duplicate of both TTS debug-log truncation sites already landed in canonical UTF-16 diagnostic cleanup 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102744,
+      "reason": "closed because it bundled two untested UTF-16 micro-substitutions; the input-file half overlaps stronger PR 102634 and the embedding diagnostic half lacked active-path proof"
+    },
+    {
+      "number": 102746,
+      "reason": "closed as a stale conflicting duplicate after canonical browser guidance fix 102582 landed in 981d67a703513dddc5ae2769563ec37987f43644"
+    },
+    {
+      "number": 102747,
+      "reason": "closed because SHA-256 hex and generated session identifiers are ASCII by contract, leaving no credible UTF-16 production bug"
     }
   ],
   "rejected": [
@@ -2994,6 +3007,14 @@
     {
       "number": 102742,
       "reason": "QA Matrix reply-body preview truncation is test-infrastructure micro-churn without material proof"
+    },
+    {
+      "number": 102743,
+      "reason": "recent maintainer-authored task-suggestion surface work is UI/product behavior outside the contributor batch"
+    },
+    {
+      "number": 102745,
+      "reason": "recent maintainer-authored Control UI lifecycle refactor is UI work outside the contributor batch"
     }
   ],
   "ignored": [
