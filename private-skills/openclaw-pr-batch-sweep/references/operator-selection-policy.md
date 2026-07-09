@@ -137,6 +137,8 @@ Representative rejects:
 - #100853: mechanically equivalent cron loop deletion was cleanup-only, with no linked bug, failing-before behavior, or user-visible outcome.
 - #102752: a routing patch was rejected because every added test already passed on main, the reported Slack MPIM session split remained unchanged, and the diff added an unrelated network lookup.
 - #102765: an arbitrary diagnostic-cache cap was rejected because it lacked a measured growth failure, degraded deduplication after the cap, and its regression test did not observe the changed behavior.
+- #102769: a successful provider payload must not use a diagnostic preview reader that silently returns partial data at an unsupported cap; stream the complete format or fail explicitly at a contract-derived boundary.
+- #102782: generic helper signatures do not establish a product bug when every active caller has a stronger object-only contract; synthetic primitive tests are not active-path proof.
 
 Historical one-line exceptions such as #95019 and #96801 required unusually strong package/runtime contract proof. They are not eligible for a default batch and are not precedent for future selection; the operator must name any such exception explicitly in the current request.
 

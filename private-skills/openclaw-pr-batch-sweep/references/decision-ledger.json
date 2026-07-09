@@ -1,7 +1,7 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102765,
-    "auditedAt": "2026-07-09T12:06:14Z",
+    "openPrThrough": 102786,
+    "auditedAt": "2026-07-09T12:13:09Z",
     "originMain": "f786efddcd88445d6678124341a1c939d5a41bd8"
   },
   "explicitSkips": [
@@ -1417,6 +1417,38 @@
     {
       "number": 102765,
       "reason": "closed because an arbitrary 500-entry diagnostic dedupe cap degraded post-cap logging, lacked a real growth failure, and shipped a test that passed without the production change"
+    },
+    {
+      "number": 102767,
+      "reason": "closed as a one-line untested memory-lancedb UTF-16 truncation fragment that belongs in the wider canonical cleanup"
+    },
+    {
+      "number": 102768,
+      "reason": "closed because it added observability without fixing the linked P1 Telegram block-streaming tail-loss behavior or proving the delivery race"
+    },
+    {
+      "number": 102769,
+      "reason": "closed because a diagnostic preview reader silently truncated successful Gemini batch JSONL at an unsupported 64 MiB cap, risking partial or missing embedding results"
+    },
+    {
+      "number": 102770,
+      "reason": "closed as an untested six-line cross-owner UTF-16 bundle whose stream-normalizer half fixed only the prefix edge and left suffix slicing unsafe"
+    },
+    {
+      "number": 102774,
+      "reason": "closed as a later subset of PR 102770; the embedding half also overlapped prior PR 102744"
+    },
+    {
+      "number": 102775,
+      "reason": "closed as a later subset of PR 102770 with the same incomplete stream-normalizer boundary repair"
+    },
+    {
+      "number": 102782,
+      "reason": "closed because active callers queue non-null FollowupRun objects, so falsy primitive and NaN tests exercised only an unconstrained generic signature and Object.is weakened reference-identity semantics without fixing a runtime path"
+    },
+    {
+      "number": 102785,
+      "reason": "closed as an exact stable-patch duplicate of earlier PR 102782"
     }
   ],
   "rejected": [
@@ -3059,12 +3091,44 @@
     {
       "number": 102764,
       "reason": "recent maintainer-authored Android test work is outside the contributor batch"
+    },
+    {
+      "number": 102766,
+      "reason": "recent maintainer-authored webchat UI feature work is outside the contributor batch"
+    },
+    {
+      "number": 102777,
+      "reason": "recent maintainer-authored release-contract test work is outside the contributor batch"
+    },
+    {
+      "number": 102780,
+      "reason": "maintainer-authored legacy state migration work crosses persistent-state, startup, doctor, and Codex migration contracts"
+    },
+    {
+      "number": 102781,
+      "reason": "recent maintainer-authored Control UI reconnect behavior is outside the contributor batch"
+    },
+    {
+      "number": 102783,
+      "reason": "recent maintainer-authored native external-link UI contract work is outside the contributor batch"
+    },
+    {
+      "number": 102784,
+      "reason": "recent maintainer-authored provider-plan usage UI feature work is outside the contributor batch"
+    },
+    {
+      "number": 102786,
+      "reason": "recent maintainer-authored voice-control UI work is outside the contributor batch"
     }
   ],
   "ignored": [
     {
       "number": 92147,
       "reason": "draft and conflicting Codex Responses system-prompt PR adds generic config, model-catalog, provider-routing, and public API surfaces"
+    },
+    {
+      "number": 102776,
+      "reason": "draft maintainer-authored macOS computer-use node feature"
     }
   ]
 }
