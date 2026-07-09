@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102798,
-    "auditedAt": "2026-07-09T12:23:40Z",
-    "originMain": "05356790831678d9f28ea554b15e1505e71636e6"
+    "openPrThrough": 102802,
+    "auditedAt": "2026-07-09T12:35:48Z",
+    "originMain": "c8c1f37d2f45f887a979b40c661767baee3bbe75"
   },
   "explicitSkips": [
     {
@@ -1473,6 +1473,34 @@
     {
       "number": 102798,
       "reason": "closed as a conflicting duplicate already fixed on main by PR 102477 and commit f0d4d4f2fccda02915cfa9d467e660f82ff9bb1d"
+    },
+    {
+      "number": 102520,
+      "reason": "closed because the branch had drifted to 936 files and +50,477/-9,032 across UI, apps, workflows, and runtime surfaces instead of remaining a focused clampTtl change"
+    },
+    {
+      "number": 102533,
+      "reason": "closed because the normal scheduler removes zero-interval agents before runHeartbeatOnce, making the warning unreachable for scheduled heartbeats while documented 0m intentionally disables them"
+    },
+    {
+      "number": 102595,
+      "reason": "closed as an exact same-surface duplicate of earlier canonical PR 102292, which includes stronger second-restart and stale-marker coverage"
+    },
+    {
+      "number": 102667,
+      "reason": "closed as a two-line diagnostic-only UTF truncation substitution without linked runtime failure or active-path regression proof"
+    },
+    {
+      "number": 102799,
+      "reason": "closed because it added speculative silent PassThrough error listeners after PR 99803 already handled concrete child stderr failures through transport.onerror, with no active production reproduction"
+    },
+    {
+      "number": 102801,
+      "reason": "closed because it weakened explicit binary-provider thinking policy without reproducing issue 102779; the likely owner bug is optional Gateway catalog availability or keying across session metadata and sessions.patch"
+    },
+    {
+      "number": 102802,
+      "reason": "closed as a two-line UI-visible identity UTF fragment that also changed the separate negative maxLength contract without caller proof"
     }
   ],
   "rejected": [
@@ -3175,6 +3203,30 @@
     {
       "number": 102795,
       "reason": "recent maintainer-authored QQBot MIME follow-up work is outside the contributor batch"
+    },
+    {
+      "number": 102417,
+      "reason": "maintainer-assigned voice-call optional chaining only defends an impossible post-schema config state constructed with a cast, and is below the production-size floor"
+    },
+    {
+      "number": 102434,
+      "reason": "valid-looking WeCom plugin pin and checksum update remains dependency/version work outside the low-risk contributor batch"
+    },
+    {
+      "number": 102462,
+      "reason": "valid-looking Slack reply metadata repair changes message delivery and session threading semantics and is already maintainer-assigned"
+    },
+    {
+      "number": 102619,
+      "reason": "cron session-retention zero handling changes config compatibility and data-retention behavior on a dirty mixed-purpose branch"
+    },
+    {
+      "number": 102626,
+      "reason": "maintainer-touched iMessage UTF micro-fix is outside the contributor batch and currently crosses the plugin dependency boundary instead of using the SDK facade"
+    },
+    {
+      "number": 102627,
+      "reason": "maintainer-touched Crestodian prompt-history UTF micro-fix is an isolated production substitution with overlapping direct-helper tests"
     }
   ],
   "ignored": [
