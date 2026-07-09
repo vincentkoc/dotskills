@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
     "openPrThrough": 102699,
-    "auditedAt": "2026-07-09T11:13:18Z",
-    "originMain": "65b2e7a4e337e7f1ea483ff0b617ccda9b95cb13"
+    "auditedAt": "2026-07-09T11:14:26Z",
+    "originMain": "7abf1c7f85a50e7bfa425b419d2793211fa8c3e8"
   },
   "explicitSkips": [
     {
@@ -567,7 +567,10 @@
     101230,
     101402,
     101415,
-    100793
+    100793,
+    102660,
+    102661,
+    102663
   ],
   "closed": [
     {
@@ -1325,6 +1328,10 @@
     {
       "number": 102646,
       "reason": "gateway startup-failure reason and completeBoot regression landed with contributor credit in canonical commit 0ac8933721f7e47ad679b06c894f4cbdb55b3d14"
+    },
+    {
+      "number": 102651,
+      "reason": "recent maintainer-authored Telegram streaming feature closed externally and remains outside the contributor bugfix batch"
     },
     {
       "number": 102679,
@@ -2737,10 +2744,6 @@
       "reason": "Feishu card image embedding is feature work, not a bounded bug fix"
     },
     {
-      "number": 102651,
-      "reason": "recent maintainer-authored Telegram streaming feature is outside the contributor bugfix batch"
-    },
-    {
       "number": 102656,
       "reason": "one-site QA Matrix artifact truncation fragment leaves many sibling owner paths unchanged and lacks regression proof"
     },
@@ -2757,20 +2760,8 @@
       "reason": "arbitrary template-warning cache cap lacks a measured resource failure and owner-defined eviction contract"
     },
     {
-      "number": 102660,
-      "reason": "recent maintainer-authored Control UI test work is explicitly excluded"
-    },
-    {
-      "number": 102661,
-      "reason": "recent maintainer-authored iOS approval and capability behavior crosses UI and permission boundaries"
-    },
-    {
       "number": 102662,
       "reason": "fallback-state duplicate crosses persisted user-visible session behavior and its proposed trailing-surrogate assertion passes before the fix because the ellipsis follows the broken surrogate"
-    },
-    {
-      "number": 102663,
-      "reason": "recent maintainer-authored macOS Settings UI layout change is explicitly excluded"
     },
     {
       "number": 102668,
