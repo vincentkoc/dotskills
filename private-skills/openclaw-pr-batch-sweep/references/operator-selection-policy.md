@@ -116,6 +116,7 @@ Representative accepted work:
 - #98994: LINE text-boundary repair accepted only after checking each field's counting unit, keeping ordinary fields UTF-16-safe, preserving the existing flex cap, and switching rich-menu fields to LINE's documented grapheme-cluster semantics.
 - #101589: all-agent usage-cache fan-out qualified only after direct callee inspection corrected the unsupported SQLite explanation, one shared sibling concurrency policy replaced competing limits, a deterministic 13-agent regression proved the cap and complete aggregation, and weaker duplicates #101578/#101581 were closed after landing.
 - #101795: exact frontmatter delimiter handling qualified as a linked data-preservation bug only after the canonical branch replaced copied scanners across active agent session/prompt, workspace/dev template, bundle-command, skill, hook, and workshop paths; wrapper-only tests were replaced with active metadata and body-preservation regressions, and overlapping #101797/#101803 were credited and closed after landing.
+- #102753: plugin-local MIME classification qualified because one compare-only normalization fixed three active inbound decisions, preserved raw values, matched the RFC contract, included positive and negative active-path tests, and changed no config, routing, authorization, or public API surface.
 
 Representative rejects:
 
@@ -134,6 +135,8 @@ Representative rejects:
 - #101249: clean Feishu list pagination was still a partial duplicate without required live tenant proof; the canonical repair also needs bounded `info` pagination and skill guidance.
 - #99524: a likely sound fresh-tool-result recovery fix still changed model-visible session-history priority and carried the exact session-state merge-risk label.
 - #100853: mechanically equivalent cron loop deletion was cleanup-only, with no linked bug, failing-before behavior, or user-visible outcome.
+- #102752: a routing patch was rejected because every added test already passed on main, the reported Slack MPIM session split remained unchanged, and the diff added an unrelated network lookup.
+- #102765: an arbitrary diagnostic-cache cap was rejected because it lacked a measured growth failure, degraded deduplication after the cap, and its regression test did not observe the changed behavior.
 
 Historical one-line exceptions such as #95019 and #96801 required unusually strong package/runtime contract proof. They are not eligible for a default batch and are not precedent for future selection; the operator must name any such exception explicitly in the current request.
 

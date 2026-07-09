@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102747,
-    "auditedAt": "2026-07-09T11:48:47Z",
-    "originMain": "7222e3e1ea17d11488adc4e1251b4c04c6aa1d0d"
+    "openPrThrough": 102765,
+    "auditedAt": "2026-07-09T12:06:14Z",
+    "originMain": "f786efddcd88445d6678124341a1c939d5a41bd8"
   },
   "explicitSkips": [
     {
@@ -470,6 +470,10 @@
     {
       "number": 102347,
       "reason": "TTS local CLI child-stream lifecycle repair landed as follow-up 45d15aabf9e9b2ab89d33aeca3c650de984cd4d9 with contributor co-author credit after the stale contributor head was merged during review; the canonical close-owned settlement preserves valid OutputPath files across incidental stdout failures, rejects partial stdout fallback, retains stderr diagnostics, and keeps timeout SIGKILL escalation armed through process-error races; 14 focused tests, sanitized AWS Crabbox cbx_454662f30916 run_f1cf34c71dc4 with four real-child scenarios including real ffmpeg telephony, clean final AutoReview, and Testbox tbx_01kx36b8ds569h6tvx2mhcqxsd check:changed passed"
+    },
+    {
+      "number": 102753,
+      "reason": "QQBot inbound MIME classification landed as a49567cdfdb4119bc85e2942ad34afb819acc34d with contributor credit after compare-only normalization fixed successful image delivery, failed-download URL fallback, and extensionless voice routing while preserving raw content types; sanitized AWS Crabbox cbx_26d6df347069 run_ad0d0ec62efb passed 47 focused tests on the exact contributor head, fresh AutoReview was clean, 58 hosted checks passed, and native review/prepare/merge gates completed"
     }
   ],
   "handledMerged": [
@@ -1393,6 +1397,26 @@
     {
       "number": 102747,
       "reason": "closed because SHA-256 hex and generated session identifiers are ASCII by contract, leaving no credible UTF-16 production bug"
+    },
+    {
+      "number": 102752,
+      "reason": "closed because all added tests already passed on main, the patch left the reported C-prefixed Slack MPIM session split unchanged, and it introduced an unrelated channel-info lookup for missing-type D-prefixed DMs"
+    },
+    {
+      "number": 102761,
+      "reason": "closed as an untested two-line memory-wiki UTF-16 truncation fragment with failing CI that belongs in the wider canonical cleanup"
+    },
+    {
+      "number": 102762,
+      "reason": "closed as a three-line diagnostic UTF-16 fragment whose UUID branch was ASCII-only churn and whose arbitrary request-ID edge belongs in the wider canonical cleanup with active-path coverage"
+    },
+    {
+      "number": 102763,
+      "reason": "closed as an exact-head duplicate of PR 102761; both pointed to dc9c908cb6199c1ca4c9f005851299175bc66fa2 authored and committed by lzyyzznl"
+    },
+    {
+      "number": 102765,
+      "reason": "closed because an arbitrary 500-entry diagnostic dedupe cap degraded post-cap logging, lacked a real growth failure, and shipped a test that passed without the production change"
     }
   ],
   "rejected": [
@@ -3015,6 +3039,26 @@
     {
       "number": 102745,
       "reason": "recent maintainer-authored Control UI lifecycle refactor is UI work outside the contributor batch"
+    },
+    {
+      "number": 102748,
+      "reason": "recent maintainer-authored Control UI work is outside the contributor batch"
+    },
+    {
+      "number": 102758,
+      "reason": "recent maintainer-authored Android test work is outside the contributor batch"
+    },
+    {
+      "number": 102759,
+      "reason": "recent maintainer-authored release work is outside the contributor batch"
+    },
+    {
+      "number": 102760,
+      "reason": "recent maintainer-authored Control UI work is outside the contributor batch"
+    },
+    {
+      "number": 102764,
+      "reason": "recent maintainer-authored Android test work is outside the contributor batch"
     }
   ],
   "ignored": [
