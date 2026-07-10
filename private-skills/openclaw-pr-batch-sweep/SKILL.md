@@ -4,7 +4,7 @@ description: Select, review, repair, validate, and land batches of up to 20 low-
 license: MIT
 metadata:
   internal: true
-  version: "0.2.6"
+  version: "0.2.7"
   spec: agentskills-v1
 ---
 
@@ -96,6 +96,7 @@ Compose the repository skills instead of duplicating them:
    - For shared parser bugs, search every runtime prefix scanner and active loader before choosing the canonical branch. Wrapper-only tests are insufficient: prove at least one active metadata path and one body-preservation path, then delete copied scanners when the shared owner can express the contract.
    - When one contributor opens related micro-fixes for sibling owners, prefer one focused contributor PR using an existing shared helper. Keep policy constants private unless callers need a public contract, preserve credit, and close the fragments after the combined PR lands.
    - Reject the PR if the clean fix becomes a product, security, migration, SDK, config, or broad architecture decision.
+   - If autoreview or dependency inspection reveals that a selected low-risk fix requires terminal sanitization, trust-boundary hardening, permission changes, or a wider security sweep, stop the implementation lane and reclassify the PR out of the batch. Do not expand through adjacent untrusted fields merely to make autoreview quiet. If another maintainer later finishes it, record it as `handledMerged`, not a future selection precedent.
    - Run all contributor-head code execution in Testbox/Crabbox. Use local repository wrappers only for coordinator-reviewed, maintainer-owned reconstructions that cannot invoke contributor-controlled setup or hooks.
 
 7. Review and land serially.

@@ -19,6 +19,7 @@ Reject before assigning an implementation lane:
 - Dirty branches, unrelated churn, duplicated implementations, fixed-on-main work, or a weaker duplicate of an existing canonical PR.
 - Bundled "fix N bugs" PRs that cross independent lifecycle, channel, or owner paths.
 - PRs whose real proof requires unavailable credentials or an unbounded live environment.
+- PRs that begin as formatting or Unicode correctness but require terminal-control sanitization, untrusted-input auditing, or adjacent trust-boundary cleanup once reviewed.
 
 ## Reject Trivial And Odd Changes
 
@@ -147,6 +148,8 @@ Historical one-line exceptions such as #95019 and #96801 required unusually stro
 #101219 was completed after already entering an active batch, but its three-line diagnostic wording change is not future selection precedent. Passing hundreds of adjacent assertions does not make a copy-only micro-change worth a fresh maintainer review cycle.
 
 The durable ledger separates `landed` selection precedents from `handledMerged` PRs that were observed or completed during prior sweeps. The latter are terminal exclusions, not evidence that their shape should qualify again. This matters for externally merged micro, docs, test, or risky work such as #98496.
+
+#102819 is another non-precedent completion: the terminal-width symptom was real, but autoreview exposed ANSI/OSC sanitization implications and the final branch was completed by another maintainer with wider exact-head proof. Future Unicode/table candidates leave this batch as soon as they require security or trust-boundary expansion.
 
 The narrow lifecycle exception is #98720, not the weaker #98135. A timer/cleanup micro-fix may qualify only when a linked runtime bug has a concrete leak, hang, event-loop, or dangling-handle outcome; the production change is at least five lines; focused tests are substantial and fail without the fix; and live readiness evidence is strong. A one-file cleanup with screenshots or generic passing tests remains rejected.
 
