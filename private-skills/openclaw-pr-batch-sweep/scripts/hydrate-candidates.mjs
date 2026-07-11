@@ -50,18 +50,31 @@ const commandEnv = {
   GH_FORCE_TTY: "0",
 };
 
+const transientFailurePattern =
+  /(?:TLS handshake timeout|connection reset|connection refused|EOF|HTTP 5\d\d|server closed idle connection|temporary failure|timeout)/i;
+
 function runJson(commandArgs) {
-  const result = spawnSync(ghxBin, commandArgs, {
-    encoding: "utf8",
-    env: commandEnv,
-    maxBuffer: 20 * 1024 * 1024,
-  });
-  if (result.status !== 0) {
-    throw new Error(
-      `${ghxBin} ${commandArgs.join(" ")} failed: ${result.stderr.trim() || result.stdout.trim()}`,
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const result = spawnSync(ghxBin, commandArgs, {
+      encoding: "utf8",
+      env: commandEnv,
+      maxBuffer: 20 * 1024 * 1024,
+    });
+    if (result.status === 0) {
+      return JSON.parse(result.stdout);
+    }
+
+    const detail = result.stderr.trim() || result.stdout.trim();
+    if (attempt === 3 || !transientFailurePattern.test(detail)) {
+      throw new Error(`${ghxBin} ${commandArgs.join(" ")} failed: ${detail}`);
+    }
+    process.stderr.write(
+      `${ghxBin} ${commandArgs.join(" ")} transient failure; retry ${attempt + 1}/3\n`,
     );
+    sleep(sleepMs);
   }
-  return JSON.parse(result.stdout);
+
+  throw new Error("unreachable");
 }
 
 function sleep(durationMs) {

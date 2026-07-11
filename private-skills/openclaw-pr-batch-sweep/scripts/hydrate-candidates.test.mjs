@@ -110,3 +110,77 @@ if (args[0] === "api" && args[1] === "repos/openclaw/openclaw/pulls/42") {
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("retries transient ghx transport failures", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "openclaw-hydrate-retry-"));
+  const inputPath = path.join(directory, "ranked.json");
+  const fakeGhxPath = path.join(directory, "fake-ghx.mjs");
+  const countPath = path.join(directory, "count");
+
+  writeFileSync(inputPath, JSON.stringify([{ number: 43 }]));
+  writeFileSync(
+    fakeGhxPath,
+    `#!/usr/bin/env node
+import fs from "node:fs";
+const args = process.argv.slice(2);
+if (args[0] === "api" && args[1] === "repos/openclaw/openclaw/pulls/43") {
+  const count = Number(fs.existsSync(process.env.COUNT_FILE) ? fs.readFileSync(process.env.COUNT_FILE, "utf8") : "0") + 1;
+  fs.writeFileSync(process.env.COUNT_FILE, String(count));
+  if (count === 1) {
+    console.error('Get "https://api.github.com/repos/openclaw/openclaw/pulls/43": net/http: TLS handshake timeout');
+    process.exit(1);
+  }
+  console.log(JSON.stringify({
+    number: 43,
+    state: "open",
+    draft: false,
+    changed_files: 1,
+    mergeable: true,
+    mergeable_state: "clean"
+  }));
+} else if (args[0] === "api" && args[1].includes("/files?")) {
+  console.log(JSON.stringify([{ filename: "src/example.ts", additions: 4, deletions: 2 }]));
+} else if (args[0] === "pr" && args[1] === "view") {
+  console.log(JSON.stringify({
+    number: 43,
+    state: "OPEN",
+    isDraft: false,
+    url: "https://github.com/openclaw/openclaw/pull/43",
+    author: { login: "contributor" },
+    labels: [],
+    statusCheckRollup: [],
+    mergeStateStatus: "CLEAN",
+    headRefOid: "def456",
+    additions: 4,
+    deletions: 2,
+    changedFiles: 1
+  }));
+} else {
+  process.exitCode = 2;
+}
+`,
+  );
+  chmodSync(fakeGhxPath, 0o755);
+
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [scriptPath, "--input", inputPath, "--sleep-ms", "0"],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          GHX_BIN: fakeGhxPath,
+          COUNT_FILE: countPath,
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout)[0].number, 43);
+    assert.equal(readFileSync(countPath, "utf8"), "2");
+    assert.match(result.stderr, /transient failure; retry 2\/3/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
