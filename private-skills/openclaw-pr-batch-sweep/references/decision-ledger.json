@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 104034,
-    "auditedAt": "2026-07-11T02:27:39Z",
-    "originMain": "200e1df007749f3d19635297c1babeb565c9a720"
+    "openPrThrough": 104164,
+    "auditedAt": "2026-07-11T23:47:20Z",
+    "originMain": "fb08d3b631a769e7a8c3291a9f10910eb58f361a"
   },
   "explicitSkips": [
     {
@@ -486,6 +486,14 @@
     {
       "number": 103653,
       "reason": "Exa content-option cache partitioning landed as 200e1df007749f3d19635297c1babeb565c9a720 with contributor credit after the maintainer repair serialized the exact effective contents request object and added default-equivalence plus disabled-mode separation coverage; focused Testbox tbx_01kx7ddpsdbydtfwf00x39rh2v passed 35 tests, Testbox tbx_01kx7e54wy6gdr4c56nv21adwa passed check:changed, fresh AutoReview was clean, exact-head CI 29135983652 passed, and native review/prepare/merge gates completed"
+    },
+    {
+      "number": 104059,
+      "reason": "clawlog documented-default and missing-option-value repair landed as 1a1d7aa45e2939f86672f574515f95c0699d1581 with contributor credit; final Testbox tbx_01kx9r1fnzd69130ykrsd09kmr passed bash syntax and 10 focused tests, exposed only an unrelated current-main Docker E2E boundary lint failure in check:changed, fresh AutoReview was clean at 0.98, exact-head CI 29172443931 passed, native review/prepare/merge gates completed, and issue 104058 closed"
+    },
+    {
+      "number": 104065,
+      "reason": "Workboard active dependency-claim error precedence repair landed as b2cd0e428d82dd634d6643bdd36cb274529a5354 with contributor credit after reconstructing a contaminated 53-file head to the reviewed two-file patch; final Testbox tbx_01kx9r197jaf5wrmaqzgc9tegz passed 81 focused tests and check:changed, fresh AutoReview was clean at 0.94, exact-head CI 29172429993 passed, native review/prepare/merge gates completed through the guarded git fallback after GitHub's 45 MB GraphQL cap, and issue 104050 closed"
     }
   ],
   "handledMerged": [
@@ -590,7 +598,8 @@
     102582,
     102819,
     102382,
-    103727
+    103727,
+    104094
   ],
   "closed": [
     {
@@ -1616,6 +1625,14 @@
     {
       "number": 103226,
       "reason": "closed because the branch was dirty with unrelated proof code, used a malformed C1 CSI regression, and crossed into terminal-control sanitization requiring a deliberate sink-wide review"
+    },
+    {
+      "number": 104067,
+      "reason": "closed as a weaker duplicate of canonical Workboard fix 104065 and landed commit b2cd0e428d82dd634d6643bdd36cb274529a5354 because moving active-claim validation ahead of scheduled and retry-budget guards changes reachable error precedence"
+    },
+    {
+      "number": 104071,
+      "reason": "closed as a weaker duplicate of canonical Workboard fix 104065 and landed commit b2cd0e428d82dd634d6643bdd36cb274529a5354 because moving active-claim validation ahead of scheduled and retry-budget guards changes reachable error precedence"
     }
   ],
   "rejected": [
