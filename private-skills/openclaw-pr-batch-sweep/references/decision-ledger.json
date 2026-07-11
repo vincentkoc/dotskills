@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 103981,
-    "auditedAt": "2026-07-11T00:42:49Z",
-    "originMain": "6e0d590bd8b9e294c10ab602b757592038ab6043"
+    "openPrThrough": 104029,
+    "auditedAt": "2026-07-11T01:21:34Z",
+    "originMain": "790cd2aff2d41ced3fb2acef3a8d4591ae20d683"
   },
   "explicitSkips": [
     {
@@ -584,7 +584,9 @@
     102661,
     102663,
     102582,
-    102819
+    102819,
+    102382,
+    103727
   ],
   "closed": [
     {
@@ -1542,6 +1544,50 @@
     {
       "number": 102342,
       "reason": "closed as the narrower duplicate superseded by PR 102344 and commit 3fd52514e35f9200f35dfdcf7b388979fe7a3e9b, which covers both the agent and registered packages/ai chat-completions assemblers"
+    },
+    {
+      "number": 98351,
+      "reason": "closed as a conflicting grab bag across docs search, Claude MCP config, and OpenRouter streaming whose malformed-frame policy could silently return incomplete audio"
+    },
+    {
+      "number": 101368,
+      "reason": "closed as the partial duplicate of canonical PR 101453, which includes the same context-window correction plus the required Anthropic CLI catalog, alias, label, and migration surfaces"
+    },
+    {
+      "number": 101433,
+      "reason": "closed because the stale conflicting parser invents a contract-invalid refusal event shape, can attach refusal to the wrong parallel tool call, and still loses the message through the lifecycle wrapper"
+    },
+    {
+      "number": 102041,
+      "reason": "closed because it incorrectly labels every tool execution as an OpenTelemetry CLIENT span, including local reads, writes, and processes"
+    },
+    {
+      "number": 102220,
+      "reason": "closed as unreachable helper hardening because the Perplexity runtime already rejects impossible dates through normalizeToIsoDate before conversion"
+    },
+    {
+      "number": 103300,
+      "reason": "closed because the hand-written Feishu Markdown scanner absorbs closing delimiters into URL targets, fails lint, and lacks live send/edit proof"
+    },
+    {
+      "number": 103367,
+      "reason": "closed because its all-error Veo fallback can resubmit accepted paid jobs after ambiguous transport failures and duplicate work or billing"
+    },
+    {
+      "number": 103699,
+      "reason": "closed as diagnostic-only MCP warning suppression that copies a brittle handwritten ajv-formats registry into the validation compatibility boundary"
+    },
+    {
+      "number": 103714,
+      "reason": "closed as already fixed by PR 103115 and commit 910886814d91 with a stricter page-only target contract and stronger Chrome proof"
+    },
+    {
+      "number": 103874,
+      "reason": "closed because the Telegram branch never reaches the actual producer and both submitted tests pass without the production change"
+    },
+    {
+      "number": 103904,
+      "reason": "closed because the diagnostic-only patch mislabels and swallows host onAfterTurnCheckpoint callback failures as context-engine failures"
     }
   ],
   "rejected": [
@@ -1700,10 +1746,6 @@
     {
       "number": 98381,
       "reason": "speculative malformed dependency-output hardening"
-    },
-    {
-      "number": 98351,
-      "reason": "bundled unrelated changes and duplicate hunk"
     },
     {
       "number": 98372,
@@ -2484,10 +2526,6 @@
     {
       "number": 101004,
       "reason": "canonical Signal retry core remains outside the low-risk batch because it changes message-delivery ordering, carries 639 lines of duplicate tests, and lacks live Signal proof"
-    },
-    {
-      "number": 101433,
-      "reason": "OpenAI refusal parser fabricates an invalid function-call-adjacent event shape, lacks captured or live SSE proof, can misclassify interleaved refusals, and still loses the message through public lifecycle wrappers"
     },
     {
       "number": 101367,
@@ -3296,6 +3334,34 @@
     {
       "number": 103728,
       "reason": "memory provider bootstrap changes provider initialization and model-visible context selection without a narrow current-main failure proof"
+    },
+    {
+      "number": 102355,
+      "reason": "Claude CLI thinking effort and default changes are provider/session compatibility policy requiring dedicated owner and subscription-backed validation"
+    },
+    {
+      "number": 102974,
+      "reason": "valid Gemini batch JSONL streaming shape lacks a discriminating chunked-stream regression and measured or live RSS proof for the claimed memory improvement"
+    },
+    {
+      "number": 103398,
+      "reason": "XL plugin install and doctor dependency-repair work crosses dependency, install, startup, rollback, and persisted-record boundaries outside the low-risk batch"
+    },
+    {
+      "number": 103413,
+      "reason": "valid-looking Discord thread default inheritance changes channel delivery and persisted binding lifecycle without binding-path live proof"
+    },
+    {
+      "number": 103522,
+      "reason": "Google Meet departure repair changes browser ownership, request execution, persisted session identity, and tab-closing lifecycle and lacks real Meet proof"
+    },
+    {
+      "number": 103640,
+      "reason": "Discord narration draft deletion directly changes message-delivery state and recreation sequencing, which is outside the low-risk batch"
+    },
+    {
+      "number": 103731,
+      "reason": "empty document extractor scope fix has no demonstrated current production caller or externally wrong result and overlaps PR 103730"
     }
   ],
   "ignored": [
