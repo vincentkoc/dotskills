@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 102805,
-    "auditedAt": "2026-07-09T13:11:17Z",
-    "originMain": "3fd52514e35f9200f35dfdcf7b388979fe7a3e9b"
+    "openPrThrough": 103981,
+    "auditedAt": "2026-07-11T00:42:49Z",
+    "originMain": "6e0d590bd8b9e294c10ab602b757592038ab6043"
   },
   "explicitSkips": [
     {
@@ -478,6 +478,10 @@
     {
       "number": 102344,
       "reason": "OpenAI chat-completions refusal rendering landed as 3fd52514e35f9200f35dfdcf7b388979fe7a3e9b with contributor credit after both the agent transport and registered packages/ai assembler gained delta and compatible message refusal parity; sanitized AWS Crabbox cbx_2851fc865f80 run_012f426e336b passed 343 focused tests and run_e55859b20472 passed check:changed, fresh AutoReview was clean, exact-head CI 28990102135 attempt 2 passed, native review/prepare/merge gates completed, and issue 102321 closed"
+    },
+    {
+      "number": 103981,
+      "reason": "blank task and TaskFlow JSON filter normalization landed as 0e0597365730c40686c145ca1dc54597b06ba240 with contributor credit after replacing three copied helpers with normalizeOptionalString and adding route-first plus full-command proof; Blacksmith Testbox tbx_01kx78p4ebswr6z6mkagnrz0tv passed 64 focused tests, real CLI list/audit/flow JSON assertions, and check:changed, fresh AutoReview was clean, exact-head CI 29132717720 passed after removing a BOM from the required PR-body heading, and native review/prepare/merge gates completed"
     }
   ],
   "handledMerged": [
@@ -3272,6 +3276,26 @@
     {
       "number": 102805,
       "reason": "maintainer-owned XL Telegram Mini App feature crosses Control UI, Gateway auth and device bootstrap, Telegram identity validation, Tailscale publication, and public plugin SDK surfaces"
+    },
+    {
+      "number": 103425,
+      "reason": "synthetic negative truncation input has no supported caller, changes public plugin SDK semantics, and needs a shared head-and-tail contract rather than a one-sided two-line guard"
+    },
+    {
+      "number": 103496,
+      "reason": "two-line direct-execution validation is bypassed by other tool paths, misses the schema maximum, and is already maintainer-assigned without a linked user failure"
+    },
+    {
+      "number": 103566,
+      "reason": "QMD stdout parser remains incorrect at exact head, adds a large heuristic state machine and public SDK surface, and lacks a current native QMD reproduction"
+    },
+    {
+      "number": 103713,
+      "reason": "maintainer-assigned Canvas and A2UI JSONL work is a UI surface outside the contributor bug batch"
+    },
+    {
+      "number": 103728,
+      "reason": "memory provider bootstrap changes provider initialization and model-visible context selection without a narrow current-main failure proof"
     }
   ],
   "ignored": [
