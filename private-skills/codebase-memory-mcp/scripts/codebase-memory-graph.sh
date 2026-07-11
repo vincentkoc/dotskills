@@ -134,10 +134,11 @@ wait_for_ui() {
 
 cmd_keepalive() {
   need node
-  exec node <<'NODE'
+  CBM_UI_PORT="$port" exec node <<'NODE'
 const { spawn } = require("child_process");
 
-const child = spawn("codebase-memory-mcp", [], {
+const port = process.env.CBM_UI_PORT || "9749";
+const child = spawn("codebase-memory-mcp", ["--ui=true", `--port=${port}`], {
   stdio: ["pipe", "pipe", "pipe"],
 });
 
@@ -191,7 +192,7 @@ cmd_start_ui() {
   session="$(session_for_repo "$root")"
   script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
   if ! tmux has-session -t "$session" 2>/dev/null; then
-    tmux new-session -d -s "$session" "$script keepalive"
+    tmux new-session -d -s "$session" "$script keepalive --port '$port'"
   fi
   printf 'tmux_session=%s\n' "$session"
   wait_for_ui
