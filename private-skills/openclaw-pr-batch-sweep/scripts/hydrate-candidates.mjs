@@ -52,9 +52,10 @@ const commandEnv = {
 
 const transientFailurePattern =
   /(?:TLS handshake timeout|connection reset|connection refused|EOF|HTTP 5\d\d|server closed idle connection|temporary failure|timeout)/i;
+const maxTransientAttempts = 5;
 
 function runJson(commandArgs) {
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+  for (let attempt = 1; attempt <= maxTransientAttempts; attempt += 1) {
     const result = spawnSync(ghxBin, commandArgs, {
       encoding: "utf8",
       env: commandEnv,
@@ -65,13 +66,14 @@ function runJson(commandArgs) {
     }
 
     const detail = result.stderr.trim() || result.stdout.trim();
-    if (attempt === 3 || !transientFailurePattern.test(detail)) {
+    if (attempt === maxTransientAttempts || !transientFailurePattern.test(detail)) {
       throw new Error(`${ghxBin} ${commandArgs.join(" ")} failed: ${detail}`);
     }
+    const retryDelayMs = Math.min(sleepMs * attempt, 30_000);
     process.stderr.write(
-      `${ghxBin} ${commandArgs.join(" ")} transient failure; retry ${attempt + 1}/3\n`,
+      `${ghxBin} ${commandArgs.join(" ")} transient failure; retry ${attempt + 1}/${maxTransientAttempts} in ${retryDelayMs}ms\n`,
     );
-    sleep(sleepMs);
+    sleep(retryDelayMs);
   }
 
   throw new Error("unreachable");

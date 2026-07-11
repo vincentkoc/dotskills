@@ -126,8 +126,8 @@ const args = process.argv.slice(2);
 if (args[0] === "api" && args[1] === "repos/openclaw/openclaw/pulls/43") {
   const count = Number(fs.existsSync(process.env.COUNT_FILE) ? fs.readFileSync(process.env.COUNT_FILE, "utf8") : "0") + 1;
   fs.writeFileSync(process.env.COUNT_FILE, String(count));
-  if (count === 1) {
-    console.error('Get "https://api.github.com/repos/openclaw/openclaw/pulls/43": net/http: TLS handshake timeout');
+  if (count <= 3) {
+    console.error('Get "https://api.github.com/repos/openclaw/openclaw/pulls/43": unexpected EOF');
     process.exit(1);
   }
   console.log(JSON.stringify({
@@ -178,8 +178,8 @@ if (args[0] === "api" && args[1] === "repos/openclaw/openclaw/pulls/43") {
 
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(result.stdout)[0].number, 43);
-    assert.equal(readFileSync(countPath, "utf8"), "2");
-    assert.match(result.stderr, /transient failure; retry 2\/3/);
+    assert.equal(readFileSync(countPath, "utf8"), "4");
+    assert.match(result.stderr, /transient failure; retry 4\/5 in 0ms/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
