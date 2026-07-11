@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 104029,
-    "auditedAt": "2026-07-11T01:21:34Z",
-    "originMain": "790cd2aff2d41ced3fb2acef3a8d4591ae20d683"
+    "openPrThrough": 104034,
+    "auditedAt": "2026-07-11T02:27:39Z",
+    "originMain": "200e1df007749f3d19635297c1babeb565c9a720"
   },
   "explicitSkips": [
     {
@@ -482,6 +482,10 @@
     {
       "number": 103981,
       "reason": "blank task and TaskFlow JSON filter normalization landed as 0e0597365730c40686c145ca1dc54597b06ba240 with contributor credit after replacing three copied helpers with normalizeOptionalString and adding route-first plus full-command proof; Blacksmith Testbox tbx_01kx78p4ebswr6z6mkagnrz0tv passed 64 focused tests, real CLI list/audit/flow JSON assertions, and check:changed, fresh AutoReview was clean, exact-head CI 29132717720 passed after removing a BOM from the required PR-body heading, and native review/prepare/merge gates completed"
+    },
+    {
+      "number": 103653,
+      "reason": "Exa content-option cache partitioning landed as 200e1df007749f3d19635297c1babeb565c9a720 with contributor credit after the maintainer repair serialized the exact effective contents request object and added default-equivalence plus disabled-mode separation coverage; focused Testbox tbx_01kx7ddpsdbydtfwf00x39rh2v passed 35 tests, Testbox tbx_01kx7e54wy6gdr4c56nv21adwa passed check:changed, fresh AutoReview was clean, exact-head CI 29135983652 passed, and native review/prepare/merge gates completed"
     }
   ],
   "handledMerged": [
@@ -1588,6 +1592,30 @@
     {
       "number": 103904,
       "reason": "closed because the diagnostic-only patch mislabels and swallows host onAfterTurnCheckpoint callback failures as context-engine failures"
+    },
+    {
+      "number": 104022,
+      "reason": "closed because the submitted builder shape cannot represent the claimed runtime path and misses the actual owner boundary"
+    },
+    {
+      "number": 103746,
+      "reason": "closed as test-only coverage for behavior already present on current main"
+    },
+    {
+      "number": 101547,
+      "reason": "closed because the replay sanitizer handles invalid pairing and signed-thinking repair, so budget-specific marker wording states the wrong cause and belongs in the existing truncation owner instead"
+    },
+    {
+      "number": 100751,
+      "reason": "closed as a one-line behavior-preserving Object.hasOwn cleanup whose worker test proves equivalence rather than a current user-visible bug"
+    },
+    {
+      "number": 103503,
+      "reason": "closed as a three-line Windows cmd quoting change without real child-argv proof for the nested cmd.exe /d /s /c behavior"
+    },
+    {
+      "number": 103226,
+      "reason": "closed because the branch was dirty with unrelated proof code, used a malformed C1 CSI regression, and crossed into terminal-control sanitization requiring a deliberate sink-wide review"
     }
   ],
   "rejected": [
@@ -3362,6 +3390,58 @@
     {
       "number": 103731,
       "reason": "empty document extractor scope fix has no demonstrated current production caller or externally wrong result and overlaps PR 103730"
+    },
+    {
+      "number": 104034,
+      "reason": "session-state behavior is explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 103852,
+      "reason": "authentication behavior is explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 103829,
+      "reason": "authentication and provider failover behavior are explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 103820,
+      "reason": "session recovery semantics are explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 103791,
+      "reason": "provider compatibility shim work is explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 103726,
+      "reason": "credential and authentication behavior are explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 103692,
+      "reason": "message-delivery semantics are explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 103688,
+      "reason": "broad lifecycle and cache changes exceed the low-risk batch blast-radius limit"
+    },
+    {
+      "number": 103642,
+      "reason": "dangerous control-surface changes are explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 103492,
+      "reason": "config and security-boundary behavior are explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 98123,
+      "reason": "weaker duplicate in the Z.AI endpoint-detection cluster; the whole cluster remains outside the batch without live provider proof"
+    },
+    {
+      "number": 98259,
+      "reason": "provider default and compatibility behavior are explicitly outside the low-risk contributor batch"
+    },
+    {
+      "number": 98449,
+      "reason": "tiny Z.AI onboarding header patch is hard-excluded provider/auth work, lacks live external API proof, and remains one of four competing duplicates"
     }
   ],
   "ignored": [
