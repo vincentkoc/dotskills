@@ -109,6 +109,9 @@ Compose the repository skills instead of duplicating them:
    - A Testbox warmed from `main` does not automatically carry a contributor PR's commit ancestry. For contributor-head gates, fetch and force-checkout `pull/<PR>/head` inside the box, then overlay only the reviewed maintainer repair files. Do not restore sparse omissions from current `main` onto a stale PR head; that can create lockfile and typecheck mismatches unrelated to the PR.
    - Squash contributor PRs unless the operator says otherwise.
    - The coordinator serializes GitHub comments, closes, pushes, and merges to avoid duplicated actions.
+   - Clean up as each PR reaches a terminal state. After verifying the merge/close and stopping current-task Testbox/Crabbox leases, confirm no live process or operation lock owns the PR worktree, then remove it with `gwt`. Do not retain worktrees for ledger bookkeeping.
+   - Remove blocked or carried worktrees too unless the next action is actively continuing in the current run. Recreate them later from the remote PR head instead of accumulating stale local state.
+   - Never remove a worktree owned by another process, tmux pane, Codex session, or agent. Inspect live process cwd/locks first; if ownership is unclear, leave it and report the path.
 
 8. Close the batch with a ledger.
    - Record each PR as `landed`, `closed`, `rejected`, `blocked`, or `carried`.
@@ -116,6 +119,7 @@ Compose the repository skills instead of duplicating them:
    - After exhausting a live edge, update `auditWatermark` with the highest authoritatively inspected open PR, UTC timestamp, and `origin/main` SHA.
    - Include exact merge SHA, replacement/canonical PR, proof commands or run IDs, and cleanup links.
    - Carry only concrete unresolved work into the next batch.
+   - Verify every worktree created by the batch is removed or explicitly listed as still active with its owner and next action.
    - Start the next `next 20` after refreshing the handled set and live queue.
 
 ## Inputs

@@ -97,6 +97,9 @@ GitHub mutations performed:
 - On `EMFILE`, `Too many open files`, or equivalent process-launch failure, stop spawning workers and parallel shells immediately. Let retained lanes finish, then continue with one coordinator shell call at a time.
 - Keep qualification read-only.
 - Serialize comments, branch pushes, closes, and merges.
+- After each merge, close, or other terminal decision, stop current-task remote leases and remove that PR's `gwt` worktree once no live process or operation lock owns it. Do not keep terminal worktrees until batch closeout.
+- Remove carried/blocked worktrees unless work is actively continuing in the current run; recreate from the remote PR head when resumed.
+- Never remove a worktree owned by another process, tmux pane, Codex session, or agent. If ownership is unclear, leave it in place and report it.
 - For editable-fork sync, use `${OPENCLAW_ROOT}/scripts/pr prepare-sync-head`. A GraphQL payload-limit fallback may set `OPENCLAW_PR_PUSH_MODE=git OPENCLAW_ALLOW_UNSIGNED_GIT_PUSH=1`; never replace the wrapper with a raw push.
 - When a Testbox starts from `main`, reconstruct the exact contributor head with `pull/<PR>/head` before gates and overlay only reviewed maintainer repair files. Never fill sparse omissions from a newer `main` tree onto the contributor head.
 - Recheck live state immediately before every mutation.
