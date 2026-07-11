@@ -76,6 +76,13 @@ function checkRun(overrides) {
   };
 }
 
+test("rejects explicitly incomplete hydration even when stale fields look complete", () => {
+  const output = runHydrated(hydratedPr({ hydrationComplete: false }));
+
+  assert.equal(output.selected.length, 0);
+  assert.deepEqual(output.rejected[0].reasons, ["incomplete hydration"]);
+});
+
 test("rejects an unresolved REST merge state even when mergeable is true", () => {
   const output = runHydrated(hydratedPr({ mergeable_state: "unknown" }));
 

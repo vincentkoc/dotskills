@@ -66,8 +66,14 @@ function runJson(commandArgs) {
     }
 
     const detail = result.stderr.trim() || result.stdout.trim();
-    if (attempt === maxTransientAttempts || !transientFailurePattern.test(detail)) {
+    const transient = transientFailurePattern.test(detail);
+    if (!transient) {
       throw new Error(`${ghxBin} ${commandArgs.join(" ")} failed: ${detail}`);
+    }
+    if (attempt === maxTransientAttempts) {
+      const error = new Error(`${ghxBin} ${commandArgs.join(" ")} failed: ${detail}`);
+      error.transient = true;
+      throw error;
     }
     const retryDelayMs = Math.min(sleepMs * attempt, 30_000);
     process.stderr.write(
@@ -167,7 +173,19 @@ const hydrated = [];
 
 for (const [index, candidate] of candidates.entries()) {
   process.stderr.write(`[${index + 1}/${candidates.length}] hydrate #${candidate.number}\n`);
-  hydrated.push(hydrate(candidate));
+  try {
+    hydrated.push(hydrate(candidate));
+  } catch (error) {
+    if (!error?.transient) throw error;
+    process.stderr.write(
+      `hydrate #${candidate.number} remained unavailable after transient retries; marking incomplete and continuing\n`,
+    );
+    hydrated.push({
+      ...candidate,
+      hydrationComplete: false,
+      hydrationError: error.message,
+    });
+  }
 }
 
 const output = `${JSON.stringify(hydrated, null, 2)}\n`;

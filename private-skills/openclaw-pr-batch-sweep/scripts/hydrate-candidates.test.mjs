@@ -117,7 +117,7 @@ test("retries transient ghx transport failures", () => {
   const fakeGhxPath = path.join(directory, "fake-ghx.mjs");
   const countPath = path.join(directory, "count");
 
-  writeFileSync(inputPath, JSON.stringify([{ number: 43 }]));
+  writeFileSync(inputPath, JSON.stringify([{ number: 43 }, { number: 44 }, { number: 45 }]));
   writeFileSync(
     fakeGhxPath,
     `#!/usr/bin/env node
@@ -138,14 +138,27 @@ if (args[0] === "api" && args[1] === "repos/openclaw/openclaw/pulls/43") {
     mergeable: true,
     mergeable_state: "clean"
   }));
+} else if (args[0] === "api" && args[1] === "repos/openclaw/openclaw/pulls/44") {
+  console.error('Get "https://api.github.com/repos/openclaw/openclaw/pulls/44": unexpected EOF');
+  process.exit(1);
+} else if (args[0] === "api" && args[1] === "repos/openclaw/openclaw/pulls/45") {
+  console.log(JSON.stringify({
+    number: 45,
+    state: "open",
+    draft: false,
+    changed_files: 1,
+    mergeable: true,
+    mergeable_state: "clean"
+  }));
 } else if (args[0] === "api" && args[1].includes("/files?")) {
   console.log(JSON.stringify([{ filename: "src/example.ts", additions: 4, deletions: 2 }]));
 } else if (args[0] === "pr" && args[1] === "view") {
+  const number = Number(args[2]);
   console.log(JSON.stringify({
-    number: 43,
+    number,
     state: "OPEN",
     isDraft: false,
-    url: "https://github.com/openclaw/openclaw/pull/43",
+    url: \`https://github.com/openclaw/openclaw/pull/\${number}\`,
     author: { login: "contributor" },
     labels: [],
     statusCheckRollup: [],
@@ -177,9 +190,16 @@ if (args[0] === "api" && args[1] === "repos/openclaw/openclaw/pulls/43") {
     );
 
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(JSON.parse(result.stdout)[0].number, 43);
+    const output = JSON.parse(result.stdout);
+    assert.equal(output[0].number, 43);
+    assert.equal(output[1].number, 44);
+    assert.equal(output[1].hydrationComplete, false);
+    assert.match(output[1].hydrationError, /unexpected EOF/);
+    assert.equal(output[2].number, 45);
+    assert.equal(output[2].hydrationError, undefined);
     assert.equal(readFileSync(countPath, "utf8"), "4");
     assert.match(result.stderr, /transient failure; retry 4\/5 in 0ms/);
+    assert.match(result.stderr, /hydrate #44 remained unavailable.*continuing/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

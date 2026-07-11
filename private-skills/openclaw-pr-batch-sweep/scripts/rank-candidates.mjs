@@ -610,6 +610,9 @@ function analyze(pr) {
   if (requireHydrated && paths.length > 0 && paths.every((path) => DOC_PATH.test(path))) {
     reasons.push("docs-only");
   }
+  if (requireHydrated && pr.hydrationComplete === false) {
+    reasons.push("incomplete hydration");
+  }
   if (requireHydrated && hasKnownPaths && productionFiles.length === 0) {
     reasons.push("non-production-only");
   }
