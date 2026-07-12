@@ -54,6 +54,29 @@ Default stance: map locally first, rank second, spend agent/security-review budg
    - `deepsec process --files <csv>` or tightly scoped `--filter` plus `--only-slugs`.
 9. Report exact artifact paths, run IDs, counts, cost size, exclusions, and skipped expensive stages.
 
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> ScratchSetup
+    ScratchSetup --> ReadRepoInstructions
+    ReadRepoInstructions --> VerifyToolSetup
+    VerifyToolSetup --> RunDeterministicMaps
+    RunDeterministicMaps --> MergeSemanticMap
+    MergeSemanticMap --> ReviewBoard
+    ReviewBoard --> ChooseCostSize
+
+    state ChooseCostSize <<choice>>
+    ChooseCostSize --> ReportArtifacts: cost_size = low, maps only
+    ChooseCostSize --> TargetedAIReview: cost_size = medium
+    ChooseCostSize --> BroadAIReview: cost_size = high, explicit budget decision
+
+    TargetedAIReview --> ReportArtifacts
+    BroadAIReview --> ReportArtifacts
+
+    ReportArtifacts --> [*]
+```
+
 ## Inputs
 
 - `target_repo`: local checkout path and/or GitHub `owner/repo`.
