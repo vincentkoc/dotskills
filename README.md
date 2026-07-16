@@ -41,6 +41,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 | `technical-documentation` | Produce dev‑ready docs: clear, structured build/review for brownfield + evergreen. | `npx skills add vincentkoc/dotskills --skill technical-documentation -y` |
 | `technical-integrations` | Design integrations that land: vendor‑agnostic API/RFC/SDK plans with rollout safety. | `npx skills add vincentkoc/dotskills --skill technical-integrations -y` |
 | `technical-skill-finder` | Turn real agent pain into new skills: mine logs, rank wins, draft next steps. | `npx skills add vincentkoc/dotskills --skill technical-skill-finder -y` |
+| `xquik-source-intake` | Collect public X evidence with Xquik REST or MCP before drafting decisions. | `npx skills add vincentkoc/dotskills --skill xquik-source-intake -y` |
 
 Internal/private workflow skills can live in this repo and are marked in the metadata as `internal: true` and excluded from public marketplace/release artifacts.
 
@@ -59,6 +60,7 @@ npx skills add vincentkoc/dotskills --skill operations-worktree -y
 npx skills add vincentkoc/dotskills --skill crawlkit -y
 npx skills add vincentkoc/dotskills --skill graincrawl -y
 npx skills add vincentkoc/dotskills --skill semantic-slicing -y
+npx skills add vincentkoc/dotskills --skill xquik-source-intake -y
 ```
 
 List available public skills:

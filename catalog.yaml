@@ -96,6 +96,13 @@ skills:
     tags: [discovery, logs, mining, skills]
     version: 0.1.0
 
+  - id: xquik-source-intake
+    name: Xquik Source Intake
+    path: skills/xquik-source-intake
+    source: local
+    tags: [x, research, mcp, api, evidence]
+    version: 0.1.0
+
   - id: opik-optimizer
     name: Opik Optimizer
     path: skills/opik-optimizer

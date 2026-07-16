@@ -1,0 +1,10 @@
+interface:
+  display_name: "Xquik Source Intake"
+  short_description: "Collect public X evidence with Xquik REST or MCP."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Collect a compact public X evidence packet with Xquik, record query provenance, and cite packet IDs in the summary."
+
+policy:
+  allow_implicit_invocation: true
