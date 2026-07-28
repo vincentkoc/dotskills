@@ -2,10 +2,28 @@
   "repo": "vincentkoc/dotskills",
   "skills": [
     {
+      "name": "codebase-memory-mcp",
+      "source": "./skills/codebase-memory-mcp",
+      "description": "Bring up `codebase-memory-mcp` for a repository and prove the graph is usable before relying on it for code discovery.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill codebase-memory-mcp -y"
+    },
+    {
       "name": "codex-goal-mining",
       "source": "./skills/codex-goal-mining",
       "description": "Recover structured Codex goal history and convert free-form runs into evidence-backed, repeatable suites.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill codex-goal-mining -y"
+    },
+    {
+      "name": "codex-session-recovery",
+      "source": "./skills/codex-session-recovery",
+      "description": "Recover crashed, detached, or confusing agent sessions while preserving the best restore source.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill codex-session-recovery -y"
+    },
+    {
+      "name": "crabpot-perf-metrics",
+      "source": "./skills/crabpot-perf-metrics",
+      "description": "Turn Crabpot/OpenClaw perf artifacts into a clear read: what changed, what is real signal, what is stale/noisy, and what action is worth taking.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill crabpot-perf-metrics -y"
     },
     {
       "name": "crawlkit",
@@ -38,6 +56,18 @@
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill operations-worktree -y"
     },
     {
+      "name": "opik-integrations-auditor",
+      "source": "./skills/opik-integrations-auditor",
+      "description": "Audit, compare, and document Opik integrations across Python, TypeScript, and backend OTEL/API surfaces with a repeatable evidence-first workflow.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill opik-integrations-auditor -y"
+    },
+    {
+      "name": "opik-optimizer",
+      "source": "./skills/opik-optimizer",
+      "description": "Design, run, and interpret Opik Optimizer workflows for prompts, tools, and model parameters with consistent dataset/metric wiring and reproducible evaluation.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill opik-optimizer -y"
+    },
+    {
       "name": "semantic-slicing",
       "source": "./skills/semantic-slicing",
       "description": "Turn a large repo into reviewable semantic slices with evidence. Use code shape, threat candidates, issue clusters, and support chatter together so review budget lands on the right parts of the system.",
@@ -66,6 +96,12 @@
       "source": "./skills/technical-skill-finder",
       "description": "Find recurring pain points from local agent logs and convert them into actionable skill candidates, reuse opportunities, or existing skill updates.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-skill-finder -y"
+    },
+    {
+      "name": "tmux-agent-lane-orchestrator",
+      "source": "./skills/tmux-agent-lane-orchestrator",
+      "description": "Turn a tmux window of coding-agent workers into a visible, auditable lane with clear state and next actions.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y"
     }
   ]
 }

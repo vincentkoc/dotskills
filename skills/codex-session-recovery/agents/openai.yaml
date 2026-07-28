@@ -1,0 +1,10 @@
+interface:
+  display_name: "Codex Session Recovery"
+  short_description: "Recover agent sessions without overwriting restore evidence."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Recover the relevant Codex or Claude tmux session, preserve restore evidence, and show the targeted dry-run plan before mutation."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,10 @@
+interface:
+  display_name: "tmux Agent Lane Orchestrator"
+  short_description: "Monitor tmux coding-agent lanes and surface blockers."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Inspect this tmux agent lane, cross-check panes with recent logs, classify each worker, and give concise evidence-backed next actions."
+
+policy:
+  allow_implicit_invocation: true
