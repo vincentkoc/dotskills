@@ -31,6 +31,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 
 | Skill | What it does | Install |
 |---|---|---|
+| `codex-goal-mining` | Mine local or fleet Codex goal history into evidence-backed rerun suites. | `npx skills add vincentkoc/dotskills --skill codex-goal-mining -y` |
 | `crawlkit` | Maintain and release the shared crawl app Go library. | `npx skills add vincentkoc/dotskills --skill crawlkit -y` |
 | `graincrawl` | Maintain and release the local-first Granola archive CLI. | `npx skills add vincentkoc/dotskills --skill graincrawl -y` |
 | `ghcrawl-cluster-operator` | Operate ghcrawl local sync, clustering, and cluster inspection from the CLI. | `npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y` |
@@ -50,6 +51,7 @@ Install one skill:
 
 ```bash
 npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y
+npx skills add vincentkoc/dotskills --skill codex-goal-mining -y
 npx skills add vincentkoc/dotskills --skill technical-deslop -y
 npx skills add vincentkoc/dotskills --skill technical-documentation -y
 npx skills add vincentkoc/dotskills --skill technical-integrations -y

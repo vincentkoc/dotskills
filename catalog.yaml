@@ -96,6 +96,13 @@ skills:
     tags: [discovery, logs, mining, skills]
     version: 0.1.0
 
+  - id: codex-goal-mining
+    name: Codex Goal Mining
+    path: skills/codex-goal-mining
+    source: local
+    tags: [codex, goals, history, mining, fleet, testing]
+    version: 0.1.0
+
   - id: opik-optimizer
     name: Opik Optimizer
     path: skills/opik-optimizer
