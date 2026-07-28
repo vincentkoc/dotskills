@@ -31,17 +31,23 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 
 | Skill | What it does | Install |
 |---|---|---|
+| `codebase-memory-mcp` | Index repositories and operate graph-backed code discovery and its local UI. | `npx skills add vincentkoc/dotskills --skill codebase-memory-mcp -y` |
 | `codex-goal-mining` | Mine local or fleet Codex goal history into evidence-backed rerun suites. | `npx skills add vincentkoc/dotskills --skill codex-goal-mining -y` |
+| `codex-session-recovery` | Recover Codex and Claude tmux sessions without overwriting restore evidence. | `npx skills add vincentkoc/dotskills --skill codex-session-recovery -y` |
+| `crabpot-perf-metrics` | Interpret Crabpot and OpenClaw performance artifacts without over-reading noise. | `npx skills add vincentkoc/dotskills --skill crabpot-perf-metrics -y` |
 | `crawlkit` | Maintain and release the shared crawl app Go library. | `npx skills add vincentkoc/dotskills --skill crawlkit -y` |
 | `graincrawl` | Maintain and release the local-first Granola archive CLI. | `npx skills add vincentkoc/dotskills --skill graincrawl -y` |
 | `ghcrawl-cluster-operator` | Operate ghcrawl local sync, clustering, and cluster inspection from the CLI. | `npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y` |
 | `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
+| `opik-integrations-auditor` | Audit Opik integration coverage across SDK and OTEL/API surfaces. | `npx skills add vincentkoc/dotskills --skill opik-integrations-auditor -y` |
+| `opik-optimizer` | Optimize prompts, tools, agents, and parameters through Opik workflows. | `npx skills add vincentkoc/dotskills --skill opik-optimizer -y` |
 | `operations-worktree` | Create safe git worktrees from fresh remote defaults instead of stale local branches. | `npx skills add vincentkoc/dotskills --skill operations-worktree -y` |
 | `semantic-slicing` | Build local feature, threat, issue, and support maps for focused repo review. | `npx skills add vincentkoc/dotskills --skill semantic-slicing -y` |
 | `technical-deslop` | Ship clean diffs fast: remove AI noise and keep behavior unchanged. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
 | `technical-documentation` | Produce dev‑ready docs: clear, structured build/review for brownfield + evergreen. | `npx skills add vincentkoc/dotskills --skill technical-documentation -y` |
 | `technical-integrations` | Design integrations that land: vendor‑agnostic API/RFC/SDK plans with rollout safety. | `npx skills add vincentkoc/dotskills --skill technical-integrations -y` |
 | `technical-skill-finder` | Turn real agent pain into new skills: mine logs, rank wins, draft next steps. | `npx skills add vincentkoc/dotskills --skill technical-skill-finder -y` |
+| `tmux-agent-lane-orchestrator` | Monitor tmux coding-agent lanes and produce evidence-backed manager summaries. | `npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y` |
 
 Internal/private workflow skills can live in this repo and are marked in the metadata as `internal: true` and excluded from public marketplace/release artifacts.
 
@@ -51,16 +57,22 @@ Install one skill:
 
 ```bash
 npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y
+npx skills add vincentkoc/dotskills --skill codebase-memory-mcp -y
 npx skills add vincentkoc/dotskills --skill codex-goal-mining -y
+npx skills add vincentkoc/dotskills --skill codex-session-recovery -y
+npx skills add vincentkoc/dotskills --skill crabpot-perf-metrics -y
 npx skills add vincentkoc/dotskills --skill technical-deslop -y
 npx skills add vincentkoc/dotskills --skill technical-documentation -y
 npx skills add vincentkoc/dotskills --skill technical-integrations -y
 npx skills add vincentkoc/dotskills --skill technical-skill-finder -y
 npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y
+npx skills add vincentkoc/dotskills --skill opik-integrations-auditor -y
+npx skills add vincentkoc/dotskills --skill opik-optimizer -y
 npx skills add vincentkoc/dotskills --skill operations-worktree -y
 npx skills add vincentkoc/dotskills --skill crawlkit -y
 npx skills add vincentkoc/dotskills --skill graincrawl -y
 npx skills add vincentkoc/dotskills --skill semantic-slicing -y
+npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y
 ```
 
 List available public skills:

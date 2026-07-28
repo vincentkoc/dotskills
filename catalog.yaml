@@ -103,18 +103,46 @@ skills:
     tags: [codex, goals, history, mining, fleet, testing]
     version: 0.1.0
 
+  - id: codebase-memory-mcp
+    name: Codebase Memory MCP
+    path: skills/codebase-memory-mcp
+    source: local
+    tags: [codebase, graph, mcp, indexing, discovery]
+    version: 0.1.0
+
+  - id: codex-session-recovery
+    name: Codex Session Recovery
+    path: skills/codex-session-recovery
+    source: local
+    tags: [codex, claude, tmux, recovery, sessions]
+    version: 0.1.0
+
+  - id: crabpot-perf-metrics
+    name: Crabpot Perf Metrics
+    path: skills/crabpot-perf-metrics
+    source: local
+    tags: [crabpot, openclaw, performance, profiling, metrics]
+    version: 0.1.0
+
+  - id: tmux-agent-lane-orchestrator
+    name: tmux Agent Lane Orchestrator
+    path: skills/tmux-agent-lane-orchestrator
+    source: local
+    tags: [tmux, codex, agents, orchestration, monitoring]
+    version: 0.1.0
+
   - id: opik-optimizer
     name: Opik Optimizer
     path: skills/opik-optimizer
     source: local
-    tags: [opik, optimization, internal]
+    tags: [opik, optimization, prompts, agents]
     version: 0.1.0
 
   - id: opik-integrations-auditor
     name: Opik Integrations Auditor
     path: skills/opik-integrations-auditor
     source: local
-    tags: [opik, integrations, audit, internal]
+    tags: [opik, integrations, audit, sdk]
     version: 0.1.0
 
   - id: openclaw-github-dedupe

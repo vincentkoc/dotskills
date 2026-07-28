@@ -9,10 +9,28 @@
   },
   "plugins": [
     {
+      "name": "codebase-memory-mcp",
+      "source": "./skills/codebase-memory-mcp",
+      "skills": "./",
+      "description": "Bring up `codebase-memory-mcp` for a repository and prove the graph is usable before relying on it for code discovery."
+    },
+    {
       "name": "codex-goal-mining",
       "source": "./skills/codex-goal-mining",
       "skills": "./",
       "description": "Recover structured Codex goal history and convert free-form runs into evidence-backed, repeatable suites."
+    },
+    {
+      "name": "codex-session-recovery",
+      "source": "./skills/codex-session-recovery",
+      "skills": "./",
+      "description": "Recover crashed, detached, or confusing agent sessions while preserving the best restore source."
+    },
+    {
+      "name": "crabpot-perf-metrics",
+      "source": "./skills/crabpot-perf-metrics",
+      "skills": "./",
+      "description": "Turn Crabpot/OpenClaw perf artifacts into a clear read: what changed, what is real signal, what is stale/noisy, and what action is worth taking."
     },
     {
       "name": "crawlkit",
@@ -45,6 +63,18 @@
       "description": "Create and manage worktrees safely and consistently across projects while avoiding stale branch bases."
     },
     {
+      "name": "opik-integrations-auditor",
+      "source": "./skills/opik-integrations-auditor",
+      "skills": "./",
+      "description": "Audit, compare, and document Opik integrations across Python, TypeScript, and backend OTEL/API surfaces with a repeatable evidence-first workflow."
+    },
+    {
+      "name": "opik-optimizer",
+      "source": "./skills/opik-optimizer",
+      "skills": "./",
+      "description": "Design, run, and interpret Opik Optimizer workflows for prompts, tools, and model parameters with consistent dataset/metric wiring and reproducible evaluation."
+    },
+    {
       "name": "semantic-slicing",
       "source": "./skills/semantic-slicing",
       "skills": "./",
@@ -73,6 +103,12 @@
       "source": "./skills/technical-skill-finder",
       "skills": "./",
       "description": "Find recurring pain points from local agent logs and convert them into actionable skill candidates, reuse opportunities, or existing skill updates."
+    },
+    {
+      "name": "tmux-agent-lane-orchestrator",
+      "source": "./skills/tmux-agent-lane-orchestrator",
+      "skills": "./",
+      "description": "Turn a tmux window of coding-agent workers into a visible, auditable lane with clear state and next actions."
     }
   ]
 }

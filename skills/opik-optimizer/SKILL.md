@@ -1,8 +1,9 @@
 ---
 name: opik-optimizer
 description: Optimize LLM prompts, tools, and agents in Opik using standardized optimizer workflows (prompt optimization, tool optimization, and parameter tuning), dataset/metric wiring, and result interpretation.
+license: MIT
 metadata:
-  internal: true
+  source: "https://github.com/vincentkoc/dotskills"
 ---
 
 # Opik Optimizer

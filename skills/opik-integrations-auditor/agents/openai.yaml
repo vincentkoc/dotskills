@@ -1,4 +1,7 @@
 interface:
   display_name: "Opik Integrations Auditor"
   short_description: "Audit and document Opik integration patterns."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
   default_prompt: "Review Opik integrations across Python, TypeScript, and OTEL/API. Produce a matrix, findings, and doc/test gap plan."

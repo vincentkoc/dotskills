@@ -1,0 +1,10 @@
+interface:
+  display_name: "Codebase Memory MCP"
+  short_description: "Index repositories and verify graph-backed code discovery."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Index this repository with codebase-memory-mcp, verify the graph and UI, then use graph tools for focused code discovery."
+
+policy:
+  allow_implicit_invocation: true
