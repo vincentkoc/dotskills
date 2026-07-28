@@ -2,6 +2,12 @@
   "repo": "vincentkoc/dotskills",
   "skills": [
     {
+      "name": "codex-goal-mining",
+      "source": "./skills/codex-goal-mining",
+      "description": "Recover structured Codex goal history and convert free-form runs into evidence-backed, repeatable suites.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill codex-goal-mining -y"
+    },
+    {
       "name": "crawlkit",
       "source": "./skills/crawlkit",
       "description": "Maintain crawlkit, the shared Go library for crawl app archive infrastructure.",

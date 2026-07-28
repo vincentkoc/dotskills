@@ -1,0 +1,14 @@
+{
+  "systems": {
+    "local": {
+      "ssh_target": null
+    },
+    "desktop": {
+      "ssh_target": "desktop-ssh-alias"
+    },
+    "windows": {
+      "ssh_target": "windows-ssh-alias",
+      "wsl_target": "windows-wsl-ssh-alias"
+    }
+  }
+}

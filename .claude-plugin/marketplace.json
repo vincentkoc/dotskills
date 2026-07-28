@@ -9,6 +9,12 @@
   },
   "plugins": [
     {
+      "name": "codex-goal-mining",
+      "source": "./skills/codex-goal-mining",
+      "skills": "./",
+      "description": "Recover structured Codex goal history and convert free-form runs into evidence-backed, repeatable suites."
+    },
+    {
       "name": "crawlkit",
       "source": "./skills/crawlkit",
       "skills": "./",
