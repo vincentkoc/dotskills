@@ -88,7 +88,7 @@ When adding or removing a private skill:
 
 ## Technical Documentation sub-agent prompt files
 
-- `/Users/vincentkoc/.codex/worktrees/16f3/agent-skills/skills/technical-documentation/agents/inventory-agent.md` (`fast`, Claude `haiku`)
-- `/Users/vincentkoc/.codex/worktrees/16f3/agent-skills/skills/technical-documentation/agents/governance-agent.md` (`thinking`, Claude `sonnet`)
-- `/Users/vincentkoc/.codex/worktrees/16f3/agent-skills/skills/technical-documentation/agents/docs-framework-agent.md` (`thinking`, Claude `sonnet`)
-- `/Users/vincentkoc/.codex/worktrees/16f3/agent-skills/skills/technical-documentation/agents/synthesis-agent.md` (`long`, Claude `opus`)
+- `skills/technical-documentation/agents/inventory-agent.md` (`fast`, Claude `haiku`)
+- `skills/technical-documentation/agents/governance-agent.md` (`thinking`, Claude `sonnet`)
+- `skills/technical-documentation/agents/docs-framework-agent.md` (`thinking`, Claude `sonnet`)
+- `skills/technical-documentation/agents/synthesis-agent.md` (`long`, Claude `opus`)

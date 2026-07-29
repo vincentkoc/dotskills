@@ -26,8 +26,8 @@ for downstream app branches.
 
 ## Workflow
 
-1. Work in `/Users/vincentkoc/GIT/_Perso/crawlkit` unless the user points at a
-   different checkout.
+1. Locate the `crawlkit` checkout from the current repository, an explicit user
+   path, or the configured workspace root.
 2. Read repo-local `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, and
    `docs/publishing.md` before release or compatibility work.
 3. Keep provider-specific logic out of `crawlkit`. Shared mechanics belong in

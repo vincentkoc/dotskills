@@ -141,3 +141,7 @@ vite.config.ts.timestamp-*
 # Private local-only skills (keep folder scaffolded)
 private-skills/*
 !private-skills/.gitkeep
+
+# Python bytecode
+__pycache__/
+*.py[cod]

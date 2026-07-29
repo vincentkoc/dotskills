@@ -131,6 +131,13 @@ skills:
     tags: [tmux, codex, agents, orchestration, monitoring]
     version: 0.1.0
 
+  - id: tmux-lane-orchestrator
+    name: tmux Lane Orchestrator
+    path: skills/tmux-lane-orchestrator
+    source: local
+    tags: [tmux, codex, agents, orchestration, openclaw]
+    version: 0.1.8
+
   - id: opik-optimizer
     name: Opik Optimizer
     path: skills/opik-optimizer
@@ -151,6 +158,13 @@ skills:
     source: local
     tags: [github, triage, dedupe, issue-pr]
     version: 0.1.0
+
+  - id: openclaw-pr-batch-sweep
+    name: OpenClaw PR Batch Sweep
+    path: skills/openclaw-pr-batch-sweep
+    source: local
+    tags: [openclaw, github, pull-requests, batch, maintainer]
+    version: 0.2.7
 
   - id: operations-worktree
     name: Operations Worktree

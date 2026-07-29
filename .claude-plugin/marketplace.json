@@ -57,6 +57,12 @@
       "description": "Use this skill when a cluster of GitHub issues and pull requests has been reported for a common failure mode (Slack, iMessage, support threads, or manual list), and you need an evidence-based dedupe recommendation, execution pass, or autonomous closeout run."
     },
     {
+      "name": "openclaw-pr-batch-sweep",
+      "source": "./skills/openclaw-pr-batch-sweep",
+      "skills": "./",
+      "description": "Drive a continuing queue of real, low-risk OpenClaw contributor bug fixes through qualification, repair, proof, and landing. Work in batches of up to 20 without padding the batch with micro-patches, speculative cleanup, or risky surfaces."
+    },
+    {
       "name": "operations-worktree",
       "source": "./skills/operations-worktree",
       "skills": "./",
@@ -109,6 +115,12 @@
       "source": "./skills/tmux-agent-lane-orchestrator",
       "skills": "./",
       "description": "Turn a tmux window of coding-agent workers into a visible, auditable lane with clear state and next actions."
+    },
+    {
+      "name": "tmux-lane-orchestrator",
+      "source": "./skills/tmux-lane-orchestrator",
+      "skills": "./",
+      "description": "Act as the manager for one tmux worker lane. Keep visibility over the lane's panes, infer what each worker is doing from tmux and Codex logs, surface blockers, and give the operator short status summaries with concrete next actions."
     }
   ]
 }

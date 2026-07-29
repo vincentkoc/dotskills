@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import sqlite3
 import subprocess
@@ -332,7 +333,7 @@ def collect_remote(script: bytes, machine: str, ssh_target: str, since: str | No
             "-o", "ServerAliveInterval=15",
             "-o", "ServerAliveCountMax=3",
             ssh_target,
-            " ".join([interpreter, "-"] + arguments),
+            shlex.join([*shlex.split(interpreter), "-", *arguments]),
         ]
         try:
             result = subprocess.run(command, input=script, capture_output=True, timeout=timeout + 20)

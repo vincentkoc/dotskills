@@ -14,6 +14,15 @@ from pathlib import Path
 from typing import Any
 
 
+SECRET_PATTERNS = (
+    re.compile(r"\b(?:gh[opusr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16})\b"),
+    re.compile(r"(?i)\b(api[_-]?key|token|secret|password)\s*[:=]\s*[^\s]+"),
+)
+PRIVATE_IP_PATTERN = re.compile(
+    r"\b(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.\d{1,3}){2})\b"
+)
+
+
 def run_tmux(args: list[str], timeout: int = 5) -> str:
     try:
         result = subprocess.run(
@@ -121,6 +130,17 @@ def compact(text: str, max_len: int = 220) -> str:
     return normalized[: max_len - 3].rstrip() + "..."
 
 
+def redact(text: str) -> str:
+    redacted = text.replace(str(Path.home()), "~")
+    for pattern in SECRET_PATTERNS:
+        redacted = pattern.sub("<redacted-secret>", redacted)
+    return PRIVATE_IP_PATTERN.sub("<private-ip>", redacted)
+
+
+def display_path(path: str, show_content: bool) -> str:
+    return path if show_content else redact(path)
+
+
 def recent_lines(path: Path, max_lines: int = 600) -> list[str]:
     try:
         with path.open("r", encoding="utf-8", errors="replace") as handle:
@@ -152,7 +172,9 @@ def scan_log_meta(path: Path) -> tuple[str, str]:
     return session_id, cwd
 
 
-def extract_log_hints(paths: list[Path], pane_cwds: set[str], keywords: list[str]) -> list[dict[str, str]]:
+def extract_log_hints(
+    paths: list[Path], pane_cwds: set[str], keywords: list[str], show_content: bool
+) -> list[dict[str, str]]:
     hints: list[dict[str, str]] = []
     keyword_re = re.compile("|".join(re.escape(k) for k in keywords), re.IGNORECASE) if keywords else None
     for path in paths:
@@ -186,7 +208,7 @@ def extract_log_hints(paths: list[Path], pane_cwds: set[str], keywords: list[str
             cwd_hit = cwd in pane_cwds if cwd else False
             keyword_hit = bool(keyword_re.search(text)) if keyword_re else False
             if cwd_hit or keyword_hit:
-                seen.append(compact(text))
+                seen.append(compact(text if show_content else redact(text)))
         if seen:
             hints.append(
                 {
@@ -220,6 +242,11 @@ def main() -> int:
     parser.add_argument("--capture-lines", type=int, default=80)
     parser.add_argument("--log-limit", type=int, default=12)
     parser.add_argument(
+        "--show-content",
+        action="store_true",
+        help="Print raw pane, path, and log content instead of privacy-redacted output.",
+    )
+    parser.add_argument(
         "--keywords",
         default="Codex,Claude,CodeQL,CI,error,failed,waiting,running",
     )
@@ -246,7 +273,9 @@ def main() -> int:
     home = str(Path.home())
     pane_cwds = {pane["cwd"] for pane in panes if pane["cwd"] and pane["cwd"] != home}
     keywords = [part.strip() for part in args.keywords.split(",") if part.strip()]
-    log_hints = extract_log_hints(recent_codex_logs(args.log_limit), pane_cwds, keywords)
+    log_hints = extract_log_hints(
+        recent_codex_logs(args.log_limit), pane_cwds, keywords, args.show_content
+    )
 
     print(f"lane L{lane} snapshot")
     print(f"session: {session}")
@@ -256,10 +285,13 @@ def main() -> int:
         pane_index = pane["pane"].split(".")[-1]
         capture = capture_pane(session, lane, pane_index, args.capture_lines)
         last_line = compact(capture.splitlines()[-1] if capture.splitlines() else "")
+        if not args.show_content:
+            last_line = redact(last_line)
         state = guess_state(pane["command"], capture)
         print(
             f"- {pane['pane']} state={state} active={pane['active']} cmd={pane['command']} "
-            f"pid={pane['pid']} cwd={pane['cwd']} title={pane['title']!r}"
+            f"pid={pane['pid']} cwd={display_path(pane['cwd'], args.show_content)} "
+            f"title={redact(pane['title']) if not args.show_content else pane['title']!r}"
         )
         if last_line:
             print(f"  last: {last_line}")
@@ -268,7 +300,10 @@ def main() -> int:
     if not log_hints:
         print("- none found from recent logs")
     for hint in log_hints:
-        print(f"- {hint['session_id']} cwd={hint['cwd']} mtime={hint['mtime']}")
+        print(
+            f"- {hint['session_id']} cwd={display_path(hint['cwd'], args.show_content)} "
+            f"mtime={hint['mtime']}"
+        )
         print(f"  latest: {hint['latest']}")
     return 0
 

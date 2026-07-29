@@ -50,6 +50,12 @@
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill openclaw-github-dedupe -y"
     },
     {
+      "name": "openclaw-pr-batch-sweep",
+      "source": "./skills/openclaw-pr-batch-sweep",
+      "description": "Drive a continuing queue of real, low-risk OpenClaw contributor bug fixes through qualification, repair, proof, and landing. Work in batches of up to 20 without padding the batch with micro-patches, speculative cleanup, or risky surfaces.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y"
+    },
+    {
       "name": "operations-worktree",
       "source": "./skills/operations-worktree",
       "description": "Create and manage worktrees safely and consistently across projects while avoiding stale branch bases.",
@@ -102,6 +108,12 @@
       "source": "./skills/tmux-agent-lane-orchestrator",
       "description": "Turn a tmux window of coding-agent workers into a visible, auditable lane with clear state and next actions.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y"
+    },
+    {
+      "name": "tmux-lane-orchestrator",
+      "source": "./skills/tmux-lane-orchestrator",
+      "description": "Act as the manager for one tmux worker lane. Keep visibility over the lane's panes, infer what each worker is doing from tmux and Codex logs, surface blockers, and give the operator short status summaries with concrete next actions.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill tmux-lane-orchestrator -y"
     }
   ]
 }

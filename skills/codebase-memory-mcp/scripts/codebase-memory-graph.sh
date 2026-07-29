@@ -53,6 +53,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ ! "$port" =~ ^[0-9]+$ ]] || ((port < 1 || port > 65535)); then
+  printf 'invalid port: %s (expected 1-65535)\n' "$port" >&2
+  exit 2
+fi
+
 need() {
   command -v "$1" >/dev/null 2>&1 || {
     printf 'missing required command: %s\n' "$1" >&2
@@ -183,7 +188,7 @@ cmd_index() {
 }
 
 cmd_start_ui() {
-  local root session script
+  local root session script keepalive_cmd
   need codebase-memory-mcp
   need tmux
   need curl
@@ -192,7 +197,8 @@ cmd_start_ui() {
   session="$(session_for_repo "$root")"
   script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
   if ! tmux has-session -t "$session" 2>/dev/null; then
-    tmux new-session -d -s "$session" "$script keepalive --port '$port'"
+    printf -v keepalive_cmd '%q ' "$script" keepalive --port "$port"
+    tmux new-session -d -s "$session" "$keepalive_cmd"
   fi
   printf 'tmux_session=%s\n' "$session"
   wait_for_ui

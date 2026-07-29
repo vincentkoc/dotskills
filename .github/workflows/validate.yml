@@ -1,6 +1,9 @@
 name: Validate
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
 
@@ -18,10 +21,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install pre-commit
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      - name: Install validators
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install pre-commit
+          npm install --global skills-ref@0.1.5
 
       - name: CI checks
         run: make ci
