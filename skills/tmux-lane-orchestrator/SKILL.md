@@ -4,7 +4,7 @@ description: Manage one tmux agent lane from its matching ops pane, inspect live
 license: MIT
 compatibility: Requires tmux. Codex log inspection expects local session logs under ~/.codex/sessions.
 metadata:
-  internal: true
+  source: "https://github.com/vincentkoc/dotskills"
   version: "0.1.8"
   spec: agentskills-v1
 ---
@@ -44,7 +44,7 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - otherwise map current odd `ops` pane to its lane: `1 -> L1`, `3 -> L2`, `5 -> L3`;
    - if no odd-pane mapping exists, stop and ask for lane scope.
 3. Run the cold-start snapshot:
-   - `python3 private-skills/tmux-lane-orchestrator/scripts/lane_snapshot.py --lane <N>`
+   - `python3 skills/tmux-lane-orchestrator/scripts/lane_snapshot.py --lane <N>`
    - add `--session <name>` when not in the active tmux session.
 4. Read the operator-provided lane map and treat it as the mission source of truth. If IDs are duplicated or missing, call that out as a warning instead of silently rewriting it.
 5. For each worker pane, classify state:

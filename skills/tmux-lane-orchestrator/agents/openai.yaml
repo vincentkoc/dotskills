@@ -1,0 +1,10 @@
+interface:
+  display_name: "tmux Lane Orchestrator"
+  short_description: "Coordinate one tmux worker lane safely"
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Use $tmux-lane-orchestrator to inspect and coordinate this tmux worker lane."
+
+policy:
+  allow_implicit_invocation: true

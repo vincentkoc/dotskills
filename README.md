@@ -39,6 +39,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 | `graincrawl` | Maintain and release the local-first Granola archive CLI. | `npx skills add vincentkoc/dotskills --skill graincrawl -y` |
 | `ghcrawl-cluster-operator` | Operate ghcrawl local sync, clustering, and cluster inspection from the CLI. | `npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y` |
 | `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
+| `openclaw-pr-batch-sweep` | Select and land bounded batches of low-risk OpenClaw contributor pull requests. | `npx skills add vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y` |
 | `opik-integrations-auditor` | Audit Opik integration coverage across SDK and OTEL/API surfaces. | `npx skills add vincentkoc/dotskills --skill opik-integrations-auditor -y` |
 | `opik-optimizer` | Optimize prompts, tools, agents, and parameters through Opik workflows. | `npx skills add vincentkoc/dotskills --skill opik-optimizer -y` |
 | `operations-worktree` | Create safe git worktrees from fresh remote defaults instead of stale local branches. | `npx skills add vincentkoc/dotskills --skill operations-worktree -y` |
@@ -48,8 +49,9 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 | `technical-integrations` | Design integrations that land: vendor‑agnostic API/RFC/SDK plans with rollout safety. | `npx skills add vincentkoc/dotskills --skill technical-integrations -y` |
 | `technical-skill-finder` | Turn real agent pain into new skills: mine logs, rank wins, draft next steps. | `npx skills add vincentkoc/dotskills --skill technical-skill-finder -y` |
 | `tmux-agent-lane-orchestrator` | Monitor tmux coding-agent lanes and produce evidence-backed manager summaries. | `npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y` |
+| `tmux-lane-orchestrator` | Coordinate one tmux worker lane from its matching manager pane. | `npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y` |
 
-Internal/private workflow skills can live in this repo and are marked in the metadata as `internal: true` and excluded from public marketplace/release artifacts.
+Local-only skills may live under ignored `private-skills/`, but must never be tracked in this public repository.
 
 ## Install
 
@@ -66,6 +68,7 @@ npx skills add vincentkoc/dotskills --skill technical-documentation -y
 npx skills add vincentkoc/dotskills --skill technical-integrations -y
 npx skills add vincentkoc/dotskills --skill technical-skill-finder -y
 npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y
+npx skills add vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y
 npx skills add vincentkoc/dotskills --skill opik-integrations-auditor -y
 npx skills add vincentkoc/dotskills --skill opik-optimizer -y
 npx skills add vincentkoc/dotskills --skill operations-worktree -y
@@ -73,6 +76,7 @@ npx skills add vincentkoc/dotskills --skill crawlkit -y
 npx skills add vincentkoc/dotskills --skill graincrawl -y
 npx skills add vincentkoc/dotskills --skill semantic-slicing -y
 npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y
+npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y
 ```
 
 List available public skills:

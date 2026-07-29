@@ -10,7 +10,9 @@ validate-spec:
 	./scripts/validate_spec.py
 
 test:
-	node --test private-skills/openclaw-pr-batch-sweep/scripts/*.test.mjs
+	node --test skills/openclaw-pr-batch-sweep/scripts/*.test.mjs
+	python3 skills/codex-goal-mining/scripts/codex-goal-report-test.py
+	python3 -m unittest discover -s tests -p '*_test.py'
 
 sync:
 	./bin/agent-skills sync --profile codex,cursor --mode symlink

@@ -3,7 +3,7 @@ name: openclaw-pr-batch-sweep
 description: Select, review, repair, validate, and land batches of up to 20 low-risk OpenClaw contributor pull requests using Vincent's maintainer preferences and bounded sub-agent lanes. Use for "next 20", broad contributor PR sweeps, merge-candidate mining, or continued PR-batch work where drafts, maintainer work, trivial one-line changes, UI, security, migrations, and high-risk changes must be excluded.
 license: MIT
 metadata:
-  internal: true
+  source: "https://github.com/vincentkoc/dotskills"
   version: "0.2.7"
   spec: agentskills-v1
 ---
