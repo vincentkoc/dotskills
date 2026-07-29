@@ -17,7 +17,7 @@ with the other crawl apps.
 
 ## When to use
 
-- Editing or reviewing `/Users/vincentkoc/GIT/_Perso/graincrawl`.
+- Editing or reviewing a `graincrawl` checkout.
 - Investigating Granola source adapters: `private-api`, `desktop-cache`,
   `encrypted-json`, `opfs`, `public-api`, or `companion-cli`.
 - Verifying note, transcript, panel, source object, search, Markdown export, or
@@ -28,8 +28,8 @@ with the other crawl apps.
 
 ## Workflow
 
-1. Work in `/Users/vincentkoc/GIT/_Perso/graincrawl` unless the user points at a
-   different checkout. Read repo-local `AGENTS.md`, `README.md`, `SPEC.md`, and
+1. Locate the `graincrawl` checkout from the current repository, an explicit
+   user path, or the configured workspace root. Read repo-local `AGENTS.md`, `README.md`, `SPEC.md`, and
    `docs/security.md` before release, source-adapter, or unlock work.
 2. Keep Granola boundaries explicit. Ordinary `doctor`, `status`, `notes`,
    `export`, and `tui` commands must not prompt Keychain, unwrap safeStorage, or

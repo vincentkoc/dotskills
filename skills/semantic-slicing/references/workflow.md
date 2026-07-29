@@ -6,6 +6,8 @@ Use a run directory outside the target checkout:
 
 ```bash
 RUN_ROOT="$HOME/.semantic-slicing/openclaw/$(date +%Y%m%d-%H%M%S)"
+TOOLS_ROOT="${TOOLS_ROOT:-$HOME/src}"
+TARGET_REPO="${TARGET_REPO:-$HOME/src/openclaw}"
 mkdir -p "$RUN_ROOT"
 ```
 
@@ -26,8 +28,8 @@ Recommended layout:
 Setup from source:
 
 ```bash
-git clone https://github.com/openclaw/clawpatch.git ~/GIT/_Perso/clawpatch
-cd ~/GIT/_Perso/clawpatch
+git clone https://github.com/openclaw/clawpatch.git "$TOOLS_ROOT/clawpatch"
+cd "$TOOLS_ROOT/clawpatch"
 pnpm install
 pnpm build
 ```
@@ -35,18 +37,18 @@ pnpm build
 Run against a target repo:
 
 ```bash
-node ~/GIT/_Perso/clawpatch/dist/cli.js \
-  --root ~/GIT/_Perso/openclaw \
+node "$TOOLS_ROOT/clawpatch/dist/cli.js" \
+  --root "$TARGET_REPO" \
   --state-dir "$RUN_ROOT/clawpatch" \
   init --json
 
-node ~/GIT/_Perso/clawpatch/dist/cli.js \
-  --root ~/GIT/_Perso/openclaw \
+node "$TOOLS_ROOT/clawpatch/dist/cli.js" \
+  --root "$TARGET_REPO" \
   --state-dir "$RUN_ROOT/clawpatch" \
   map --json
 
-node ~/GIT/_Perso/clawpatch/dist/cli.js \
-  --root ~/GIT/_Perso/openclaw \
+node "$TOOLS_ROOT/clawpatch/dist/cli.js" \
+  --root "$TARGET_REPO" \
   --state-dir "$RUN_ROOT/clawpatch" \
   status --json
 ```
@@ -66,8 +68,8 @@ If contamination is non-zero, post-filter before ranking. Current clawpatch may 
 Setup from source:
 
 ```bash
-git clone https://github.com/vercel-labs/deepsec.git ~/GIT/_Perso/deepsec
-cd ~/GIT/_Perso/deepsec
+git clone https://github.com/vercel-labs/deepsec.git "$TOOLS_ROOT/deepsec"
+cd "$TOOLS_ROOT/deepsec"
 pnpm install
 pnpm -r build
 pnpm bundle
@@ -76,19 +78,19 @@ pnpm bundle
 Create a scratch workspace and link the local build:
 
 ```bash
-node ~/GIT/_Perso/deepsec/packages/deepsec/dist/cli.mjs \
-  init "$RUN_ROOT/deepsec" ~/GIT/_Perso/openclaw --id openclaw --force
+node "$TOOLS_ROOT/deepsec/packages/deepsec/dist/cli.mjs" \
+  init "$RUN_ROOT/deepsec" "$TARGET_REPO" --id openclaw --force
 
 cd "$RUN_ROOT/deepsec"
-pnpm add -w "deepsec@file:$HOME/GIT/_Perso/deepsec/packages/deepsec"
+pnpm add -w "deepsec@file:$TOOLS_ROOT/deepsec/packages/deepsec"
 ```
 
 Run deterministic scan:
 
 ```bash
-node ~/GIT/_Perso/deepsec/packages/deepsec/dist/cli.mjs scan --project-id openclaw
-node ~/GIT/_Perso/deepsec/packages/deepsec/dist/cli.mjs status --project-id openclaw
-node ~/GIT/_Perso/deepsec/packages/deepsec/dist/cli.mjs metrics --project-id openclaw
+node "$TOOLS_ROOT/deepsec/packages/deepsec/dist/cli.mjs" scan --project-id openclaw
+node "$TOOLS_ROOT/deepsec/packages/deepsec/dist/cli.mjs" status --project-id openclaw
+node "$TOOLS_ROOT/deepsec/packages/deepsec/dist/cli.mjs" metrics --project-id openclaw
 ```
 
 Do not run `process` blindly on large candidate sets. Size the run first:
@@ -147,7 +149,7 @@ Generate the local review map:
 
 ```bash
 node /path/to/semantic-slicing/scripts/semantic-map.mjs \
-  --repo ~/GIT/_Perso/openclaw \
+  --repo "$TARGET_REPO" \
   --churn-since 90.days \
   --clawpatch "$RUN_ROOT/clawpatch" \
   --deepsec "$RUN_ROOT/deepsec/data/openclaw" \
@@ -162,7 +164,7 @@ surfaces. Disable it for a whole-repo board:
 
 ```bash
 node /path/to/semantic-slicing/scripts/semantic-map.mjs \
-  --repo ~/GIT/_Perso/openclaw \
+  --repo "$TARGET_REPO" \
   --clawpatch "$RUN_ROOT/clawpatch" \
   --deepsec "$RUN_ROOT/deepsec/data/openclaw" \
   --out "$RUN_ROOT/semantic-map-full.html" \
@@ -174,7 +176,7 @@ the default exclude list; `--sparse-include` re-includes matching paths:
 
 ```bash
 node /path/to/semantic-slicing/scripts/semantic-map.mjs \
-  --repo ~/GIT/_Perso/openclaw \
+  --repo "$TARGET_REPO" \
   --clawpatch "$RUN_ROOT/clawpatch" \
   --deepsec "$RUN_ROOT/deepsec/data/openclaw" \
   --out "$RUN_ROOT/semantic-map-core-plus-android.html" \
