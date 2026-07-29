@@ -1,8 +1,8 @@
 {
   "auditWatermark": {
-    "openPrThrough": 104164,
-    "auditedAt": "2026-07-11T23:47:20Z",
-    "originMain": "fb08d3b631a769e7a8c3291a9f10910eb58f361a"
+    "openPrThrough": 115486,
+    "auditedAt": "2026-07-29T02:48:55Z",
+    "originMain": "c4ffc972ec14f563994b503cba0131e72707771a"
   },
   "explicitSkips": [
     {
@@ -39,6 +39,14 @@
     },
     {
       "number": 96714,
+      "reason": "operator explicit skip"
+    },
+    {
+      "number": 114714,
+      "reason": "operator explicit skip"
+    },
+    {
+      "number": 112898,
       "reason": "operator explicit skip"
     }
   ],
@@ -494,6 +502,14 @@
     {
       "number": 104065,
       "reason": "Workboard active dependency-claim error precedence repair landed as b2cd0e428d82dd634d6643bdd36cb274529a5354 with contributor credit after reconstructing a contaminated 53-file head to the reviewed two-file patch; final Testbox tbx_01kx9r197jaf5wrmaqzgc9tegz passed 81 focused tests and check:changed, fresh AutoReview was clean at 0.94, exact-head CI 29172429993 passed, native review/prepare/merge gates completed through the guarded git fallback after GitHub's 45 MB GraphQL cap, and issue 104050 closed"
+    },
+    {
+      "number": 113359,
+      "reason": "Memory Core MMR running-maximum optimization landed as 811444d6db9291049735656dadbed84723c5fb96 after full Memory Core proof, targeted CI planner repairs, fresh AutoReview, and exact-head CI"
+    },
+    {
+      "number": 114277,
+      "reason": "bounded task-page cloning repair landed as 57f82408007485a6fd4db1f756fa2db45e605df8 after focused registry and gateway proof, full build, fresh AutoReview, and exact-head CI"
     }
   ],
   "handledMerged": [
@@ -3459,6 +3475,86 @@
     {
       "number": 98449,
       "reason": "tiny Z.AI onboarding header patch is hard-excluded provider/auth work, lacks live external API proof, and remains one of four competing duplicates"
+    },
+    {
+      "number": 115106,
+      "reason": "session and transcript adoption semantics are explicitly outside the low-risk batch, and the PR duplicates an existing positioned-read loop instead of using a canonical owner"
+    },
+    {
+      "number": 115067,
+      "reason": "synthetic malformed Azure catalog hardening lacks an observed provider failure or contract evidence that mixed malformed rows occur"
+    },
+    {
+      "number": 114953,
+      "reason": "Kubernetes teardown behavior adds an infrastructure CLI and destructive-resource retention policy that requires explicit owner and product approval"
+    },
+    {
+      "number": 114267,
+      "reason": "provider-response UTF-8 fail-closed behavior is trust-boundary hardening with no real provider evidence and is outside the low-risk batch"
+    },
+    {
+      "number": 112819,
+      "reason": "managed MCP export and import timeout preservation crosses config compatibility, manifest identity, lifecycle, rollback, and persisted-state contracts"
+    },
+    {
+      "number": 114068,
+      "reason": "root-help optimization changes config path, dotenv discovery, environment substitution, and compatibility behavior"
+    },
+    {
+      "number": 114620,
+      "reason": "bundled plugin lock generation is dependency, packaging, and release infrastructure outside the low-risk batch"
+    },
+    {
+      "number": 115453,
+      "reason": "live WhatsApp version lookup is a wrong-layer dependency workaround that adds external availability and fallback policy; the canonical repair is an upstream Baileys update"
+    },
+    {
+      "number": 115399,
+      "reason": "MXC workdir validation changes sandbox containment and approval preflight ownership, an explicit trust-boundary exclusion"
+    },
+    {
+      "number": 114949,
+      "reason": "Tlon settings-key repair changes persisted config and migration behavior despite being technically clean"
+    },
+    {
+      "number": 112675,
+      "reason": "disabled-account reaction gating changes authenticated external action and credential-derived permission semantics"
+    },
+    {
+      "number": 111195,
+      "reason": "static-import rewrite is cleanup-only and has no demonstrated bug, startup regression, or economic proof"
+    },
+    {
+      "number": 111332,
+      "reason": "caller-local unread-body cancellation is a tiny mechanical lifecycle patch and a weaker duplicate of the shared guarded-response repair"
+    },
+    {
+      "number": 111637,
+      "reason": "synthetic malformed OpenRouter catalog hardening lacks a real payload or incident and would silently mask provider contract failures"
+    },
+    {
+      "number": 111455,
+      "reason": "Teams setup deadline enforcement changes watchdog duration, forced termination, and availability semantics"
+    },
+    {
+      "number": 111257,
+      "reason": "Windows browser discovery changes service environment and executable-precedence behavior"
+    },
+    {
+      "number": 113125,
+      "reason": "Anthropic argument coalescing changes model-visible partial-preview compatibility and needs live provider and owner proof"
+    },
+    {
+      "number": 111523,
+      "reason": "Windows-path parser repair requires an unresolved compatibility decision for irreducibly ambiguous lowercase drive and code prefixes"
+    },
+    {
+      "number": 111497,
+      "reason": "Workboard artifact preservation changes checkout retention and storage lifecycle without resolving durable artifact ownership or GC behavior"
+    },
+    {
+      "number": 111252,
+      "reason": "strict Claude cursor canonicalization is a session and transcript compatibility micro-change with no concrete wrong-page, data-loss, or user-visible failure"
     }
   ],
   "ignored": [
