@@ -60,6 +60,28 @@ Find recurring pain points from local agent logs and convert them into actionabl
    - If MCP is available and user has granted access, run MCP resource discovery and include message-signal-derived patterns.
    - Keep this opt-in and isolated from coding-signal output unless user requests a merged plan.
 
+## State flow
+
+```mermaid
+stateDiagram-v2
+  [*] --> ConfirmPolicy
+  ConfirmPolicy --> Stop: Privacy direction missing
+  ConfirmPolicy --> Extract: Sources authorized
+  Extract --> Cluster
+  Cluster --> MapSkills
+  MapSkills --> RankUpdate: Existing skill overlaps
+  MapSkills --> RankNew: No skill overlaps
+  RankUpdate --> Rank
+  RankNew --> Rank
+  Rank --> GatherMore: Confidence low
+  GatherMore --> Extract
+  Rank --> DraftArtifacts: Evidence sufficient
+  DraftArtifacts --> OptionalSignals
+  OptionalSignals --> Extract: Personal signals approved
+  OptionalSignals --> [*]: No personal signals
+  Stop --> [*]
+```
+
 ## Guardrails
 
 - Never infer or emit private content from message logs unless explicitly permitted.
