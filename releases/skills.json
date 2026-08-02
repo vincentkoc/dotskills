@@ -74,6 +74,12 @@
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill opik-optimizer -y"
     },
     {
+      "name": "org-branch-cleanup",
+      "source": "./skills/org-branch-cleanup",
+      "description": "Remove organization branch clutter without guessing which refs are safe to delete.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill org-branch-cleanup -y"
+    },
+    {
       "name": "semantic-slicing",
       "source": "./skills/semantic-slicing",
       "description": "Turn a large repo into reviewable semantic slices with evidence. Use code shape, threat candidates, issue clusters, and support chatter together so review budget lands on the right parts of the system.",

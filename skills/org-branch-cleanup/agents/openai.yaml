@@ -1,0 +1,10 @@
+interface:
+  display_name: "Org Branch Cleanup"
+  short_description: "Audit and safely prune stale GitHub org branches"
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Use $org-branch-cleanup to audit and safely prune stale merged branches across a GitHub organization."
+
+policy:
+  allow_implicit_invocation: true

@@ -81,6 +81,12 @@
       "description": "Design, run, and interpret Opik Optimizer workflows for prompts, tools, and model parameters with consistent dataset/metric wiring and reproducible evaluation."
     },
     {
+      "name": "org-branch-cleanup",
+      "source": "./skills/org-branch-cleanup",
+      "skills": "./",
+      "description": "Remove organization branch clutter without guessing which refs are safe to delete."
+    },
+    {
       "name": "semantic-slicing",
       "source": "./skills/semantic-slicing",
       "skills": "./",
