@@ -173,6 +173,13 @@ skills:
     tags: [git, worktree, operations, workflow]
     version: 0.1.0
 
+  - id: org-branch-cleanup
+    name: Org Branch Cleanup
+    path: skills/org-branch-cleanup
+    source: local
+    tags: [github, branches, cleanup, organization]
+    version: 0.1.0
+
   - id: semantic-slicing
     name: Semantic Slicing
     path: skills/semantic-slicing
