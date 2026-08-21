@@ -55,16 +55,18 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Review the manifest, then dry-run it:
      `scripts/codebase-memory-graph.sh cache-prune --manifest /secure/path/cbm-cache.json`
    - Manifests with host blockers fail closed by default. After reviewing every relationship, explicitly add `--allow-blocked-manifest` to preflight and prune only independent candidates while preserving all protected and blocked projects.
+   - To retain an exact manifest candidate at runtime, repeat `--protect-candidate NAME` on `cache-prune`. Each named candidate must still exist in the unchanged snapshot and pass its root, prefix, classification, canonical mapping, and clone-health rules. It remains in the expected snapshot but is excluded from DB integrity preflight and deletion.
+   - Runtime candidate protection does not bypass host blockers; add `--allow-blocked-manifest` independently when blockers were reviewed. Unknown, duplicate, or non-candidate names fail before preflight.
    - Apply only the unchanged manifest:
      `scripts/codebase-memory-graph.sh cache-prune --manifest /secure/path/cbm-cache.json --apply`
-   - Dry-run and apply preflight every candidate before deletion. Preflight probes holders before SQLite, snapshots regular DB/WAL/SHM files, rejects nonzero WAL, runs `quick_check` through exact `mode=ro&immutable=1`, requires every fingerprint including SHM to remain unchanged, then probes holders again. An absent or zero-byte WAL and a stable regular SHM are allowed.
+   - Dry-run and apply preflight every eligible candidate before deletion. Preflight probes holders before SQLite, snapshots regular DB/WAL/SHM files, rejects nonzero WAL, runs `quick_check` through exact `mode=ro&immutable=1`, requires every fingerprint including SHM to remain unchanged, then probes holders again. An absent or zero-byte WAL and a stable regular SHM are allowed.
    - Apply then rechecks the snapshot, candidate rules, and inode/device/size/mtime fingerprints, with the holder probe last immediately before each deletion. Held databases, nonregular sidecars, nonzero WAL, corrupt databases, drift, fingerprint changes, deletion failures, or database/WAL/SHM residue stop immediately. The failure reports any projects already deleted.
    - Deletion uses `codebase-memory-mcp cli delete_project` only. Never remove project databases directly.
 8. Report exact proof.
    - Indexed project name.
    - Node and edge counts when available.
    - UI URL and tmux session name.
-   - For cleanup: manifest path and digest, before/after project and byte totals, deleted project names, protected/skipped reasons, and any stop condition.
+   - For cleanup: manifest path and digest, manifest/eligible/preflighted candidate totals, runtime protected names/reasons/bytes, before/after project and byte totals, deleted project names, and any stop condition.
    - Missing binaries, unavailable MCP tools, or incomplete proof.
 
 ## Inputs
@@ -72,7 +74,7 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
 - Repository path.
 - Index mode: `fast`, `moderate`, `full`, or `cross-repo-intelligence`.
 - Optional UI port; default `9749`.
-- For cache maintenance: a host-local manifest path and optional explicit ephemeral prefixes.
+- For cache maintenance: a host-local manifest path, optional explicit ephemeral prefixes, and optional exact runtime protected candidate names.
 
 ## Outputs
 

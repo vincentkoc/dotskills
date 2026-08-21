@@ -763,6 +763,64 @@ def preflight_candidates(
     return fingerprints
 
 
+def runtime_protected_candidates(
+    payload: dict[str, Any], names: list[str]
+) -> list[dict[str, Any]]:
+    if len(names) != len(set(names)):
+        raise SafetyError("duplicate --protect-candidate name")
+
+    snapshot_names = {item["name"] for item in payload["snapshot"]}
+    candidates = {item["name"] for item in payload["candidates"]}
+    for name in names:
+        if name not in snapshot_names:
+            raise SafetyError(f"unknown --protect-candidate name: {name}")
+        if name not in candidates:
+            raise SafetyError(f"project is not a manifest candidate: {name}")
+    selected_names = set(names)
+    return [
+        item
+        for item in payload["candidates"]
+        if item["name"] in selected_names
+    ]
+
+
+def candidate_execution_summary(
+    *,
+    manifest_candidates: list[dict[str, Any]],
+    eligible_candidates: list[dict[str, Any]],
+    runtime_protected: list[dict[str, Any]],
+    fingerprints: dict[str, dict[str, dict[str, int] | None]],
+) -> dict[str, Any]:
+    manifest_bytes = sum(item["size_bytes"] for item in manifest_candidates)
+    eligible_bytes = sum(item["size_bytes"] for item in eligible_candidates)
+    protected_report = [
+        {
+            "name": item["name"],
+            "reason": item["reason"],
+            "bytes": item["size_bytes"],
+        }
+        for item in runtime_protected
+    ]
+    return {
+        "candidates": len(manifest_candidates),
+        "candidate_bytes": manifest_bytes,
+        "manifest_candidates": len(manifest_candidates),
+        "manifest_candidate_bytes": manifest_bytes,
+        "eligible_candidates": len(eligible_candidates),
+        "eligible_candidate_bytes": eligible_bytes,
+        "preflighted": len(fingerprints),
+        "preflighted_bytes": sum(
+            candidate["size_bytes"]
+            for candidate in eligible_candidates
+            if candidate["name"] in fingerprints
+        ),
+        "runtime_protected": protected_report,
+        "runtime_protected_bytes": sum(
+            item["bytes"] for item in protected_report
+        ),
+    }
+
+
 def audit(args: argparse.Namespace) -> int:
     binary = cbm_binary(args.cbm_bin)
     cache_dir = cbm_cache_dir(args.cache_dir)
@@ -805,6 +863,15 @@ def audit(args: argparse.Namespace) -> int:
 def prune(args: argparse.Namespace) -> int:
     manifest_path = pathlib.Path(args.manifest).expanduser().resolve()
     payload = load_manifest(manifest_path)
+    runtime_protected = runtime_protected_candidates(
+        payload, args.protect_candidate
+    )
+    protected_names = {item["name"] for item in runtime_protected}
+    eligible_candidates = [
+        item
+        for item in payload["candidates"]
+        if item["name"] not in protected_names
+    ]
     binary = cbm_binary(args.cbm_bin)
     cache_dir = cbm_cache_dir(args.cache_dir)
     if str(cache_dir) != payload.get("cache_dir"):
@@ -829,12 +896,20 @@ def prune(args: argparse.Namespace) -> int:
         )
 
     expected_snapshot = list(payload["snapshot"])
+    for candidate in runtime_protected:
+        revalidate_candidate(candidate, projects, prefixes)
     fingerprints = preflight_candidates(
         binary=binary,
         cache_dir=cache_dir,
-        candidates=payload["candidates"],
+        candidates=eligible_candidates,
         expected_snapshot=expected_snapshot,
         prefixes=prefixes,
+    )
+    execution_summary = candidate_execution_summary(
+        manifest_candidates=payload["candidates"],
+        eligible_candidates=eligible_candidates,
+        runtime_protected=runtime_protected,
+        fingerprints=fingerprints,
     )
 
     if not args.apply:
@@ -843,15 +918,11 @@ def prune(args: argparse.Namespace) -> int:
                 {
                     "action": "prune",
                     "manifest": str(manifest_path),
-                    "candidates": len(payload["candidates"]),
-                    "candidate_bytes": sum(
-                        item["size_bytes"] for item in payload["candidates"]
-                    ),
+                    **execution_summary,
                     "projects": len(projects),
                     "project_bytes": sum(
                         project["size_bytes"] for project in projects
                     ),
-                    "preflighted": len(fingerprints),
                     "blocked_manifest_allowed": args.allow_blocked_manifest,
                     "applied": False,
                 },
@@ -864,7 +935,7 @@ def prune(args: argparse.Namespace) -> int:
     before_bytes = sum(project["size_bytes"] for project in projects)
     deleted: list[dict[str, Any]] = []
     try:
-        for candidate in payload["candidates"]:
+        for candidate in eligible_candidates:
             projects = list_projects(binary)
             validate_snapshot(expected_snapshot, projects)
             path = db_path(cache_dir, candidate["name"])
@@ -909,6 +980,7 @@ def prune(args: argparse.Namespace) -> int:
             {
                 "action": "prune",
                 "manifest": str(manifest_path),
+                **execution_summary,
                 "applied": True,
                 "deleted": deleted,
                 "deleted_bytes": sum(item["bytes"] for item in deleted),
@@ -946,6 +1018,7 @@ def parser() -> argparse.ArgumentParser:
     prune_parser.add_argument("--cbm-bin")
     prune_parser.add_argument("--apply", action="store_true")
     prune_parser.add_argument("--allow-blocked-manifest", action="store_true")
+    prune_parser.add_argument("--protect-candidate", action="append", default=[])
     return root
 
 
