@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import hashlib
 import importlib.util
 import json
@@ -130,35 +131,36 @@ class DatabaseValidationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             database = pathlib.Path(directory) / "project.db"
             size = sqlite_file(database)
-            before = CBM.cache_fingerprint(database)
-            with (
-                mock.patch.object(CBM, "db_is_held", return_value=False),
-                mock.patch.object(
-                    CBM.sqlite3,
-                    "connect",
-                    wraps=sqlite3.connect,
-                ) as connect,
-            ):
-                fingerprint = CBM.validate_database(database, size)
+            baseline = CBM.capture_cache_baseline(database, size)
+            with mock.patch.object(
+                CBM.sqlite3,
+                "connect",
+                wraps=sqlite3.connect,
+            ) as connect:
+                CBM.validate_database(database, baseline)
 
             encoded = urllib.parse.quote(str(database), safe="/")
             connect.assert_called_once_with(
                 f"file:{encoded}?mode=ro&immutable=1",
                 uri=True,
             )
-            self.assertEqual(fingerprint, before)
+            self.assertEqual(CBM.cache_fingerprint(database), baseline)
 
-    def test_holder_before_validation_does_not_open_sqlite(self) -> None:
+    def test_validation_core_does_not_probe_holders(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = pathlib.Path(directory) / "project.db"
             size = sqlite_file(database)
+            baseline = CBM.capture_cache_baseline(database, size)
             with (
-                mock.patch.object(CBM, "db_is_held", return_value=True),
-                mock.patch.object(CBM.sqlite3, "connect") as connect,
-                self.assertRaisesRegex(CBM.SafetyError, "project DB is held"),
+                mock.patch.object(CBM, "run_holder_chunk") as holder_probe,
+                mock.patch.object(
+                    CBM.sqlite3,
+                    "connect",
+                    wraps=sqlite3.connect,
+                ),
             ):
-                CBM.validate_database(database, size)
-            connect.assert_not_called()
+                CBM.validate_database(database, baseline)
+            holder_probe.assert_not_called()
 
     def test_database_and_sidecar_mutation_during_validation_fails(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -198,7 +200,6 @@ class DatabaseValidationTests(unittest.TestCase):
                         return Connection()
 
                     with (
-                        mock.patch.object(CBM, "db_is_held", return_value=False),
                         mock.patch.object(
                             CBM.sqlite3,
                             "connect",
@@ -209,7 +210,312 @@ class DatabaseValidationTests(unittest.TestCase):
                             "fingerprint changed during validation",
                         ),
                     ):
-                        CBM.validate_database(database, size)
+                        baseline = CBM.capture_cache_baseline(database, size)
+                        CBM.validate_database(database, baseline)
+
+
+class HolderSweepTests(unittest.TestCase):
+    def test_inventory_and_chunks_preserve_candidate_path_and_unicode_order(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache = pathlib.Path(directory)
+            candidates = [
+                {"name": "fixture-z"},
+                {"name": "fixture-é"},
+            ]
+            fingerprints = {}
+            for candidate in candidates:
+                database = cache / f"{candidate['name']}.db"
+                fingerprints[candidate["name"]] = {
+                    database.name: {"size": 1},
+                    f"{database.name}-wal": {"size": 0},
+                    f"{database.name}-shm": {"size": 1},
+                }
+
+            inventory = CBM.holder_inventory(
+                cache_dir=cache,
+                candidates=candidates,
+                fingerprints=fingerprints,
+            )
+            self.assertEqual(
+                [
+                    (item["candidate"], item["kind"])
+                    for item in inventory
+                ],
+                [
+                    ("fixture-z", "db"),
+                    ("fixture-z", "wal"),
+                    ("fixture-z", "shm"),
+                    ("fixture-é", "db"),
+                    ("fixture-é", "wal"),
+                    ("fixture-é", "shm"),
+                ],
+            )
+            self.assertEqual(
+                CBM.lsof_argv_cost(inventory[3]["path"]),
+                len(os.fsencode(inventory[3]["path"]))
+                + 1
+                + CBM.struct.calcsize("P"),
+            )
+
+            base_cost = sum(
+                CBM.lsof_argv_cost(value)
+                for value in ("/usr/bin/lsof", "-F0pn", "--")
+            ) + CBM.struct.calcsize("P")
+            budget = (
+                base_cost
+                + CBM.lsof_argv_cost(inventory[0]["path"])
+                + CBM.lsof_argv_cost(inventory[1]["path"])
+            )
+            chunks = CBM.chunk_holder_inventory(
+                "/usr/bin/lsof",
+                inventory,
+                budget=budget,
+            )
+            self.assertEqual(
+                [
+                    (item["candidate"], item["kind"])
+                    for chunk in chunks
+                    for item in chunk
+                ],
+                [
+                    ("fixture-z", "db"),
+                    ("fixture-z", "wal"),
+                    ("fixture-z", "shm"),
+                    ("fixture-é", "db"),
+                    ("fixture-é", "wal"),
+                    ("fixture-é", "shm"),
+                ],
+            )
+            self.assertEqual(
+                [
+                    (item["candidate"], item["kind"])
+                    for item in chunks[0]
+                ],
+                [("fixture-z", "db"), ("fixture-z", "wal")],
+            )
+
+    def test_nul_lsof_output_attributes_multiple_paths_and_pids(self) -> None:
+        inventory = [
+            {"candidate": "first", "kind": "db", "path": "/cache/first.db"},
+            {"candidate": "second", "kind": "shm", "path": "/cache/second.db-shm"},
+        ]
+        holders = CBM.parse_lsof_holders(
+            (
+                b"p12\0\nf3\0n/cache/first.db\0\n"
+                b"p34\0\nf7\0n/cache/second.db-shm\0\n"
+            ),
+            inventory,
+        )
+        self.assertEqual(
+            holders,
+            [
+                {**inventory[0], "pid": "12"},
+                {**inventory[1], "pid": "34"},
+            ],
+        )
+        with (
+            mock.patch.object(
+                CBM.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess(
+                    ["lsof"],
+                    0,
+                    stdout=(
+                        b"p12\0f3\0n/cache/first.db\0\n"
+                        b"p34\0f7\0n/cache/second.db-shm\0"
+                    ),
+                    stderr=b"",
+                ),
+            ),
+            self.assertRaises(CBM.SafetyError) as raised,
+        ):
+            CBM.run_holder_chunk("/usr/bin/lsof", inventory)
+        message = str(raised.exception)
+        self.assertIn("candidate=first kind=db path=/cache/first.db pid=12", message)
+        self.assertIn(
+            "candidate=second kind=shm path=/cache/second.db-shm pid=34",
+            message,
+        )
+
+    def test_lsof_failures_are_closed_without_retry(self) -> None:
+        inventory = [
+            {"candidate": "first", "kind": "db", "path": "/cache/first.db"}
+        ]
+        cases = {
+            "exit": (
+                subprocess.CompletedProcess(
+                    ["lsof"], 2, stdout=b"", stderr=b"failed"
+                ),
+                "holder sweep failed",
+            ),
+            "malformed": (
+                subprocess.CompletedProcess(
+                    ["lsof"], 0, stdout=b"p12\0f3\0", stderr=b""
+                ),
+                "without an attributed",
+            ),
+            "unmapped": (
+                subprocess.CompletedProcess(
+                    ["lsof"],
+                    0,
+                    stdout=b"p12\0f3\0n/cache/other.db\0",
+                    stderr=b"",
+                ),
+                "unmapped cache path",
+            ),
+            "no-match-output": (
+                subprocess.CompletedProcess(
+                    ["lsof"], 1, stdout=b"unexpected", stderr=b""
+                ),
+                "malformed no-match",
+            ),
+        }
+        for name, (result, message) in cases.items():
+            with self.subTest(name=name):
+                with (
+                    mock.patch.object(
+                        CBM.subprocess,
+                        "run",
+                        return_value=result,
+                    ) as run_lsof,
+                    self.assertRaisesRegex(CBM.SafetyError, message),
+                ):
+                    CBM.run_holder_chunk("/usr/bin/lsof", inventory)
+                run_lsof.assert_called_once()
+
+        exceptional = {
+            "timeout": (
+                subprocess.TimeoutExpired("lsof", 10),
+                "timed out",
+            ),
+            "e2big": (
+                OSError(errno.E2BIG, "argument list too long"),
+                "argv limit",
+            ),
+        }
+        for name, (error, message) in exceptional.items():
+            with self.subTest(name=name):
+                with (
+                    mock.patch.object(
+                        CBM.subprocess,
+                        "run",
+                        side_effect=error,
+                    ) as run_lsof,
+                    self.assertRaisesRegex(CBM.SafetyError, message),
+                ):
+                    CBM.run_holder_chunk("/usr/bin/lsof", inventory)
+                run_lsof.assert_called_once()
+
+    def test_all_before_chunks_precede_sqlite_and_after_chunks_follow_close(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache = pathlib.Path(directory)
+            candidates = []
+            for name in ("first", "second"):
+                path = cache / f"{name}.db"
+                size = sqlite_file(path)
+                candidates.append(
+                    {
+                        "name": name,
+                        "root_path": f"/missing/{name}",
+                        "size_bytes": size,
+                    }
+                )
+            chunks = [
+                [{"candidate": "first", "kind": "db", "path": "/first"}],
+                [{"candidate": "second", "kind": "db", "path": "/second"}],
+            ]
+            events = []
+
+            def holder(chunk_lsof, chunk):
+                self.assertEqual(chunk_lsof, "/usr/bin/lsof")
+                events.append(f"lsof:{chunk[0]['candidate']}")
+
+            def validate(path, baseline):
+                self.assertEqual(
+                    CBM.cache_fingerprint(path),
+                    baseline,
+                )
+                events.append(f"sqlite:{path.stem}")
+
+            with (
+                mock.patch.object(CBM, "list_projects", return_value=[]),
+                mock.patch.object(CBM, "validate_snapshot"),
+                mock.patch.object(CBM, "revalidate_candidate"),
+                mock.patch.object(CBM.shutil, "which", return_value="/usr/bin/lsof"),
+                mock.patch.object(
+                    CBM,
+                    "chunk_holder_inventory",
+                    return_value=chunks,
+                ),
+                mock.patch.object(CBM, "run_holder_chunk", side_effect=holder),
+                mock.patch.object(CBM, "validate_database", side_effect=validate),
+            ):
+                CBM.preflight_candidates(
+                    binary="codebase-memory-mcp",
+                    cache_dir=cache,
+                    candidates=candidates,
+                    expected_snapshot=[],
+                    prefixes=[],
+                )
+
+            self.assertEqual(
+                events,
+                [
+                    "lsof:first",
+                    "lsof:second",
+                    "sqlite:first",
+                    "sqlite:second",
+                    "lsof:first",
+                    "lsof:second",
+                ],
+            )
+
+    def test_later_before_holder_prevents_all_sqlite_opens(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache = pathlib.Path(directory)
+            database = cache / "first.db"
+            candidate = {
+                "name": "first",
+                "root_path": "/missing/first",
+                "size_bytes": sqlite_file(database),
+            }
+            chunks = [
+                [{"candidate": "first", "kind": "db", "path": "/first"}],
+                [{"candidate": "first", "kind": "shm", "path": "/first-shm"}],
+            ]
+            with (
+                mock.patch.object(CBM, "list_projects", return_value=[]),
+                mock.patch.object(CBM, "validate_snapshot"),
+                mock.patch.object(CBM, "revalidate_candidate"),
+                mock.patch.object(CBM.shutil, "which", return_value="/usr/bin/lsof"),
+                mock.patch.object(
+                    CBM,
+                    "chunk_holder_inventory",
+                    return_value=chunks,
+                ),
+                mock.patch.object(
+                    CBM,
+                    "run_holder_chunk",
+                    side_effect=[
+                        None,
+                        CBM.SafetyError("project DB is held"),
+                    ],
+                ),
+                mock.patch.object(CBM, "validate_database") as validate,
+                self.assertRaisesRegex(CBM.SafetyError, "project DB is held"),
+            ):
+                CBM.preflight_candidates(
+                    binary="codebase-memory-mcp",
+                    cache_dir=cache,
+                    candidates=[candidate],
+                    expected_snapshot=[],
+                    prefixes=[],
+                )
+            validate.assert_not_called()
 
 
 class CacheManifestTests(unittest.TestCase):
@@ -221,6 +527,8 @@ class CacheManifestTests(unittest.TestCase):
         self.cache = self.temp / "cache"
         self.state = self.temp / "projects.json"
         self.deleted = self.temp / "deleted.jsonl"
+        self.events = self.temp / "events"
+        self.lsof_calls = self.temp / "lsof-calls.jsonl"
         self.manifest = self.temp / "manifest.json"
         self.bin = self.temp / "bin"
         self.bin.mkdir()
@@ -264,7 +572,12 @@ class CacheManifestTests(unittest.TestCase):
 import json, os, pathlib, sys
 state = pathlib.Path(os.environ["FAKE_CBM_STATE"])
 payload = json.loads(state.read_text())
+events = pathlib.Path(os.environ["FAKE_EVENTS"])
+def event(value):
+    with events.open("a") as handle:
+        handle.write(value + "\\n")
 if sys.argv[1:3] == ["cli", "list_projects"]:
+    event("list_projects")
     calls = pathlib.Path(os.environ["FAKE_CBM_LIST_CALLS"])
     call = int(calls.read_text()) if calls.exists() else 0
     calls.write_text(str(call + 1))
@@ -275,6 +588,7 @@ if sys.argv[1:3] == ["cli", "list_projects"]:
     raise SystemExit(0)
 if sys.argv[1:3] == ["cli", "delete_project"]:
     name = json.loads(sys.argv[3])["project"]
+    event(f"delete:{name}")
     deleted = pathlib.Path(os.environ["FAKE_CBM_DELETED"])
     with deleted.open("a") as handle:
         handle.write(json.dumps({"project": name}) + "\\n")
@@ -298,10 +612,32 @@ raise SystemExit(2)
         fake_lsof = self.bin / "lsof"
         fake_lsof.write_text(
             """#!/usr/bin/env python3
-import os, pathlib, sys
+import json, os, pathlib, sys
 state = pathlib.Path(os.environ["FAKE_LSOF_STATE"])
 call = int(state.read_text()) if state.exists() else 0
 state.write_text(str(call + 1))
+with pathlib.Path(os.environ["FAKE_EVENTS"]).open("a") as handle:
+    handle.write("lsof\\n")
+paths = sys.argv[sys.argv.index("--") + 1:]
+calls = pathlib.Path(os.environ["FAKE_LSOF_CALLS"])
+with calls.open("a") as handle:
+    handle.write(json.dumps(sys.argv[1:]) + "\\n")
+if os.environ.get("FAKE_LSOF_MUTATE_ON_CALL") == str(call + 1):
+    target = pathlib.Path(os.environ["FAKE_LSOF_MUTATE_PATH"])
+    action = os.environ.get("FAKE_LSOF_MUTATE_ACTION", "append")
+    if action == "create":
+        target.write_bytes(b"")
+    elif action == "remove":
+        target.unlink()
+    elif action == "touch":
+        metadata = target.stat()
+        os.utime(
+            target,
+            ns=(metadata.st_atime_ns, metadata.st_mtime_ns + 1_000_000_000),
+        )
+    else:
+        with target.open("ab") as handle:
+            handle.write(b"x")
 statuses = os.environ.get("FAKE_LSOF_STATUSES")
 if statuses:
     values = [int(value) for value in statuses.split(",")]
@@ -309,7 +645,15 @@ if statuses:
 else:
     status = int(os.environ.get("FAKE_LSOF_STATUS", "1"))
 if status == 0:
-    print("p123")
+    holders = json.loads(os.environ.get("FAKE_LSOF_HOLDERS", "null"))
+    if holders is None:
+        holders = [{"pid": "123", "path": paths[0]}]
+    output = bytearray()
+    for descriptor, holder in enumerate(holders, start=3):
+        output.extend(
+            f"p{holder['pid']}\\0f{descriptor}\\0n{holder['path']}\\0".encode()
+        )
+    sys.stdout.buffer.write(output)
 raise SystemExit(status)
 """
         )
@@ -319,7 +663,9 @@ raise SystemExit(status)
             "PATH": f"{self.bin}:{os.environ['PATH']}",
             "FAKE_CBM_STATE": str(self.state),
             "FAKE_CBM_DELETED": str(self.deleted),
+            "FAKE_EVENTS": str(self.events),
             "FAKE_CBM_LIST_CALLS": str(self.temp / "list-calls"),
+            "FAKE_LSOF_CALLS": str(self.lsof_calls),
             "FAKE_LSOF_STATE": str(self.temp / "lsof-state"),
             "CBM_CACHE_DIR": str(self.cache),
         }
@@ -421,6 +767,64 @@ raise SystemExit(status)
         remaining = json.loads(self.state.read_text())
         self.assertEqual([item["name"] for item in remaining], [self.main_name])
         self.assertFalse((self.cache / f"{self.worktree_name}.db").exists())
+        events = self.events.read_text().splitlines()
+        delete_index = events.index(f"delete:{self.worktree_name}")
+        self.assertEqual(events[delete_index - 1], "lsof")
+
+    def test_successful_holder_call_counts_match_batch_contract(self) -> None:
+        self.audit()
+        dry_run = self.run_script(
+            "cache-prune",
+            "--manifest",
+            str(self.manifest),
+            "--cache-dir",
+            str(self.cache),
+        )
+        self.assertEqual(json.loads(dry_run.stdout)["preflighted"], 1)
+        self.assertEqual(
+            int(pathlib.Path(self.environment["FAKE_LSOF_STATE"]).read_text()),
+            2,
+        )
+        calls = [
+            json.loads(line)
+            for line in self.lsof_calls.read_text().splitlines()
+        ]
+        self.assertTrue(all(call[:2] == ["-F0pn", "--"] for call in calls))
+        self.assertEqual(
+            calls[0][2:],
+            [
+                str(
+                    self.cache.resolve()
+                    / f"{self.worktree_name}.db"
+                )
+            ],
+        )
+
+        pathlib.Path(self.environment["FAKE_LSOF_STATE"]).unlink()
+        self.lsof_calls.unlink()
+        applied = self.apply()
+        self.assertEqual(
+            [item["name"] for item in json.loads(applied.stdout)["deleted"]],
+            [self.worktree_name],
+        )
+        self.assertEqual(
+            int(pathlib.Path(self.environment["FAKE_LSOF_STATE"]).read_text()),
+            3,
+        )
+
+    def test_apply_uses_two_batch_sweeps_plus_one_probe_per_candidate(self) -> None:
+        name = "fixture-z-ephemeral"
+        self.add_ephemeral_candidate(name)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        result = self.apply()
+        self.assertEqual(
+            [item["name"] for item in json.loads(result.stdout)["deleted"]],
+            [self.worktree_name, name],
+        )
+        self.assertEqual(
+            int(pathlib.Path(self.environment["FAKE_LSOF_STATE"]).read_text()),
+            4,
+        )
 
     def test_symlink_named_graph_is_a_guarded_alias_duplicate(self) -> None:
         alias = self.temp / "legacy-home" / "repo"
@@ -551,6 +955,64 @@ raise SystemExit(status)
             )
             self.assertEqual(json.loads(result.stdout)["preflighted"], 1)
             self.assertEqual(CBM.cache_fingerprint(database), before)
+        first_call = json.loads(self.lsof_calls.read_text().splitlines()[0])
+        self.assertEqual(
+            first_call[2:],
+            [
+                str(database.resolve()),
+                str(pathlib.Path(f"{database}-wal").resolve()),
+                str(pathlib.Path(f"{database}-shm").resolve()),
+            ],
+        )
+        self.assertFalse(self.deleted.exists())
+
+    def test_absent_sidecar_created_during_before_sweep_fails(self) -> None:
+        database = self.cache / f"{self.worktree_name}.db"
+        sidecar = pathlib.Path(f"{database}-shm")
+        self.audit()
+        environment = {
+            **self.environment,
+            "FAKE_LSOF_MUTATE_ON_CALL": "1",
+            "FAKE_LSOF_MUTATE_PATH": str(sidecar),
+            "FAKE_LSOF_MUTATE_ACTION": "create",
+        }
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("during the before-holder sweep", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_existing_sidecar_metadata_drift_during_before_sweep_fails(
+        self,
+    ) -> None:
+        database = self.cache / f"{self.worktree_name}.db"
+        sidecar = pathlib.Path(f"{database}-shm")
+        sidecar.write_bytes(b"\0" * 32768)
+        self.audit()
+        environment = {
+            **self.environment,
+            "FAKE_LSOF_MUTATE_ON_CALL": "1",
+            "FAKE_LSOF_MUTATE_PATH": str(sidecar),
+            "FAKE_LSOF_MUTATE_ACTION": "touch",
+        }
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("during the before-holder sweep", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_existing_sidecar_removed_during_after_sweep_fails(self) -> None:
+        database = self.cache / f"{self.worktree_name}.db"
+        sidecar = pathlib.Path(f"{database}-shm")
+        sidecar.write_bytes(b"\0" * 32768)
+        self.audit()
+        environment = {
+            **self.environment,
+            "FAKE_LSOF_MUTATE_ON_CALL": "2",
+            "FAKE_LSOF_MUTATE_PATH": str(sidecar),
+            "FAKE_LSOF_MUTATE_ACTION": "remove",
+        }
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("during the after-holder sweep", result.stderr)
         self.assertFalse(self.deleted.exists())
 
     def test_nonzero_orphan_wal_stops_before_delete(self) -> None:
@@ -678,6 +1140,10 @@ raise SystemExit(status)
         self.assertEqual(self.state.read_text(), before_projects)
         self.assertEqual(CBM.cache_fingerprint(database), before_cache)
         self.assertFalse(self.deleted.exists())
+        self.assertFalse(
+            pathlib.Path(self.environment["FAKE_LSOF_STATE"]).exists()
+        )
+        self.assertFalse(self.lsof_calls.exists())
 
     def test_protected_corrupt_candidate_leaves_exact_data_untouched(self) -> None:
         corrupt_name = "fixture-a-corrupt"
@@ -754,6 +1220,14 @@ raise SystemExit(status)
         }
         self.assertEqual(remaining, {self.main_name, corrupt_name})
         self.assertEqual(CBM.cache_fingerprint(corrupt_database), before)
+        lsof_argv = [
+            argument
+            for line in self.lsof_calls.read_text().splitlines()
+            for argument in json.loads(line)
+        ]
+        self.assertFalse(
+            any(corrupt_name in argument for argument in lsof_argv)
+        )
 
     def test_protected_ephemeral_root_reappearing_fails(self) -> None:
         name = "fixture-protected-ephemeral"

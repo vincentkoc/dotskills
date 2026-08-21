@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import errno
 import hashlib
 import json
 import os
@@ -11,6 +12,7 @@ import shutil
 import socket
 import sqlite3
 import stat
+import struct
 import subprocess
 import sys
 import urllib.parse
@@ -18,6 +20,8 @@ from typing import Any
 
 
 SCHEMA_VERSION = 1
+LSOF_ARGV_BUDGET = 128 * 1024
+LSOF_TIMEOUT_SECONDS = 10
 HOST_BLOCKING_REASONS = {
     "canonical_clone_not_full",
     "empty_root",
@@ -580,21 +584,6 @@ def path_exists(path: pathlib.Path) -> bool:
     return True
 
 
-def db_is_held(path: pathlib.Path) -> bool:
-    lsof = shutil.which("lsof")
-    if not lsof:
-        raise SafetyError("lsof is required for cache pruning")
-    existing = [
-        str(candidate) for candidate in cache_paths(path) if path_exists(candidate)
-    ]
-    if not existing:
-        return False
-    result = run([lsof, "-F", "p", "--", *existing], check=False)
-    if result.returncode not in (0, 1):
-        raise SafetyError(f"lsof failed for {path}: {result.stderr.strip()}")
-    return bool(result.stdout.strip())
-
-
 def cache_fingerprint(path: pathlib.Path) -> dict[str, dict[str, int] | None]:
     fingerprint: dict[str, dict[str, int] | None] = {}
     for candidate in cache_paths(path):
@@ -616,22 +605,11 @@ def cache_fingerprint(path: pathlib.Path) -> dict[str, dict[str, int] | None]:
     return fingerprint
 
 
-def require_cache_absent(path: pathlib.Path) -> None:
-    residue = [
-        str(candidate) for candidate in cache_paths(path) if path_exists(candidate)
-    ]
-    if residue:
-        raise SafetyError("project cache residue remains: " + ", ".join(residue))
-
-
-def validate_database(
+def capture_cache_baseline(
     path: pathlib.Path, expected_size: int
 ) -> dict[str, dict[str, int] | None]:
-    if db_is_held(path):
-        raise SafetyError(f"project DB is held: {path.name}")
-
-    before = cache_fingerprint(path)
-    database = before[path.name]
+    fingerprint = cache_fingerprint(path)
+    database = fingerprint[path.name]
     if database is None:
         raise SafetyError(f"project DB is missing, non-regular, or symlinked: {path}")
     if database["size"] != expected_size:
@@ -641,10 +619,28 @@ def validate_database(
         )
 
     wal_path = pathlib.Path(f"{path}-wal")
-    wal = before[wal_path.name]
+    wal = fingerprint[wal_path.name]
     if wal is not None and wal["size"] != 0:
         raise SafetyError(f"project WAL is nonzero: {wal_path}")
+    return fingerprint
 
+
+def require_cache_absent(path: pathlib.Path) -> None:
+    residue = [
+        str(candidate) for candidate in cache_paths(path) if path_exists(candidate)
+    ]
+    if residue:
+        raise SafetyError("project cache residue remains: " + ", ".join(residue))
+
+
+def validate_database(
+    path: pathlib.Path,
+    baseline: dict[str, dict[str, int] | None],
+) -> None:
+    if cache_fingerprint(path) != baseline:
+        raise SafetyError(
+            f"project cache fingerprint changed before validation: {path.name}"
+        )
     try:
         encoded_path = urllib.parse.quote(str(path), safe="/")
         connection = sqlite3.connect(
@@ -659,13 +655,171 @@ def validate_database(
         raise SafetyError(f"project DB is corrupt: {path}: {error}") from error
     if not row or row[0] != "ok":
         raise SafetyError(f"project DB quick_check failed: {path}: {row}")
-    if cache_fingerprint(path) != before:
+    if cache_fingerprint(path) != baseline:
         raise SafetyError(
             f"project cache fingerprint changed during validation: {path.name}"
         )
-    if db_is_held(path):
-        raise SafetyError(f"project DB is held: {path.name}")
-    return before
+
+
+def lsof_argv_cost(value: str) -> int:
+    return len(os.fsencode(value)) + 1 + struct.calcsize("P")
+
+
+def holder_inventory(
+    *,
+    cache_dir: pathlib.Path,
+    candidates: list[dict[str, Any]],
+    fingerprints: dict[str, dict[str, dict[str, int] | None]],
+) -> list[dict[str, str]]:
+    inventory: list[dict[str, str]] = []
+    kinds = ("db", "wal", "shm")
+    for candidate in candidates:
+        database = db_path(cache_dir, candidate["name"])
+        baseline = fingerprints[candidate["name"]]
+        for kind, path in zip(kinds, cache_paths(database), strict=True):
+            if baseline[path.name] is not None:
+                inventory.append(
+                    {
+                        "candidate": candidate["name"],
+                        "kind": kind,
+                        "path": str(path),
+                    }
+                )
+    return inventory
+
+
+def chunk_holder_inventory(
+    lsof: str,
+    inventory: list[dict[str, str]],
+    *,
+    budget: int = LSOF_ARGV_BUDGET,
+) -> list[list[dict[str, str]]]:
+    base = [lsof, "-F0pn", "--"]
+    base_cost = (
+        sum(lsof_argv_cost(value) for value in base)
+        + struct.calcsize("P")
+    )
+    chunks: list[list[dict[str, str]]] = []
+    current: list[dict[str, str]] = []
+    current_cost = base_cost
+    for item in inventory:
+        item_cost = lsof_argv_cost(item["path"])
+        if base_cost + item_cost > budget:
+            raise SafetyError(
+                f"project cache path exceeds lsof argv budget: {item['path']}"
+            )
+        if current and current_cost + item_cost > budget:
+            chunks.append(current)
+            current = []
+            current_cost = base_cost
+        current.append(item)
+        current_cost += item_cost
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def parse_lsof_holders(
+    output: bytes,
+    inventory: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    by_path = {item["path"]: item for item in inventory}
+    current_pid: str | None = None
+    current_file = False
+    holders: list[dict[str, str]] = []
+    for raw in output.split(b"\0"):
+        field = os.fsdecode(raw)
+        if field.startswith("\n"):
+            field = field[1:]
+        if not field or field == "\n":
+            continue
+        tag, value = field[0], field[1:]
+        if tag == "p":
+            if not value.isdigit():
+                raise SafetyError("lsof returned malformed process output")
+            current_pid = value
+            current_file = False
+            continue
+        if tag == "f":
+            if current_pid is None or not value:
+                raise SafetyError("lsof returned malformed file output")
+            current_file = True
+            continue
+        if (
+            tag != "n"
+            or current_pid is None
+            or not current_file
+            or not value
+        ):
+            raise SafetyError("lsof returned malformed holder output")
+        item = by_path.get(value)
+        if item is None:
+            raise SafetyError(f"lsof returned an unmapped cache path: {value}")
+        holders.append({**item, "pid": current_pid})
+        current_file = False
+    if not holders:
+        raise SafetyError("lsof reported a holder without an attributed cache path")
+    return holders
+
+
+def run_holder_chunk(
+    lsof: str,
+    inventory: list[dict[str, str]],
+) -> None:
+    command = [lsof, "-F0pn", "--", *(item["path"] for item in inventory)]
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            timeout=LSOF_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SafetyError("lsof holder sweep timed out") from error
+    except OSError as error:
+        if error.errno == errno.E2BIG:
+            raise SafetyError(
+                "lsof holder sweep exceeded the system argv limit"
+            ) from error
+        raise SafetyError(f"lsof holder sweep failed to start: {error}") from error
+
+    if result.returncode == 0:
+        holders = parse_lsof_holders(result.stdout, inventory)
+        detail = ", ".join(
+            f"candidate={item['candidate']} kind={item['kind']} "
+            f"path={item['path']} pid={item['pid']}"
+            for item in holders
+        )
+        raise SafetyError(f"project DB is held: {detail}")
+    if result.returncode == 1:
+        if result.stdout or result.stderr:
+            raise SafetyError("lsof returned malformed no-match output")
+        return
+    detail = os.fsdecode(result.stderr).strip() or f"exit {result.returncode}"
+    raise SafetyError(f"lsof holder sweep failed: {detail}")
+
+
+def run_holder_sweep(
+    lsof: str,
+    chunks: list[list[dict[str, str]]],
+) -> None:
+    for chunk in chunks:
+        run_holder_chunk(lsof, chunk)
+
+
+def require_fingerprints(
+    *,
+    cache_dir: pathlib.Path,
+    candidates: list[dict[str, Any]],
+    fingerprints: dict[str, dict[str, dict[str, int] | None]],
+    phase: str,
+) -> None:
+    for candidate in candidates:
+        path = db_path(cache_dir, candidate["name"])
+        if cache_fingerprint(path) != fingerprints[candidate["name"]]:
+            raise SafetyError(
+                f"project cache fingerprint changed {phase}: {candidate['name']}"
+            )
 
 
 def revalidate_candidate(
@@ -750,17 +904,56 @@ def preflight_candidates(
     candidates: list[dict[str, Any]],
     expected_snapshot: list[dict[str, Any]],
     prefixes: list[pathlib.Path],
-) -> dict[str, dict[str, dict[str, int] | None]]:
+) -> tuple[
+    dict[str, dict[str, dict[str, int] | None]],
+    str | None,
+]:
     fingerprints: dict[str, dict[str, dict[str, int] | None]] = {}
     for candidate in candidates:
         projects = list_projects(binary)
         validate_snapshot(expected_snapshot, projects)
         revalidate_candidate(candidate, projects, prefixes)
         path = db_path(cache_dir, candidate["name"])
-        fingerprints[candidate["name"]] = validate_database(
+        fingerprints[candidate["name"]] = capture_cache_baseline(
             path, candidate["size_bytes"]
         )
-    return fingerprints
+    if not candidates:
+        return fingerprints, None
+
+    lsof = shutil.which("lsof")
+    if not lsof:
+        raise SafetyError("lsof is required for cache pruning")
+    inventory = holder_inventory(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=fingerprints,
+    )
+    chunks = chunk_holder_inventory(lsof, inventory)
+
+    run_holder_sweep(lsof, chunks)
+    require_fingerprints(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=fingerprints,
+        phase="during the before-holder sweep",
+    )
+    for candidate in candidates:
+        path = db_path(cache_dir, candidate["name"])
+        validate_database(path, fingerprints[candidate["name"]])
+    require_fingerprints(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=fingerprints,
+        phase="after database validation",
+    )
+    run_holder_sweep(lsof, chunks)
+    require_fingerprints(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=fingerprints,
+        phase="during the after-holder sweep",
+    )
+    return fingerprints, lsof
 
 
 def runtime_protected_candidates(
@@ -898,7 +1091,7 @@ def prune(args: argparse.Namespace) -> int:
     expected_snapshot = list(payload["snapshot"])
     for candidate in runtime_protected:
         revalidate_candidate(candidate, projects, prefixes)
-    fingerprints = preflight_candidates(
+    fingerprints, lsof = preflight_candidates(
         binary=binary,
         cache_dir=cache_dir,
         candidates=eligible_candidates,
@@ -944,9 +1137,19 @@ def prune(args: argparse.Namespace) -> int:
                 raise SafetyError(
                     f"project cache fingerprint changed: {candidate['name']}"
                 )
-            if db_is_held(path):
-                raise SafetyError(f"project DB is held: {candidate['name']}")
-
+            if lsof is None:
+                raise SafetyError("lsof is required for cache pruning")
+            final_inventory = holder_inventory(
+                cache_dir=cache_dir,
+                candidates=[candidate],
+                fingerprints=fingerprints,
+            )
+            final_chunks = chunk_holder_inventory(lsof, final_inventory)
+            if len(final_chunks) != 1:
+                raise SafetyError(
+                    f"candidate cache paths exceed one lsof call: {candidate['name']}"
+                )
+            run_holder_chunk(lsof, final_chunks[0])
             delete_project(binary, candidate["name"])
             projects = list_projects(binary)
             if any(
