@@ -1,10 +1,10 @@
 interface:
   display_name: "Codebase Memory MCP"
-  short_description: "Index repositories and verify graph-backed code discovery."
+  short_description: "Index canonical checkouts and audit duplicate worktree graphs."
   icon_small: "./assets/icon.jpg"
   icon_large: "./assets/icon.jpg"
   brand_color: "#111827"
-  default_prompt: "Index this repository with codebase-memory-mcp, verify the graph and UI, then use graph tools for focused code discovery."
+  default_prompt: "Resolve linked worktrees to their canonical owning checkout before indexing. Audit cache with a reviewed manifest; prune through the CLI only."
 
 policy:
   allow_implicit_invocation: true

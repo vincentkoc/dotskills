@@ -8,22 +8,38 @@ Usage: codebase-memory-graph.sh <command> [options]
 Commands:
   init       Configure UI, index the repo, start UI, and run a schema smoke check
   index      Index the repo
+  canonical  Print the canonical owning checkout used for indexing
   start-ui   Start the tmux keepalive that exposes the HTTP graph UI
   stop-ui    Stop the tmux keepalive session for the repo
   status     Show config, projects, and UI listener state
   schema     Print graph schema for the repo's indexed project
+  cache-audit
+             Write a guarded duplicate/dead-root cache manifest without deleting
+  cache-prune
+             Validate a cache manifest; add --apply to delete through the CLI
   keepalive  Internal command used inside tmux
 
 Options:
   --repo PATH     Repository root. Defaults to git root or current directory.
   --mode MODE     Index mode: fast, moderate, full, cross-repo-intelligence. Default: full.
   --port PORT     UI port. Default: 9749.
+  --manifest PATH Required for cache-audit and cache-prune.
+  --ephemeral-prefix PATH
+                  Allow missing-root deletion candidates below this explicit prefix.
+                  Repeat for more than one prefix.
+  --cache-dir PATH
+                  Override the codebase-memory-mcp cache root.
+  --apply         Execute cache-prune. Without it, cache-prune is a dry run.
 EOF
 }
 
 repo=""
 mode="full"
 port="9749"
+manifest=""
+cache_dir=""
+apply="false"
+ephemeral_prefixes=()
 command="${1:-}"
 [[ -n "$command" ]] && shift || true
 
@@ -40,6 +56,22 @@ while [[ $# -gt 0 ]]; do
     --port)
       port="${2:?--port requires a value}"
       shift 2
+      ;;
+    --manifest)
+      manifest="${2:?--manifest requires a path}"
+      shift 2
+      ;;
+    --ephemeral-prefix)
+      ephemeral_prefixes+=("${2:?--ephemeral-prefix requires a path}")
+      shift 2
+      ;;
+    --cache-dir)
+      cache_dir="${2:?--cache-dir requires a path}"
+      shift 2
+      ;;
+    --apply)
+      apply="true"
+      shift
       ;;
     -h|--help)
       usage
@@ -65,13 +97,27 @@ need() {
   }
 }
 
+cache_helper() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  printf '%s/codebase_memory_cache.py\n' "$script_dir"
+}
+
 resolve_repo() {
-  if [[ -n "$repo" ]]; then
-    cd "$repo"
-    pwd
-    return
+  local requested resolved
+  need git
+  need python3
+  requested="$repo"
+  if [[ -z "$requested" ]]; then
+    requested="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
   fi
-  git rev-parse --show-toplevel 2>/dev/null || pwd
+  resolved="$(python3 "$(cache_helper)" resolve "$requested")"
+  RESOLVED_JSON="$resolved" python3 - <<'PY'
+import json
+import os
+
+print(json.loads(os.environ["RESOLVED_JSON"])["canonical_root"])
+PY
 }
 
 json_index_payload() {
@@ -187,6 +233,53 @@ cmd_index() {
   codebase-memory-mcp cli index_repository "$payload"
 }
 
+cmd_canonical() {
+  local root
+  root="$(resolve_repo)"
+  printf 'repo=%s\n' "$root"
+}
+
+cmd_cache_audit() {
+  local helper args
+  need codebase-memory-mcp
+  need python3
+  [[ -n "$manifest" ]] || {
+    printf 'cache-audit requires --manifest PATH\n' >&2
+    exit 2
+  }
+  [[ "$apply" == "false" ]] || {
+    printf -- '--apply is valid only with cache-prune\n' >&2
+    exit 2
+  }
+  helper="$(cache_helper)"
+  args=(audit --manifest "$manifest")
+  [[ -z "$cache_dir" ]] || args+=(--cache-dir "$cache_dir")
+  local prefix
+  for prefix in "${ephemeral_prefixes[@]}"; do
+    args+=(--ephemeral-prefix "$prefix")
+  done
+  python3 "$helper" "${args[@]}"
+}
+
+cmd_cache_prune() {
+  local helper args
+  need codebase-memory-mcp
+  need python3
+  [[ -n "$manifest" ]] || {
+    printf 'cache-prune requires --manifest PATH\n' >&2
+    exit 2
+  }
+  ((${#ephemeral_prefixes[@]} == 0)) || {
+    printf -- '--ephemeral-prefix belongs on cache-audit only\n' >&2
+    exit 2
+  }
+  helper="$(cache_helper)"
+  args=(prune --manifest "$manifest")
+  [[ -z "$cache_dir" ]] || args+=(--cache-dir "$cache_dir")
+  [[ "$apply" == "false" ]] || args+=(--apply)
+  python3 "$helper" "${args[@]}"
+}
+
 cmd_start_ui() {
   local root session script keepalive_cmd
   need codebase-memory-mcp
@@ -258,10 +351,13 @@ cmd_init() {
 case "$command" in
   init) cmd_init ;;
   index) cmd_index ;;
+  canonical) cmd_canonical ;;
   start-ui) cmd_start_ui ;;
   stop-ui) cmd_stop_ui ;;
   status) cmd_status ;;
   schema) cmd_schema ;;
+  cache-audit) cmd_cache_audit ;;
+  cache-prune) cmd_cache_prune ;;
   keepalive) cmd_keepalive ;;
   -h|--help|"") usage ;;
   *)

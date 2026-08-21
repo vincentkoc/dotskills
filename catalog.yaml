@@ -108,7 +108,7 @@ skills:
     path: skills/codebase-memory-mcp
     source: local
     tags: [codebase, graph, mcp, indexing, discovery]
-    version: 0.1.0
+    version: 0.2.0
 
   - id: codex-session-recovery
     name: Codex Session Recovery

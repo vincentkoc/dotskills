@@ -1,6 +1,6 @@
 ---
 name: codebase-memory-mcp
-description: Initialize, configure, index, start, verify, troubleshoot, or refresh codebase-memory-mcp knowledge graphs and the local HTTP graph UI. Use when a user mentions codebase memory MCP, search_graph, trace_path, graph UI, index_repository, or wants graph-backed code discovery for a repository.
+description: Resolve canonical Git checkouts, index and verify codebase-memory-mcp graphs, operate the local graph UI, and safely audit duplicate worktree caches. Use when a user mentions codebase memory MCP, search_graph, trace_path, graph UI, index_repository, worktree indexes, or oversized graph caches.
 license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
@@ -10,7 +10,7 @@ metadata:
 
 ## Purpose
 
-Bring up `codebase-memory-mcp` for a repository and prove the graph is usable before relying on it for code discovery.
+Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph is usable before relying on it for code discovery. Keep linked worktrees on the owner's graph instead of creating one graph per branch.
 
 ## When to use
 
@@ -18,6 +18,7 @@ Bring up `codebase-memory-mcp` for a repository and prove the graph is usable be
 - Start or inspect the local graph UI.
 - Use `search_graph`, `trace_path`, `get_code_snippet`, or `query_graph`.
 - Verify that a repository is indexed before graph-backed exploration.
+- Audit or prune duplicate linked-worktree indexes without deleting cache files directly.
 
 ## Workflow
 
@@ -26,23 +27,41 @@ Bring up `codebase-memory-mcp` for a repository and prove the graph is usable be
    - `git status -sb`
    - `command -v codebase-memory-mcp`
    - `codebase-memory-mcp --version`
-2. Prefer exposed MCP graph tools for discovery.
+2. Resolve the canonical owning checkout.
+   - `scripts/codebase-memory-graph.sh canonical --repo "$(git rev-parse --show-toplevel)"`
+   - Linked worktrees resolve through their absolute Git common directory to the one checkout that owns it.
+   - Separate clones remain separate projects.
+   - Missing, invalid, bare, or ownerless repositories fail closed.
+3. Prefer exposed MCP graph tools for discovery.
    - Run `index_repository` before searching when the repository is not indexed.
    - Use `search_graph`, `trace_path`, and `get_code_snippet` before broad text scans.
-3. Use the helper when CLI or UI orchestration is needed.
+4. Use the helper when CLI or UI orchestration is needed.
    - `scripts/codebase-memory-graph.sh init --repo "$(git rev-parse --show-toplevel)" --mode full`
+   - The helper always sends the canonical owning checkout to `index_repository`.
    - Use `--mode fast` for a smoke index.
-4. Verify the graph.
+5. Verify the graph.
    - `codebase-memory-mcp cli list_projects`
    - `scripts/codebase-memory-graph.sh schema --repo "$(git rev-parse --show-toplevel)"`
    - Run one focused graph query before declaring success.
-5. Verify the UI when requested.
+6. Verify the UI when requested.
    - Default URL: `http://127.0.0.1:9749/`.
    - The helper creates a repository-scoped tmux keepalive session.
-6. Report exact proof.
+7. Audit cache cleanup before applying it.
+   - Freeze a host-specific manifest:
+     `scripts/codebase-memory-graph.sh cache-audit --manifest /secure/path/cbm-cache.json`
+   - Missing roots are protected unless the audit names an explicit narrow `--ephemeral-prefix`.
+   - Linked-worktree candidates require a mapped, indexed, healthy full canonical clone. Shallow, promisor, partial, missing, or ambiguous canonical graphs stay protected.
+   - Review the manifest, then dry-run it:
+     `scripts/codebase-memory-graph.sh cache-prune --manifest /secure/path/cbm-cache.json`
+   - Apply only the unchanged manifest:
+     `scripts/codebase-memory-graph.sh cache-prune --manifest /secure/path/cbm-cache.json --apply`
+   - Apply revalidates host, project snapshot, names, roots, sizes, canonical mapping, clone health, SQLite integrity, and holders before each deletion. Held databases are skipped. Unmapped live roots, missing or unhealthy canonical graphs, corrupt databases, drift, or deletion failures stop the host.
+   - Deletion uses `codebase-memory-mcp cli delete_project` only. Never remove project databases directly.
+8. Report exact proof.
    - Indexed project name.
    - Node and edge counts when available.
    - UI URL and tmux session name.
+   - For cleanup: manifest path and digest, before/after project and byte totals, deleted project names, protected/skipped reasons, and any stop condition.
    - Missing binaries, unavailable MCP tools, or incomplete proof.
 
 ## Inputs
@@ -50,9 +69,11 @@ Bring up `codebase-memory-mcp` for a repository and prove the graph is usable be
 - Repository path.
 - Index mode: `fast`, `moderate`, `full`, or `cross-repo-intelligence`.
 - Optional UI port; default `9749`.
+- For cache maintenance: a host-local manifest path and optional explicit ephemeral prefixes.
 
 ## Outputs
 
 - Indexed and queryable repository graph.
 - Verified local graph UI when requested.
+- A dry-run cache manifest or guarded CLI-only deletion report.
 - Exact status, schema, and proof summary.
