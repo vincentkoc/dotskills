@@ -32,6 +32,8 @@ Options:
   --apply         Execute cache-prune. Without it, cache-prune is a dry run.
   --allow-blocked-manifest
                   Let cache-prune process candidates while preserving blockers.
+  --protect-candidate NAME
+                  Keep one exact manifest candidate. Repeat for more than one.
 EOF
 }
 
@@ -42,6 +44,7 @@ manifest=""
 cache_dir=""
 apply="false"
 allow_blocked_manifest="false"
+protect_candidates=()
 ephemeral_prefixes=()
 command="${1:-}"
 [[ -n "$command" ]] && shift || true
@@ -83,6 +86,14 @@ while [[ $# -gt 0 ]]; do
       fi
       allow_blocked_manifest="true"
       shift
+      ;;
+    --protect-candidate)
+      if [[ "$command" != "cache-prune" ]]; then
+        printf -- '--protect-candidate is valid only with cache-prune\n' >&2
+        exit 2
+      fi
+      protect_candidates+=("${2:?--protect-candidate requires a name}")
+      shift 2
       ;;
     -h|--help)
       usage
@@ -289,6 +300,10 @@ cmd_cache_prune() {
   [[ -z "$cache_dir" ]] || args+=(--cache-dir "$cache_dir")
   [[ "$apply" == "false" ]] || args+=(--apply)
   [[ "$allow_blocked_manifest" == "false" ]] || args+=(--allow-blocked-manifest)
+  local protected
+  for protected in "${protect_candidates[@]}"; do
+    args+=(--protect-candidate "$protected")
+  done
   python3 "$helper" "${args[@]}"
 }
 

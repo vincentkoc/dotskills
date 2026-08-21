@@ -357,6 +357,7 @@ raise SystemExit(status)
         check: bool = True,
         env: dict[str, str] | None = None,
         allow_blocked: bool = False,
+        protect: tuple[str, ...] = (),
     ):
         args = [
             "cache-prune",
@@ -368,6 +369,8 @@ raise SystemExit(status)
         ]
         if allow_blocked:
             args.append("--allow-blocked-manifest")
+        for name in protect:
+            args.extend(("--protect-candidate", name))
         return self.run_script(
             *args,
             check=check,
@@ -594,6 +597,135 @@ raise SystemExit(status)
         self.assertIn("corrupt", result.stderr)
         self.assertFalse(self.deleted.exists())
 
+    def test_protect_candidate_rejects_duplicate_unknown_and_non_candidate(self) -> None:
+        self.audit()
+        cases = {
+            "duplicate": (
+                (self.worktree_name, self.worktree_name),
+                "duplicate --protect-candidate",
+            ),
+            "unknown": (("fixture-missing",), "unknown --protect-candidate"),
+            "non-candidate": (
+                (self.main_name,),
+                "not a manifest candidate",
+            ),
+        }
+        for name, (protected, message) in cases.items():
+            with self.subTest(name=name):
+                result = self.apply(
+                    check=False,
+                    protect=protected,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+                self.assertFalse(self.deleted.exists())
+
+    def test_protected_corrupt_candidate_leaves_exact_data_untouched(self) -> None:
+        corrupt_name = "fixture-a-corrupt"
+        clean_name = "fixture-z-clean"
+        self.add_ephemeral_candidate(corrupt_name)
+        self.add_ephemeral_candidate(clean_name)
+        corrupt_database = self.cache / f"{corrupt_name}.db"
+        corrupt_database.write_bytes(b"x" * corrupt_database.stat().st_size)
+        pathlib.Path(f"{corrupt_database}-wal").write_bytes(b"orphan")
+        pathlib.Path(f"{corrupt_database}-shm").write_bytes(b"\0" * 32768)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        manifest = json.loads(self.manifest.read_text())
+        corrupt_candidate = next(
+            item
+            for item in manifest["candidates"]
+            if item["name"] == corrupt_name
+        )
+        eligible = [
+            item
+            for item in manifest["candidates"]
+            if item["name"] != corrupt_name
+        ]
+        before = CBM.cache_fingerprint(corrupt_database)
+        expected_summary = {
+            "candidates": len(manifest["candidates"]),
+            "candidate_bytes": sum(
+                item["size_bytes"] for item in manifest["candidates"]
+            ),
+            "manifest_candidates": len(manifest["candidates"]),
+            "manifest_candidate_bytes": sum(
+                item["size_bytes"] for item in manifest["candidates"]
+            ),
+            "eligible_candidates": len(eligible),
+            "eligible_candidate_bytes": sum(
+                item["size_bytes"] for item in eligible
+            ),
+            "preflighted": len(eligible),
+            "preflighted_bytes": sum(item["size_bytes"] for item in eligible),
+            "runtime_protected": [
+                {
+                    "name": corrupt_name,
+                    "reason": corrupt_candidate["reason"],
+                    "bytes": corrupt_candidate["size_bytes"],
+                }
+            ],
+            "runtime_protected_bytes": corrupt_candidate["size_bytes"],
+        }
+
+        dry_run = self.run_script(
+            "cache-prune",
+            "--manifest",
+            str(self.manifest),
+            "--cache-dir",
+            str(self.cache),
+            "--protect-candidate",
+            corrupt_name,
+        )
+        dry_payload = json.loads(dry_run.stdout)
+        for key, value in expected_summary.items():
+            self.assertEqual(dry_payload[key], value)
+        self.assertFalse(self.deleted.exists())
+        self.assertEqual(CBM.cache_fingerprint(corrupt_database), before)
+
+        applied = self.apply(protect=(corrupt_name,))
+        applied_payload = json.loads(applied.stdout)
+        for key, value in expected_summary.items():
+            self.assertEqual(applied_payload[key], value)
+        self.assertEqual(
+            [item["name"] for item in applied_payload["deleted"]],
+            [self.worktree_name, clean_name],
+        )
+        remaining = {
+            item["name"] for item in json.loads(self.state.read_text())
+        }
+        self.assertEqual(remaining, {self.main_name, corrupt_name})
+        self.assertEqual(CBM.cache_fingerprint(corrupt_database), before)
+
+    def test_protected_ephemeral_root_reappearing_fails(self) -> None:
+        name = "fixture-protected-ephemeral"
+        missing = self.add_ephemeral_candidate(name)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        missing.mkdir(parents=True)
+        result = self.apply(check=False, protect=(name,))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ephemeral root became live", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_protected_candidate_classification_drift_fails(self) -> None:
+        self.audit()
+        command(
+            "git",
+            "-C",
+            str(self.main),
+            "worktree",
+            "remove",
+            "--force",
+            str(self.worktree),
+        )
+        command("git", "clone", "-q", str(self.main), str(self.worktree))
+        result = self.apply(
+            check=False,
+            protect=(self.worktree_name,),
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("candidate canonical root changed", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
     def test_project_snapshot_change_stops_apply(self) -> None:
         self.audit()
         changed = json.loads(self.state.read_text())
@@ -651,6 +783,91 @@ raise SystemExit(status)
                 "--unset",
                 "remote.origin.promisor",
             )
+
+    def test_protection_does_not_bypass_eligible_holder(self) -> None:
+        protected = "fixture-protected"
+        self.add_ephemeral_candidate(protected)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        environment = {**self.environment, "FAKE_LSOF_STATUS": "0"}
+        result = self.apply(
+            check=False,
+            env=environment,
+            protect=(protected,),
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("project DB is held", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_protection_does_not_bypass_eligible_wal(self) -> None:
+        protected = "fixture-protected"
+        self.add_ephemeral_candidate(protected)
+        database = self.cache / f"{self.worktree_name}.db"
+        pathlib.Path(f"{database}-wal").write_bytes(b"orphan")
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        result = self.apply(check=False, protect=(protected,))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("project WAL is nonzero", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_protection_does_not_bypass_eligible_clone_health(self) -> None:
+        protected = "fixture-protected"
+        self.add_ephemeral_candidate(protected)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        command(
+            "git",
+            "-C",
+            str(self.main),
+            "config",
+            "remote.origin.promisor",
+            "true",
+        )
+        try:
+            result = self.apply(check=False, protect=(protected,))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("canonical clone is not full", result.stderr)
+            self.assertFalse(self.deleted.exists())
+        finally:
+            command(
+                "git",
+                "-C",
+                str(self.main),
+                "config",
+                "--unset",
+                "remote.origin.promisor",
+            )
+
+    def test_protection_does_not_bypass_eligible_canonical_mapping(self) -> None:
+        protected = "fixture-protected"
+        self.add_ephemeral_candidate(protected)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        command(
+            "git",
+            "-C",
+            str(self.main),
+            "worktree",
+            "remove",
+            "--force",
+            str(self.worktree),
+        )
+        command("git", "clone", "-q", str(self.main), str(self.worktree))
+        result = self.apply(check=False, protect=(protected,))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("candidate canonical root changed", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_protection_does_not_bypass_snapshot_drift(self) -> None:
+        protected = "fixture-protected"
+        self.add_ephemeral_candidate(protected)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        changed = json.loads(self.state.read_text())
+        next(
+            item for item in changed if item["name"] == self.worktree_name
+        )["size_bytes"] += 1
+        self.write_projects(changed)
+        result = self.apply(check=False, protect=(protected,))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("manifest drift", result.stderr)
+        self.assertFalse(self.deleted.exists())
 
     def test_holder_opened_after_final_revalidation_stops_before_delete(self) -> None:
         self.audit()
@@ -814,6 +1031,85 @@ raise SystemExit(status)
                     result.stderr,
                 )
 
+    def test_protect_candidate_is_rejected_outside_cache_prune(self) -> None:
+        commands = (
+            "init",
+            "index",
+            "canonical",
+            "start-ui",
+            "stop-ui",
+            "status",
+            "schema",
+            "cache-audit",
+            "keepalive",
+        )
+        for command_name in commands:
+            with self.subTest(command=command_name):
+                result = self.run_script(
+                    command_name,
+                    "--protect-candidate",
+                    self.worktree_name,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertIn(
+                    "--protect-candidate is valid only with cache-prune",
+                    result.stderr,
+                )
+
+    def test_shell_forwards_repeated_protected_candidates_exactly(self) -> None:
+        argv_bin = self.temp / "argv-bin"
+        argv_bin.mkdir()
+        argv_file = self.temp / "python-argv"
+        fake_python = argv_bin / "python3"
+        fake_python.write_text(
+            '#!/bin/sh\nprintf "%s\\n" "$@" > "$FAKE_PYTHON_ARGV"\n'
+        )
+        fake_python.chmod(0o755)
+        environment = {
+            **self.environment,
+            "PATH": f"{argv_bin}:{self.bin}:{os.environ['PATH']}",
+            "FAKE_PYTHON_ARGV": str(argv_file),
+        }
+        result = self.run_script(
+            "cache-prune",
+            "--manifest",
+            str(self.manifest),
+            "--cache-dir",
+            str(self.cache),
+            "--apply",
+            "--allow-blocked-manifest",
+            "--protect-candidate",
+            "fixture-first",
+            "--protect-candidate",
+            "fixture-second",
+            env=environment,
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(
+            argv_file.read_text().splitlines(),
+            [
+                str(
+                    ROOT
+                    / "skills"
+                    / "codebase-memory-mcp"
+                    / "scripts"
+                    / "codebase_memory_cache.py"
+                ),
+                "prune",
+                "--manifest",
+                str(self.manifest),
+                "--cache-dir",
+                str(self.cache),
+                "--apply",
+                "--allow-blocked-manifest",
+                "--protect-candidate",
+                "fixture-first",
+                "--protect-candidate",
+                "fixture-second",
+            ],
+        )
+
     def test_unmapped_live_root_blocks_the_host(self) -> None:
         invalid_root = self.temp / "invalid-live-root"
         invalid_root.mkdir()
@@ -865,6 +1161,47 @@ raise SystemExit(status)
         }
         self.assertEqual(remaining, {self.main_name, name})
         self.assertTrue((self.cache / f"{name}.db").exists())
+
+    def test_protected_candidate_does_not_bypass_manifest_blockers(self) -> None:
+        invalid_root = self.temp / "invalid-live-root"
+        invalid_root.mkdir()
+        name = "fixture-invalid"
+        self.projects.append(
+            {
+                "name": name,
+                "root_path": str(invalid_root),
+                "size_bytes": sqlite_file(self.cache / f"{name}.db"),
+                "nodes": 1,
+                "edges": 1,
+            }
+        )
+        self.write_projects(self.projects)
+        self.audit()
+
+        blocked = self.apply(
+            check=False,
+            protect=(self.worktree_name,),
+        )
+        self.assertNotEqual(blocked.returncode, 0)
+        self.assertIn("host cache manifest is blocked", blocked.stderr)
+        self.assertFalse(self.deleted.exists())
+
+        allowed = self.run_script(
+            "cache-prune",
+            "--manifest",
+            str(self.manifest),
+            "--cache-dir",
+            str(self.cache),
+            "--allow-blocked-manifest",
+            "--protect-candidate",
+            self.worktree_name,
+        )
+        payload = json.loads(allowed.stdout)
+        self.assertEqual(payload["eligible_candidates"], 0)
+        self.assertEqual(
+            [item["name"] for item in payload["runtime_protected"]],
+            [self.worktree_name],
+        )
 
     def test_malformed_manifest_relationships_are_rejected(self) -> None:
         mutations = {
