@@ -770,16 +770,18 @@ def runtime_protected_candidates(
         raise SafetyError("duplicate --protect-candidate name")
 
     snapshot_names = {item["name"] for item in payload["snapshot"]}
-    candidates = {item["name"]: item for item in payload["candidates"]}
-    protected: list[dict[str, Any]] = []
+    candidates = {item["name"] for item in payload["candidates"]}
     for name in names:
         if name not in snapshot_names:
             raise SafetyError(f"unknown --protect-candidate name: {name}")
-        candidate = candidates.get(name)
-        if candidate is None:
+        if name not in candidates:
             raise SafetyError(f"project is not a manifest candidate: {name}")
-        protected.append(candidate)
-    return protected
+    selected_names = set(names)
+    return [
+        item
+        for item in payload["candidates"]
+        if item["name"] in selected_names
+    ]
 
 
 def candidate_execution_summary(

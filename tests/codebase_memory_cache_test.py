@@ -620,6 +620,65 @@ raise SystemExit(status)
                 self.assertIn(message, result.stderr)
                 self.assertFalse(self.deleted.exists())
 
+    def test_protected_candidates_follow_manifest_order(self) -> None:
+        first_name = "fixture-a-protected"
+        last_name = "fixture-z-protected"
+        first_root = self.add_ephemeral_candidate(first_name)
+        last_root = self.add_ephemeral_candidate(last_name)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+
+        dry_run = self.run_script(
+            "cache-prune",
+            "--manifest",
+            str(self.manifest),
+            "--cache-dir",
+            str(self.cache),
+            "--protect-candidate",
+            last_name,
+            "--protect-candidate",
+            first_name,
+        )
+        payload = json.loads(dry_run.stdout)
+        self.assertEqual(
+            [item["name"] for item in payload["runtime_protected"]],
+            [first_name, last_name],
+        )
+
+        first_root.mkdir(parents=True)
+        last_root.mkdir(parents=True)
+        applied = self.apply(
+            check=False,
+            protect=(last_name, first_name),
+        )
+        self.assertNotEqual(applied.returncode, 0)
+        self.assertIn(first_name, applied.stderr)
+        self.assertNotIn(last_name, applied.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_all_candidates_can_be_protected_on_apply(self) -> None:
+        self.audit()
+        before_projects = self.state.read_text()
+        database = self.cache / f"{self.worktree_name}.db"
+        before_cache = CBM.cache_fingerprint(database)
+
+        applied = self.apply(protect=(self.worktree_name,))
+        payload = json.loads(applied.stdout)
+
+        self.assertTrue(payload["applied"])
+        self.assertEqual(payload["eligible_candidates"], 0)
+        self.assertEqual(payload["eligible_candidate_bytes"], 0)
+        self.assertEqual(payload["preflighted"], 0)
+        self.assertEqual(payload["preflighted_bytes"], 0)
+        self.assertEqual(payload["deleted"], [])
+        self.assertEqual(payload["deleted_bytes"], 0)
+        self.assertEqual(
+            [item["name"] for item in payload["runtime_protected"]],
+            [self.worktree_name],
+        )
+        self.assertEqual(self.state.read_text(), before_projects)
+        self.assertEqual(CBM.cache_fingerprint(database), before_cache)
+        self.assertFalse(self.deleted.exists())
+
     def test_protected_corrupt_candidate_leaves_exact_data_untouched(self) -> None:
         corrupt_name = "fixture-a-corrupt"
         clean_name = "fixture-z-clean"
