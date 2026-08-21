@@ -4,7 +4,7 @@
     {
       "name": "codebase-memory-mcp",
       "source": "./skills/codebase-memory-mcp",
-      "description": "Bring up `codebase-memory-mcp` for a repository and prove the graph is usable before relying on it for code discovery.",
+      "description": "Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph is usable before relying on it for code discovery. Keep linked worktrees on the owner's graph instead of creating one graph per branch.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill codebase-memory-mcp -y"
     },
     {

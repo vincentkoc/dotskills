@@ -31,7 +31,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 
 | Skill | What it does | Install |
 |---|---|---|
-| `codebase-memory-mcp` | Index repositories and operate graph-backed code discovery and its local UI. | `npx skills add vincentkoc/dotskills --skill codebase-memory-mcp -y` |
+| `codebase-memory-mcp` | Index canonical Git checkouts, operate graph discovery/UI, and audit duplicate worktree caches. | `npx skills add vincentkoc/dotskills --skill codebase-memory-mcp -y` |
 | `codex-goal-mining` | Mine local or fleet Codex goal history into evidence-backed rerun suites. | `npx skills add vincentkoc/dotskills --skill codex-goal-mining -y` |
 | `codex-session-recovery` | Recover Codex and Claude tmux sessions without overwriting restore evidence. | `npx skills add vincentkoc/dotskills --skill codex-session-recovery -y` |
 | `crabpot-perf-metrics` | Interpret Crabpot and OpenClaw performance artifacts without over-reading noise. | `npx skills add vincentkoc/dotskills --skill crabpot-perf-metrics -y` |
