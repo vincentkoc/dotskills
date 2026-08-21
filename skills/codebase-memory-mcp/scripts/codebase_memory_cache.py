@@ -709,7 +709,7 @@ def holder_inventory(
     for candidate in candidates:
         database = db_path(cache_dir, candidate["name"])
         baseline = fingerprints[candidate["name"]]
-        for kind, path in zip(kinds, cache_paths(database), strict=True):
+        for kind, path in zip(kinds, cache_paths(database)):
             if baseline[path.name] is not None:
                 inventory.append(
                     {
