@@ -10,6 +10,7 @@ import pathlib
 import shutil
 import socket
 import sqlite3
+import stat
 import subprocess
 import sys
 import urllib.parse
@@ -476,7 +477,72 @@ def load_manifest(path: pathlib.Path) -> dict[str, Any]:
         raise SafetyError(
             f"manifest host mismatch: {payload.get('host')} != {socket.gethostname()}"
         )
+    validate_manifest_relationships(payload)
     return payload
+
+
+def validate_manifest_relationships(payload: dict[str, Any]) -> None:
+    collections: dict[str, list[dict[str, Any]]] = {}
+    for key in ("snapshot", "candidates", "protected", "blockers"):
+        value = payload.get(key)
+        if not isinstance(value, list) or any(
+            not isinstance(item, dict) for item in value
+        ):
+            raise SafetyError(f"manifest {key} must be an array of objects")
+        collections[key] = value
+
+    prefixes = payload.get("ephemeral_prefixes")
+    if not isinstance(prefixes, list) or any(
+        not isinstance(value, str) for value in prefixes
+    ):
+        raise SafetyError("manifest ephemeral_prefixes must be an array of strings")
+
+    names: dict[str, list[str]] = {}
+    for key, items in collections.items():
+        item_names: list[str] = []
+        for item in items:
+            name = item.get("name")
+            if not isinstance(name, str) or not name:
+                raise SafetyError(f"manifest {key} contains an invalid project name")
+            item_names.append(name)
+        if len(item_names) != len(set(item_names)):
+            raise SafetyError(f"manifest {key} contains duplicate project names")
+        names[key] = item_names
+
+    snapshot_by_name = {
+        item["name"]: item for item in collections["snapshot"]
+    }
+    candidate_names = set(names["candidates"])
+    protected_names = set(names["protected"])
+    snapshot_names = set(names["snapshot"])
+    if candidate_names & protected_names:
+        raise SafetyError("manifest candidates and protected projects overlap")
+    if candidate_names | protected_names != snapshot_names:
+        raise SafetyError(
+            "manifest candidates and protected projects do not partition the snapshot"
+        )
+
+    for key in ("candidates", "protected"):
+        for item in collections[key]:
+            snapshot = snapshot_by_name[item["name"]]
+            for field in ("root_path", "size_bytes"):
+                if item.get(field) != snapshot.get(field):
+                    raise SafetyError(
+                        f"manifest {key} record disagrees with snapshot: {item['name']}"
+                    )
+
+    expected_blockers = [
+        item
+        for item in collections["protected"]
+        if item.get("reason") in HOST_BLOCKING_REASONS
+    ]
+    actual_blockers = collections["blockers"]
+    if sorted(canonical_json(item) for item in actual_blockers) != sorted(
+        canonical_json(item) for item in expected_blockers
+    ):
+        raise SafetyError(
+            "manifest blockers must exactly match blocked protected projects"
+        )
 
 
 def validate_snapshot(
@@ -500,18 +566,62 @@ def db_path(cache_dir: pathlib.Path, project_name: str) -> pathlib.Path:
     return path
 
 
+def cache_paths(path: pathlib.Path) -> list[pathlib.Path]:
+    return [path, pathlib.Path(f"{path}-wal"), pathlib.Path(f"{path}-shm")]
+
+
+def path_exists(path: pathlib.Path) -> bool:
+    try:
+        path.lstat()
+    except FileNotFoundError:
+        return False
+    except OSError as error:
+        raise SafetyError(f"cannot inspect project cache path {path}: {error}") from error
+    return True
+
+
 def db_is_held(path: pathlib.Path) -> bool:
     lsof = shutil.which("lsof")
     if not lsof:
         raise SafetyError("lsof is required for cache pruning")
-    paths = [path, pathlib.Path(f"{path}-wal"), pathlib.Path(f"{path}-shm")]
-    existing = [str(candidate) for candidate in paths if candidate.exists()]
+    existing = [
+        str(candidate) for candidate in cache_paths(path) if path_exists(candidate)
+    ]
     if not existing:
         return False
     result = run([lsof, "-F", "p", "--", *existing], check=False)
     if result.returncode not in (0, 1):
         raise SafetyError(f"lsof failed for {path}: {result.stderr.strip()}")
     return bool(result.stdout.strip())
+
+
+def cache_fingerprint(path: pathlib.Path) -> dict[str, dict[str, int] | None]:
+    fingerprint: dict[str, dict[str, int] | None] = {}
+    for candidate in cache_paths(path):
+        try:
+            metadata = candidate.lstat()
+        except FileNotFoundError:
+            fingerprint[candidate.name] = None
+            continue
+        if not stat.S_ISREG(metadata.st_mode):
+            raise SafetyError(
+                f"project cache file is non-regular or symlinked: {candidate}"
+            )
+        fingerprint[candidate.name] = {
+            "device": metadata.st_dev,
+            "inode": metadata.st_ino,
+            "size": metadata.st_size,
+            "mtime_ns": metadata.st_mtime_ns,
+        }
+    return fingerprint
+
+
+def require_cache_absent(path: pathlib.Path) -> None:
+    residue = [
+        str(candidate) for candidate in cache_paths(path) if path_exists(candidate)
+    ]
+    if residue:
+        raise SafetyError("project cache residue remains: " + ", ".join(residue))
 
 
 def validate_database(path: pathlib.Path, expected_size: int) -> None:
@@ -610,6 +720,33 @@ def delete_project(binary: str, project_name: str) -> None:
         raise SafetyError(f"delete_project failed for {project_name}: {detail}")
 
 
+def preflight_candidates(
+    *,
+    binary: str,
+    cache_dir: pathlib.Path,
+    candidates: list[dict[str, Any]],
+    expected_snapshot: list[dict[str, Any]],
+    prefixes: list[pathlib.Path],
+) -> dict[str, dict[str, dict[str, int] | None]]:
+    fingerprints: dict[str, dict[str, dict[str, int] | None]] = {}
+    for candidate in candidates:
+        projects = list_projects(binary)
+        validate_snapshot(expected_snapshot, projects)
+        revalidate_candidate(candidate, projects, prefixes)
+        path = db_path(cache_dir, candidate["name"])
+        before = cache_fingerprint(path)
+        validate_database(path, candidate["size_bytes"])
+        after = cache_fingerprint(path)
+        if after != before:
+            raise SafetyError(
+                f"project cache fingerprint changed during preflight: {candidate['name']}"
+            )
+        if db_is_held(path):
+            raise SafetyError(f"project DB is held: {candidate['name']}")
+        fingerprints[candidate["name"]] = after
+    return fingerprints
+
+
 def audit(args: argparse.Namespace) -> int:
     binary = cbm_binary(args.cbm_bin)
     cache_dir = cbm_cache_dir(args.cache_dir)
@@ -658,14 +795,31 @@ def prune(args: argparse.Namespace) -> int:
         raise SafetyError(
             f"cache root mismatch: {cache_dir} != {payload.get('cache_dir')}"
         )
-    prefixes = [pathlib.Path(value) for value in payload["ephemeral_prefixes"]]
+    home = pathlib.Path.home().resolve()
+    prefixes = []
+    for value in payload["ephemeral_prefixes"]:
+        normalized = normalize_prefix(value, cache_dir=cache_dir, home=home)
+        if value != str(normalized):
+            raise SafetyError(
+                f"manifest ephemeral prefix is not normalized: {value}"
+            )
+        prefixes.append(normalized)
     projects = list_projects(binary)
     validate_snapshot(payload["snapshot"], projects)
-    if payload.get("blockers"):
+    if payload["blockers"] and not args.allow_blocked_manifest:
         reasons = sorted({item["reason"] for item in payload["blockers"]})
         raise SafetyError(
             "host cache manifest is blocked: " + ", ".join(reasons)
         )
+
+    expected_snapshot = list(payload["snapshot"])
+    fingerprints = preflight_candidates(
+        binary=binary,
+        cache_dir=cache_dir,
+        candidates=payload["candidates"],
+        expected_snapshot=expected_snapshot,
+        prefixes=prefixes,
+    )
 
     if not args.apply:
         print(
@@ -681,6 +835,8 @@ def prune(args: argparse.Namespace) -> int:
                     "project_bytes": sum(
                         project["size_bytes"] for project in projects
                     ),
+                    "preflighted": len(fingerprints),
+                    "blocked_manifest_allowed": args.allow_blocked_manifest,
                     "applied": False,
                 },
                 sort_keys=True,
@@ -688,35 +844,49 @@ def prune(args: argparse.Namespace) -> int:
         )
         return 0
 
-    expected_snapshot = list(payload["snapshot"])
     before_projects = len(projects)
     before_bytes = sum(project["size_bytes"] for project in projects)
     deleted: list[dict[str, Any]] = []
-    skipped: list[dict[str, Any]] = []
-    for candidate in payload["candidates"]:
-        projects = list_projects(binary)
-        validate_snapshot(expected_snapshot, projects)
-        revalidate_candidate(candidate, projects, prefixes)
-        path = db_path(cache_dir, candidate["name"])
-        if db_is_held(path):
-            skipped.append({"name": candidate["name"], "reason": "held"})
-            continue
-        validate_database(path, candidate["size_bytes"])
-        delete_project(binary, candidate["name"])
-        projects = list_projects(binary)
-        expected_snapshot = [
-            item
-            for item in expected_snapshot
-            if item["name"] != candidate["name"]
-        ]
-        validate_snapshot(expected_snapshot, projects)
-        deleted.append(
-            {
-                "name": candidate["name"],
-                "bytes": candidate["size_bytes"],
-                "reason": candidate["reason"],
-            }
-        )
+    try:
+        for candidate in payload["candidates"]:
+            projects = list_projects(binary)
+            validate_snapshot(expected_snapshot, projects)
+            path = db_path(cache_dir, candidate["name"])
+            revalidate_candidate(candidate, projects, prefixes)
+            if cache_fingerprint(path) != fingerprints[candidate["name"]]:
+                raise SafetyError(
+                    f"project cache fingerprint changed: {candidate['name']}"
+                )
+            if db_is_held(path):
+                raise SafetyError(f"project DB is held: {candidate['name']}")
+
+            delete_project(binary, candidate["name"])
+            projects = list_projects(binary)
+            if any(
+                project["name"] == candidate["name"] for project in projects
+            ):
+                raise SafetyError(
+                    f"deleted project remains registered: {candidate['name']}"
+                )
+            expected_snapshot = [
+                item
+                for item in expected_snapshot
+                if item["name"] != candidate["name"]
+            ]
+            deleted.append(
+                {
+                    "name": candidate["name"],
+                    "bytes": candidate["size_bytes"],
+                    "reason": candidate["reason"],
+                }
+            )
+            validate_snapshot(expected_snapshot, projects)
+            require_cache_absent(path)
+    except SafetyError as error:
+        already_deleted = [item["name"] for item in deleted]
+        raise SafetyError(
+            f"{error}; already_deleted={json.dumps(already_deleted)}"
+        ) from error
 
     print(
         json.dumps(
@@ -726,7 +896,8 @@ def prune(args: argparse.Namespace) -> int:
                 "applied": True,
                 "deleted": deleted,
                 "deleted_bytes": sum(item["bytes"] for item in deleted),
-                "skipped": skipped,
+                "skipped": [],
+                "blocked_manifest_allowed": args.allow_blocked_manifest,
                 "before_projects": before_projects,
                 "before_bytes": before_bytes,
                 "after_projects": len(projects),
@@ -758,6 +929,7 @@ def parser() -> argparse.ArgumentParser:
     prune_parser.add_argument("--cache-dir")
     prune_parser.add_argument("--cbm-bin")
     prune_parser.add_argument("--apply", action="store_true")
+    prune_parser.add_argument("--allow-blocked-manifest", action="store_true")
     return root
 
 
