@@ -34,6 +34,8 @@ Options:
                   Let cache-prune process candidates while preserving blockers.
   --protect-candidate NAME
                   Keep one exact manifest candidate. Repeat for more than one.
+  --lsof-timeout-seconds SECONDS
+                  Holder-probe timeout for cache-prune. Default: 300.
 EOF
 }
 
@@ -44,6 +46,7 @@ manifest=""
 cache_dir=""
 apply="false"
 allow_blocked_manifest="false"
+lsof_timeout_seconds=""
 protect_candidates=()
 ephemeral_prefixes=()
 command="${1:-}"
@@ -93,6 +96,14 @@ while [[ $# -gt 0 ]]; do
         exit 2
       fi
       protect_candidates+=("${2:?--protect-candidate requires a name}")
+      shift 2
+      ;;
+    --lsof-timeout-seconds)
+      if [[ "$command" != "cache-prune" ]]; then
+        printf -- '--lsof-timeout-seconds is valid only with cache-prune\n' >&2
+        exit 2
+      fi
+      lsof_timeout_seconds="${2:?--lsof-timeout-seconds requires a value}"
       shift 2
       ;;
     -h|--help)
@@ -300,6 +311,7 @@ cmd_cache_prune() {
   [[ -z "$cache_dir" ]] || args+=(--cache-dir "$cache_dir")
   [[ "$apply" == "false" ]] || args+=(--apply)
   [[ "$allow_blocked_manifest" == "false" ]] || args+=(--allow-blocked-manifest)
+  [[ -z "$lsof_timeout_seconds" ]] || args+=(--lsof-timeout-seconds "$lsof_timeout_seconds")
   local protected
   for protected in "${protect_candidates[@]}"; do
     args+=(--protect-candidate "$protected")

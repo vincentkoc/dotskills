@@ -261,7 +261,13 @@ class HolderSweepTests(unittest.TestCase):
 
             base_cost = sum(
                 CBM.lsof_argv_cost(value)
-                for value in ("/usr/bin/lsof", "-F0pn", "--")
+                for value in (
+                    "/usr/sbin/lsof",
+                    "-nP",
+                    "-F0pfn",
+                    "-f",
+                    "--",
+                )
             ) + CBM.struct.calcsize("P")
             budget = (
                 base_cost
@@ -269,7 +275,7 @@ class HolderSweepTests(unittest.TestCase):
                 + CBM.lsof_argv_cost(inventory[1]["path"])
             )
             chunks = CBM.chunk_holder_inventory(
-                "/usr/bin/lsof",
+                "/usr/sbin/lsof",
                 inventory,
                 budget=budget,
             )
@@ -331,7 +337,11 @@ class HolderSweepTests(unittest.TestCase):
             ),
             self.assertRaises(CBM.SafetyError) as raised,
         ):
-            CBM.run_holder_chunk("/usr/bin/lsof", inventory)
+            CBM.run_holder_chunk(
+                "/usr/sbin/lsof",
+                inventory,
+                timeout_seconds=300,
+            )
         message = str(raised.exception)
         self.assertIn("candidate=first kind=db path=/cache/first.db pid=12", message)
         self.assertIn(
@@ -344,17 +354,29 @@ class HolderSweepTests(unittest.TestCase):
             {"candidate": "first", "kind": "db", "path": "/cache/first.db"}
         ]
         cases = {
-            "exit": (
+            "other-exit": (
                 subprocess.CompletedProcess(
                     ["lsof"], 2, stdout=b"", stderr=b"failed"
                 ),
                 "holder sweep failed",
             ),
-            "malformed": (
+            "signal": (
+                subprocess.CompletedProcess(
+                    ["lsof"], -9, stdout=b"", stderr=b""
+                ),
+                "exit -9",
+            ),
+            "success-without-rows": (
+                subprocess.CompletedProcess(
+                    ["lsof"], 0, stdout=b"", stderr=b""
+                ),
+                "success without a mapped holder",
+            ),
+            "incomplete": (
                 subprocess.CompletedProcess(
                     ["lsof"], 0, stdout=b"p12\0f3\0", stderr=b""
                 ),
-                "without an attributed",
+                "incomplete file record",
             ),
             "unmapped": (
                 subprocess.CompletedProcess(
@@ -365,11 +387,17 @@ class HolderSweepTests(unittest.TestCase):
                 ),
                 "unmapped cache path",
             ),
-            "no-match-output": (
+            "no-match-stdout": (
                 subprocess.CompletedProcess(
                     ["lsof"], 1, stdout=b"unexpected", stderr=b""
                 ),
-                "malformed no-match",
+                "malformed holder output",
+            ),
+            "no-match-stderr": (
+                subprocess.CompletedProcess(
+                    ["lsof"], 1, stdout=b"", stderr=b"warning"
+                ),
+                "holder sweep failed",
             ),
         }
         for name, (result, message) in cases.items():
@@ -382,12 +410,63 @@ class HolderSweepTests(unittest.TestCase):
                     ) as run_lsof,
                     self.assertRaisesRegex(CBM.SafetyError, message),
                 ):
-                    CBM.run_holder_chunk("/usr/bin/lsof", inventory)
+                    CBM.run_holder_chunk(
+                        "/usr/sbin/lsof",
+                        inventory,
+                        timeout_seconds=300,
+                    )
                 run_lsof.assert_called_once()
+
+        clean = subprocess.CompletedProcess(
+            ["lsof"], 1, stdout=b"", stderr=b""
+        )
+        with mock.patch.object(
+            CBM.subprocess,
+            "run",
+            return_value=clean,
+        ) as run_lsof:
+            CBM.run_holder_chunk(
+                "/usr/sbin/lsof",
+                inventory,
+                timeout_seconds=300,
+            )
+        run_lsof.assert_called_once_with(
+            [
+                "/usr/sbin/lsof",
+                "-nP",
+                "-F0pfn",
+                "-f",
+                "--",
+                "/cache/first.db",
+            ],
+            check=False,
+            capture_output=True,
+            timeout=300,
+        )
+
+        holder_on_rc1 = subprocess.CompletedProcess(
+            ["lsof"],
+            1,
+            stdout=b"p12\0f3\0n/cache/first.db\0",
+            stderr=b"warning",
+        )
+        with (
+            mock.patch.object(
+                CBM.subprocess,
+                "run",
+                return_value=holder_on_rc1,
+            ),
+            self.assertRaisesRegex(CBM.SafetyError, "project DB is held"),
+        ):
+            CBM.run_holder_chunk(
+                "/usr/sbin/lsof",
+                inventory,
+                timeout_seconds=300,
+            )
 
         exceptional = {
             "timeout": (
-                subprocess.TimeoutExpired("lsof", 10),
+                subprocess.TimeoutExpired("lsof", 300),
                 "timed out",
             ),
             "e2big": (
@@ -405,7 +484,11 @@ class HolderSweepTests(unittest.TestCase):
                     ) as run_lsof,
                     self.assertRaisesRegex(CBM.SafetyError, message),
                 ):
-                    CBM.run_holder_chunk("/usr/bin/lsof", inventory)
+                    CBM.run_holder_chunk(
+                        "/usr/sbin/lsof",
+                        inventory,
+                        timeout_seconds=300,
+                    )
                 run_lsof.assert_called_once()
 
     def test_all_before_chunks_precede_sqlite_and_after_chunks_follow_close(
@@ -430,8 +513,9 @@ class HolderSweepTests(unittest.TestCase):
             ]
             events = []
 
-            def holder(chunk_lsof, chunk):
-                self.assertEqual(chunk_lsof, "/usr/bin/lsof")
+            def holder(chunk_lsof, chunk, *, timeout_seconds):
+                self.assertEqual(chunk_lsof, "/usr/sbin/lsof")
+                self.assertEqual(timeout_seconds, 300)
                 events.append(f"lsof:{chunk[0]['candidate']}")
 
             def validate(path, baseline):
@@ -445,7 +529,11 @@ class HolderSweepTests(unittest.TestCase):
                 mock.patch.object(CBM, "list_projects", return_value=[]),
                 mock.patch.object(CBM, "validate_snapshot"),
                 mock.patch.object(CBM, "revalidate_candidate"),
-                mock.patch.object(CBM.shutil, "which", return_value="/usr/bin/lsof"),
+                mock.patch.object(
+                    CBM,
+                    "lsof_binary",
+                    return_value="/usr/sbin/lsof",
+                ),
                 mock.patch.object(
                     CBM,
                     "chunk_holder_inventory",
@@ -460,6 +548,7 @@ class HolderSweepTests(unittest.TestCase):
                     candidates=candidates,
                     expected_snapshot=[],
                     prefixes=[],
+                    lsof_timeout_seconds=300,
                 )
 
             self.assertEqual(
@@ -491,7 +580,11 @@ class HolderSweepTests(unittest.TestCase):
                 mock.patch.object(CBM, "list_projects", return_value=[]),
                 mock.patch.object(CBM, "validate_snapshot"),
                 mock.patch.object(CBM, "revalidate_candidate"),
-                mock.patch.object(CBM.shutil, "which", return_value="/usr/bin/lsof"),
+                mock.patch.object(
+                    CBM,
+                    "lsof_binary",
+                    return_value="/usr/sbin/lsof",
+                ),
                 mock.patch.object(
                     CBM,
                     "chunk_holder_inventory",
@@ -514,8 +607,255 @@ class HolderSweepTests(unittest.TestCase):
                     candidates=[candidate],
                     expected_snapshot=[],
                     prefixes=[],
+                    lsof_timeout_seconds=300,
                 )
             validate.assert_not_called()
+
+
+class DeletionBatchTests(unittest.TestCase):
+    def test_batches_preserve_manifest_order_max_eight_and_argv_budget(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache = pathlib.Path(directory)
+            candidates = []
+            fingerprints = {}
+            for index in range(17):
+                name = f"fixture-{index:02d}"
+                path = cache / f"{name}.db"
+                size = sqlite_file(path)
+                candidate = {
+                    "name": name,
+                    "size_bytes": size,
+                    "reason": "ephemeral_missing_root",
+                }
+                candidates.append(candidate)
+                fingerprints[name] = CBM.capture_cache_baseline(path, size)
+
+            batches = CBM.deletion_candidate_batches(
+                lsof="/usr/sbin/lsof",
+                cache_dir=cache,
+                candidates=candidates,
+                fingerprints=fingerprints,
+            )
+            self.assertEqual([len(batch) for batch in batches], [8, 8, 1])
+            self.assertEqual(
+                [
+                    candidate["name"]
+                    for batch in batches
+                    for candidate in batch
+                ],
+                [candidate["name"] for candidate in candidates],
+            )
+
+            first_inventory = CBM.holder_inventory(
+                cache_dir=cache,
+                candidates=[candidates[0]],
+                fingerprints=fingerprints,
+            )
+            one_candidate_budget = (
+                sum(
+                    CBM.lsof_argv_cost(value)
+                    for value in CBM.lsof_command_prefix("/usr/sbin/lsof")
+                )
+                + CBM.struct.calcsize("P")
+                + sum(
+                    CBM.lsof_argv_cost(item["path"])
+                    for item in first_inventory
+                )
+            )
+            budget_batches = CBM.deletion_candidate_batches(
+                lsof="/usr/sbin/lsof",
+                cache_dir=cache,
+                candidates=candidates[:2],
+                fingerprints=fingerprints,
+                budget=one_candidate_budget,
+            )
+            self.assertEqual([len(batch) for batch in budget_batches], [1, 1])
+
+    def test_spawn_failure_drains_launched_child_and_reports_partial_state(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache = pathlib.Path(directory)
+            candidates = []
+            fingerprints = {}
+            for name in ("first", "second"):
+                path = cache / f"{name}.db"
+                size = sqlite_file(path)
+                candidate = {
+                    "name": name,
+                    "root_path": f"/missing/{name}",
+                    "size_bytes": size,
+                    "reason": "ephemeral_missing_root",
+                }
+                candidates.append(candidate)
+                fingerprints[name] = CBM.capture_cache_baseline(path, size)
+
+            class Process:
+                returncode = 0
+
+                def __init__(self):
+                    self.communicated = False
+
+                def poll(self):
+                    return self.returncode if self.communicated else None
+
+                def communicate(self, timeout=None):
+                    self.communicated = True
+                    (cache / "first.db").unlink()
+                    return b"", b""
+
+                def terminate(self):
+                    self.returncode = -15
+
+                def kill(self):
+                    self.returncode = -9
+
+            process = Process()
+            second_registered = {
+                "name": "second",
+                "root_path": "/missing/second",
+                "size_bytes": candidates[1]["size_bytes"],
+            }
+            with (
+                mock.patch.object(
+                    CBM,
+                    "list_projects",
+                    side_effect=[[], [second_registered]],
+                ) as list_projects,
+                mock.patch.object(CBM, "validate_snapshot"),
+                mock.patch.object(CBM, "revalidate_candidate"),
+                mock.patch.object(CBM, "run_holder_chunk"),
+                mock.patch.object(
+                    CBM.subprocess,
+                    "Popen",
+                    side_effect=[
+                        process,
+                        OSError(errno.EMFILE, "too many open files"),
+                    ],
+                ) as popen,
+                self.assertRaises(CBM.DeleteBatchError) as raised,
+            ):
+                CBM.execute_delete_batch(
+                    binary="codebase-memory-mcp",
+                    lsof="/usr/sbin/lsof",
+                    lsof_timeout_seconds=300,
+                    cache_dir=cache,
+                    candidates=candidates,
+                    fingerprints=fingerprints,
+                    expected_snapshot=[],
+                    prefixes=[],
+                )
+
+            report = raised.exception.report
+            self.assertTrue(process.communicated)
+            self.assertEqual(list_projects.call_count, 2)
+            self.assertEqual(
+                [
+                    json.loads(call.args[0][3])["project"]
+                    for call in popen.call_args_list
+                ],
+                ["first", "second"],
+            )
+            self.assertEqual(
+                [item["name"] for item in report["launched"]],
+                ["first"],
+            )
+            self.assertEqual(
+                [item["name"] for item in report["verified_deleted"]],
+                ["first"],
+            )
+            self.assertEqual(
+                [item["name"] for item in report["failed"]],
+                ["second"],
+            )
+
+    def test_batch_timeout_terminates_only_owned_child_and_reports_ambiguous(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache = pathlib.Path(directory)
+            path = cache / "first.db"
+            size = sqlite_file(path)
+            candidate = {
+                "name": "first",
+                "root_path": "/missing/first",
+                "size_bytes": size,
+                "reason": "ephemeral_missing_root",
+            }
+            fingerprint = CBM.capture_cache_baseline(path, size)
+
+            class Process:
+                returncode = None
+
+                def __init__(self):
+                    self.calls = 0
+                    self.terminated = False
+                    self.killed = False
+
+                def poll(self):
+                    return self.returncode
+
+                def communicate(self, timeout=None):
+                    self.calls += 1
+                    if self.calls == 1:
+                        raise subprocess.TimeoutExpired("delete", timeout)
+                    self.returncode = -15
+                    return b"", b""
+
+                def terminate(self):
+                    self.terminated = True
+
+                def kill(self):
+                    self.killed = True
+                    self.returncode = -9
+
+            process = Process()
+            registered = {
+                "name": "first",
+                "root_path": "/missing/first",
+                "size_bytes": size,
+            }
+            with (
+                mock.patch.object(
+                    CBM,
+                    "list_projects",
+                    side_effect=[[], [registered]],
+                ),
+                mock.patch.object(CBM, "validate_snapshot"),
+                mock.patch.object(CBM, "revalidate_candidate"),
+                mock.patch.object(CBM, "run_holder_chunk"),
+                mock.patch.object(
+                    CBM.subprocess,
+                    "Popen",
+                    return_value=process,
+                ),
+                mock.patch.object(
+                    CBM.time,
+                    "monotonic",
+                    side_effect=[0, 0, 0, 0, 700, 700],
+                ),
+                self.assertRaises(CBM.DeleteBatchError) as raised,
+            ):
+                CBM.execute_delete_batch(
+                    binary="codebase-memory-mcp",
+                    lsof="/usr/sbin/lsof",
+                    lsof_timeout_seconds=300,
+                    cache_dir=cache,
+                    candidates=[candidate],
+                    fingerprints={"first": fingerprint},
+                    expected_snapshot=[],
+                    prefixes=[],
+                )
+
+            report = raised.exception.report
+            self.assertTrue(process.terminated)
+            self.assertFalse(process.killed)
+            self.assertEqual(
+                [item["name"] for item in report["ambiguous"]],
+                ["first"],
+            )
 
 
 class CacheManifestTests(unittest.TestCase):
@@ -569,14 +909,33 @@ class CacheManifestTests(unittest.TestCase):
         fake_cbm = self.bin / "codebase-memory-mcp"
         fake_cbm.write_text(
             """#!/usr/bin/env python3
-import json, os, pathlib, sys
+import fcntl, json, os, pathlib, sys, time
 state = pathlib.Path(os.environ["FAKE_CBM_STATE"])
-payload = json.loads(state.read_text())
 events = pathlib.Path(os.environ["FAKE_EVENTS"])
 def event(value):
     with events.open("a") as handle:
         handle.write(value + "\\n")
+def update_active(delta):
+    active_path = pathlib.Path(os.environ["FAKE_CBM_ACTIVE"])
+    maximum_path = pathlib.Path(os.environ["FAKE_CBM_MAX_ACTIVE"])
+    lock_path = pathlib.Path(f"{active_path}.lock")
+    with lock_path.open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        active = int(active_path.read_text()) if active_path.exists() else 0
+        active += delta
+        active_path.write_text(str(active))
+        maximum = int(maximum_path.read_text()) if maximum_path.exists() else 0
+        maximum_path.write_text(str(max(maximum, active)))
+        return active
+def current_maximum():
+    active_path = pathlib.Path(os.environ["FAKE_CBM_ACTIVE"])
+    maximum_path = pathlib.Path(os.environ["FAKE_CBM_MAX_ACTIVE"])
+    lock_path = pathlib.Path(f"{active_path}.lock")
+    with lock_path.open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return int(maximum_path.read_text()) if maximum_path.exists() else 0
 if sys.argv[1:3] == ["cli", "list_projects"]:
+    payload = json.loads(state.read_text())
     event("list_projects")
     calls = pathlib.Path(os.environ["FAKE_CBM_LIST_CALLS"])
     call = int(calls.read_text()) if calls.exists() else 0
@@ -588,23 +947,52 @@ if sys.argv[1:3] == ["cli", "list_projects"]:
     raise SystemExit(0)
 if sys.argv[1:3] == ["cli", "delete_project"]:
     name = json.loads(sys.argv[3])["project"]
-    event(f"delete:{name}")
+    event(f"delete-start:{name}")
     deleted = pathlib.Path(os.environ["FAKE_CBM_DELETED"])
     with deleted.open("a") as handle:
         handle.write(json.dumps({"project": name}) + "\\n")
-    if os.environ.get("FAKE_CBM_DELETE_FAIL") == name:
-        print(f"forced delete failure: {name}", file=sys.stderr)
-        raise SystemExit(1)
-    state.write_text(json.dumps([item for item in payload if item["name"] != name]))
-    database = pathlib.Path(os.environ["CBM_CACHE_DIR"]) / f"{name}.db"
-    for suffix in ("", "-wal", "-shm"):
-        pathlib.Path(f"{database}{suffix}").unlink(missing_ok=True)
-    for suffix in os.environ.get("FAKE_CBM_RESIDUE_SUFFIXES", "").split(","):
-        if suffix:
-            pathlib.Path(f"{database}-{suffix}").write_bytes(b"residue")
-    if os.environ.get("FAKE_CBM_RESIDUE_DB") == "1":
-        database.write_bytes(b"residue")
-    raise SystemExit(0)
+    update_active(1)
+    try:
+        target = int(os.environ.get("FAKE_CBM_WAIT_FOR_ACTIVE", "0"))
+        wait_deadline = time.monotonic() + 20
+        while target:
+            maximum = current_maximum()
+            if maximum >= target:
+                break
+            if time.monotonic() >= wait_deadline:
+                print("active barrier timed out", file=sys.stderr)
+                raise SystemExit(3)
+            time.sleep(0.01)
+        if os.environ.get("FAKE_CBM_DELETE_TIMEOUT") == name:
+            time.sleep(30)
+        delay = float(os.environ.get("FAKE_CBM_DELETE_SLEEP", "0"))
+        if delay:
+            time.sleep(delay)
+        if os.environ.get("FAKE_CBM_DELETE_FAIL") == name:
+            print(f"forced delete failure: {name}", file=sys.stderr)
+            raise SystemExit(1)
+        lock_path = pathlib.Path(f"{state}.lock")
+        with lock_path.open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            current = json.loads(state.read_text())
+            if os.environ.get("FAKE_CBM_RETAIN_NAME") != name:
+                state.write_text(
+                    json.dumps([item for item in current if item["name"] != name])
+                )
+        database = pathlib.Path(os.environ["CBM_CACHE_DIR"]) / f"{name}.db"
+        for suffix in ("", "-wal", "-shm"):
+            pathlib.Path(f"{database}{suffix}").unlink(missing_ok=True)
+        residue_name = os.environ.get("FAKE_CBM_RESIDUE_NAME")
+        if not residue_name or residue_name == name:
+            for suffix in os.environ.get("FAKE_CBM_RESIDUE_SUFFIXES", "").split(","):
+                if suffix:
+                    pathlib.Path(f"{database}-{suffix}").write_bytes(b"residue")
+            if os.environ.get("FAKE_CBM_RESIDUE_DB") == "1":
+                database.write_bytes(b"residue")
+        raise SystemExit(0)
+    finally:
+        update_active(-1)
+        event(f"delete-end:{name}")
 raise SystemExit(2)
 """
         )
@@ -644,7 +1032,12 @@ if statuses:
     status = values[min(call, len(values) - 1)]
 else:
     status = int(os.environ.get("FAKE_LSOF_STATUS", "1"))
-if status == 0:
+holder_call = os.environ.get("FAKE_LSOF_HOLDER_ON_CALL")
+if (
+    status == 0
+    or os.environ.get("FAKE_LSOF_EMIT_HOLDER") == "1"
+    or holder_call == str(call + 1)
+):
     holders = json.loads(os.environ.get("FAKE_LSOF_HOLDERS", "null"))
     if holders is None:
         holders = [{"pid": "123", "path": paths[0]}]
@@ -663,10 +1056,13 @@ raise SystemExit(status)
             "PATH": f"{self.bin}:{os.environ['PATH']}",
             "FAKE_CBM_STATE": str(self.state),
             "FAKE_CBM_DELETED": str(self.deleted),
+            "FAKE_CBM_ACTIVE": str(self.temp / "active"),
+            "FAKE_CBM_MAX_ACTIVE": str(self.temp / "max-active"),
             "FAKE_EVENTS": str(self.events),
             "FAKE_CBM_LIST_CALLS": str(self.temp / "list-calls"),
             "FAKE_LSOF_CALLS": str(self.lsof_calls),
             "FAKE_LSOF_STATE": str(self.temp / "lsof-state"),
+            "CBM_LSOF_BIN": str(fake_lsof),
             "CBM_CACHE_DIR": str(self.cache),
         }
 
@@ -704,6 +1100,7 @@ raise SystemExit(status)
         env: dict[str, str] | None = None,
         allow_blocked: bool = False,
         protect: tuple[str, ...] = (),
+        lsof_timeout: int | None = None,
     ):
         args = [
             "cache-prune",
@@ -715,6 +1112,8 @@ raise SystemExit(status)
         ]
         if allow_blocked:
             args.append("--allow-blocked-manifest")
+        if lsof_timeout is not None:
+            args.extend(("--lsof-timeout-seconds", str(lsof_timeout)))
         for name in protect:
             args.extend(("--protect-candidate", name))
         return self.run_script(
@@ -754,12 +1153,54 @@ raise SystemExit(status)
         payload = json.loads(result.stdout)
         self.assertFalse(payload["applied"])
         self.assertEqual(payload["preflighted"], 1)
+        self.assertEqual(payload["lsof_timeout_seconds"], 300)
+
+    def test_prune_lsof_timeout_override_and_range(self) -> None:
+        self.audit()
+        result = self.run_script(
+            "cache-prune",
+            "--manifest",
+            str(self.manifest),
+            "--cache-dir",
+            str(self.cache),
+            "--lsof-timeout-seconds",
+            "45",
+        )
+        self.assertEqual(
+            json.loads(result.stdout)["lsof_timeout_seconds"],
+            45,
+        )
+        for value in ("29", "901", "not-a-number"):
+            with self.subTest(value=value):
+                invalid = self.run_script(
+                    "cache-prune",
+                    "--manifest",
+                    str(self.manifest),
+                    "--cache-dir",
+                    str(self.cache),
+                    "--lsof-timeout-seconds",
+                    value,
+                    check=False,
+                )
+                self.assertEqual(invalid.returncode, 2)
+                self.assertIn("--lsof-timeout-seconds", invalid.stderr)
 
     def test_unchanged_manifest_applies_through_delete_project(self) -> None:
         self.audit()
         result = self.apply()
         payload = json.loads(result.stdout)
         self.assertEqual(payload["deleted"][0]["name"], self.worktree_name)
+        self.assertEqual(
+            [item["name"] for item in payload["launched"]],
+            [self.worktree_name],
+        )
+        self.assertEqual(
+            [item["name"] for item in payload["verified_deleted"]],
+            [self.worktree_name],
+        )
+        self.assertEqual(payload["failed"], [])
+        self.assertEqual(payload["ambiguous"], [])
+        self.assertEqual(payload["lsof_timeout_seconds"], 300)
         self.assertEqual(
             json.loads(self.deleted.read_text().strip())["project"],
             self.worktree_name,
@@ -768,7 +1209,7 @@ raise SystemExit(status)
         self.assertEqual([item["name"] for item in remaining], [self.main_name])
         self.assertFalse((self.cache / f"{self.worktree_name}.db").exists())
         events = self.events.read_text().splitlines()
-        delete_index = events.index(f"delete:{self.worktree_name}")
+        delete_index = events.index(f"delete-start:{self.worktree_name}")
         self.assertEqual(events[delete_index - 1], "lsof")
 
     def test_successful_holder_call_counts_match_batch_contract(self) -> None:
@@ -789,9 +1230,14 @@ raise SystemExit(status)
             json.loads(line)
             for line in self.lsof_calls.read_text().splitlines()
         ]
-        self.assertTrue(all(call[:2] == ["-F0pn", "--"] for call in calls))
+        self.assertTrue(
+            all(
+                call[:4] == ["-nP", "-F0pfn", "-f", "--"]
+                for call in calls
+            )
+        )
         self.assertEqual(
-            calls[0][2:],
+            calls[0][4:],
             [
                 str(
                     self.cache.resolve()
@@ -823,7 +1269,167 @@ raise SystemExit(status)
         )
         self.assertEqual(
             int(pathlib.Path(self.environment["FAKE_LSOF_STATE"]).read_text()),
-            4,
+            3,
+        )
+
+    def test_eight_candidates_launch_before_wait_with_max_eight_active(
+        self,
+    ) -> None:
+        for index in range(7):
+            self.add_ephemeral_candidate(f"fixture-a-{index}")
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        manifest = json.loads(self.manifest.read_text())
+        expected_names = [
+            item["name"] for item in manifest["candidates"]
+        ]
+        environment = {
+            **self.environment,
+            "FAKE_CBM_WAIT_FOR_ACTIVE": "8",
+        }
+
+        result = self.apply(check=False, env=environment)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(
+            [item["name"] for item in payload["launched"]],
+            expected_names,
+        )
+        self.assertEqual(
+            int(
+                pathlib.Path(
+                    self.environment["FAKE_CBM_MAX_ACTIVE"]
+                ).read_text()
+            ),
+            8,
+        )
+        events = self.events.read_text().splitlines()
+        starts = [
+            index
+            for index, event in enumerate(events)
+            if event.startswith("delete-start:")
+        ]
+        ends = [
+            index
+            for index, event in enumerate(events)
+            if event.startswith("delete-end:")
+        ]
+        self.assertEqual(len(starts), 8)
+        self.assertLess(max(starts), min(ends))
+
+    def test_next_batch_waits_for_previous_verification(self) -> None:
+        for index in range(8):
+            self.add_ephemeral_candidate(f"fixture-a-{index}")
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        manifest = json.loads(self.manifest.read_text())
+        expected_names = [
+            item["name"] for item in manifest["candidates"]
+        ]
+        environment = {
+            **self.environment,
+            "FAKE_CBM_WAIT_FOR_ACTIVE": "8",
+        }
+
+        result = self.apply(check=False, env=environment)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(
+            [item["name"] for item in payload["verified_deleted"]],
+            expected_names,
+        )
+        events = self.events.read_text().splitlines()
+        next_start = events.index(f"delete-start:{expected_names[8]}")
+        prior_end = max(
+            index
+            for index, event in enumerate(events[:next_start])
+            if event.startswith("delete-end:")
+        )
+        self.assertIn(
+            "list_projects",
+            events[prior_end + 1 : next_start],
+        )
+        self.assertEqual(events[next_start - 1], "lsof")
+
+    def test_sidecar_holder_blocks_final_batch_before_any_launch(self) -> None:
+        name = "fixture-z-ephemeral"
+        self.add_ephemeral_candidate(name)
+        database = self.cache / f"{name}.db"
+        sidecar = pathlib.Path(f"{database}-shm")
+        sidecar.write_bytes(b"\0" * 32768)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        environment = {
+            **self.environment,
+            "FAKE_LSOF_HOLDER_ON_CALL": "3",
+            "FAKE_LSOF_HOLDERS": json.dumps(
+                [{"pid": "321", "path": str(sidecar.resolve())}]
+            ),
+        }
+
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(f"candidate={name} kind=shm", result.stderr)
+        self.assertFalse(self.deleted.exists())
+        self.assertFalse(
+            any(
+                event.startswith("delete-start:")
+                for event in self.events.read_text().splitlines()
+            )
+        )
+
+    def test_sidecar_drift_during_final_lsof_blocks_all_launches(self) -> None:
+        name = "fixture-z-ephemeral"
+        self.add_ephemeral_candidate(name)
+        database = self.cache / f"{name}.db"
+        sidecar = pathlib.Path(f"{database}-shm")
+        sidecar.write_bytes(b"\0" * 32768)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        environment = {
+            **self.environment,
+            "FAKE_LSOF_MUTATE_ON_CALL": "3",
+            "FAKE_LSOF_MUTATE_PATH": str(sidecar),
+            "FAKE_LSOF_MUTATE_ACTION": "touch",
+        }
+
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("during final holder sweep", result.stderr)
+        self.assertFalse(self.deleted.exists())
+        self.assertFalse(
+            any(
+                event.startswith("delete-start:")
+                for event in self.events.read_text().splitlines()
+            )
+        )
+
+    def test_nonzero_in_first_batch_drains_and_stops_future_batches(self) -> None:
+        for index in range(8):
+            self.add_ephemeral_candidate(f"fixture-a-{index}")
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        manifest = json.loads(self.manifest.read_text())
+        names = [item["name"] for item in manifest["candidates"]]
+        failed_name = names[0]
+        future_name = names[8]
+        environment = {
+            **self.environment,
+            "FAKE_CBM_DELETE_FAIL": failed_name,
+            "FAKE_CBM_WAIT_FOR_ACTIVE": "8",
+        }
+
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(f"delete_project failed for {failed_name}", result.stderr)
+        launched = [
+            json.loads(line)["project"]
+            for line in self.deleted.read_text().splitlines()
+        ]
+        self.assertEqual(set(launched), set(names[:8]))
+        self.assertNotIn(future_name, launched)
+        remaining = {
+            item["name"] for item in json.loads(self.state.read_text())
+        }
+        self.assertIn(failed_name, remaining)
+        self.assertIn(future_name, remaining)
+        self.assertTrue(
+            set(names[1:8]).isdisjoint(remaining)
         )
 
     def test_symlink_named_graph_is_a_guarded_alias_duplicate(self) -> None:
@@ -957,7 +1563,7 @@ raise SystemExit(status)
             self.assertEqual(CBM.cache_fingerprint(database), before)
         first_call = json.loads(self.lsof_calls.read_text().splitlines()[0])
         self.assertEqual(
-            first_call[2:],
+            first_call[4:],
             [
                 str(database.resolve()),
                 str(pathlib.Path(f"{database}-wal").resolve()),
@@ -1473,10 +2079,7 @@ raise SystemExit(status)
         result = self.apply(check=False, env=environment)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("project cache residue remains", result.stderr)
-        self.assertIn(
-            f'already_deleted=["{self.worktree_name}"]',
-            result.stderr,
-        )
+        self.assertIn('"verified_deleted":[]', result.stderr)
         database = self.cache / f"{self.worktree_name}.db"
         residue = (
             database,
@@ -1485,6 +2088,32 @@ raise SystemExit(status)
         )
         for path in residue:
             self.assertTrue(path.exists())
+
+    def test_retained_registration_drains_batch_and_reports_failure(self) -> None:
+        name = "fixture-z-clean"
+        self.add_ephemeral_candidate(name)
+        self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+        environment = {
+            **self.environment,
+            "FAKE_CBM_RETAIN_NAME": self.worktree_name,
+            "FAKE_CBM_WAIT_FOR_ACTIVE": "2",
+        }
+
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            f"deleted project remains registered: {self.worktree_name}",
+            result.stderr,
+        )
+        self.assertIn('"verified_deleted":[', result.stderr)
+        remaining = {
+            item["name"] for item in json.loads(self.state.read_text())
+        }
+        self.assertIn(self.worktree_name, remaining)
+        self.assertNotIn(name, remaining)
+        events = self.events.read_text().splitlines()
+        self.assertIn(f"delete-end:{self.worktree_name}", events)
+        self.assertIn(f"delete-end:{name}", events)
 
     def test_ephemeral_prefix_guards_missing_roots(self) -> None:
         missing = self.temp / "ephemeral" / "gone"
@@ -1590,6 +2219,32 @@ raise SystemExit(status)
                     result.stderr,
                 )
 
+    def test_lsof_timeout_is_rejected_outside_cache_prune(self) -> None:
+        commands = (
+            "init",
+            "index",
+            "canonical",
+            "start-ui",
+            "stop-ui",
+            "status",
+            "schema",
+            "cache-audit",
+            "keepalive",
+        )
+        for command_name in commands:
+            with self.subTest(command=command_name):
+                result = self.run_script(
+                    command_name,
+                    "--lsof-timeout-seconds",
+                    "45",
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertIn(
+                    "--lsof-timeout-seconds is valid only with cache-prune",
+                    result.stderr,
+                )
+
     def test_shell_forwards_repeated_protected_candidates_exactly(self) -> None:
         argv_bin = self.temp / "argv-bin"
         argv_bin.mkdir()
@@ -1612,6 +2267,8 @@ raise SystemExit(status)
             str(self.cache),
             "--apply",
             "--allow-blocked-manifest",
+            "--lsof-timeout-seconds",
+            "45",
             "--protect-candidate",
             "fixture-first",
             "--protect-candidate",
@@ -1636,6 +2293,8 @@ raise SystemExit(status)
                 str(self.cache),
                 "--apply",
                 "--allow-blocked-manifest",
+                "--lsof-timeout-seconds",
+                "45",
                 "--protect-candidate",
                 "fixture-first",
                 "--protect-candidate",
