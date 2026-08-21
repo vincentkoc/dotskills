@@ -688,8 +688,7 @@ def lsof_argv_cost(value: str) -> int:
 
 
 def lsof_binary() -> str:
-    configured = os.environ.get("CBM_LSOF_BIN", LSOF_PATH)
-    path = pathlib.Path(configured).expanduser().resolve()
+    path = pathlib.Path(LSOF_PATH)
     if not path.is_file() or not os.access(path, os.X_OK):
         raise SafetyError(f"lsof is missing or not executable: {path}")
     return str(path)

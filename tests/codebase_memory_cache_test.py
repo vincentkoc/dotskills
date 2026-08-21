@@ -8,6 +8,7 @@ import os
 import pathlib
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import unittest
 import urllib.parse
@@ -442,6 +443,43 @@ class HolderSweepTests(unittest.TestCase):
             check=False,
             capture_output=True,
             timeout=300,
+        )
+
+    def test_lsof_binary_ignores_environment_override(self) -> None:
+        inventory = [
+            {"candidate": "first", "kind": "db", "path": "/cache/first.db"}
+        ]
+        clean = subprocess.CompletedProcess(
+            ["lsof"], 1, stdout=b"", stderr=b""
+        )
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"CBM_LSOF_BIN": "/tmp/malicious-lsof"},
+            ),
+            mock.patch.object(
+                CBM.pathlib.Path,
+                "is_file",
+                return_value=True,
+            ),
+            mock.patch.object(CBM.os, "access", return_value=True),
+            mock.patch.object(
+                CBM.subprocess,
+                "run",
+                return_value=clean,
+            ) as run_lsof,
+        ):
+            lsof = CBM.lsof_binary()
+            CBM.run_holder_chunk(
+                lsof,
+                inventory,
+                timeout_seconds=300,
+            )
+
+        self.assertEqual(lsof, "/usr/sbin/lsof")
+        self.assertEqual(
+            run_lsof.call_args.args[0][0],
+            "/usr/sbin/lsof",
         )
 
         holder_on_rc1 = subprocess.CompletedProcess(
@@ -1051,6 +1089,25 @@ raise SystemExit(status)
 """
         )
         fake_lsof.chmod(0o755)
+        self.helper_harness = self.temp / "cache-helper-harness.py"
+        self.helper_harness.write_text(
+            """#!/usr/bin/env python3
+import importlib.util
+import pathlib
+import sys
+
+module_path = pathlib.Path(sys.argv[1])
+lsof_path = sys.argv[2]
+spec = importlib.util.spec_from_file_location("cache_helper_under_test", module_path)
+if spec is None or spec.loader is None:
+    raise RuntimeError(f"cannot load {module_path}")
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.LSOF_PATH = lsof_path
+sys.argv = [str(module_path), *sys.argv[3:]]
+raise SystemExit(module.main())
+"""
+        )
         self.environment = {
             **os.environ,
             "PATH": f"{self.bin}:{os.environ['PATH']}",
@@ -1062,7 +1119,6 @@ raise SystemExit(status)
             "FAKE_CBM_LIST_CALLS": str(self.temp / "list-calls"),
             "FAKE_LSOF_CALLS": str(self.lsof_calls),
             "FAKE_LSOF_STATE": str(self.temp / "lsof-state"),
-            "CBM_LSOF_BIN": str(fake_lsof),
             "CBM_CACHE_DIR": str(self.cache),
         }
 
@@ -1083,8 +1139,27 @@ raise SystemExit(status)
             env=env or self.environment,
         )
 
+    def run_helper(
+        self, *args: str, check: bool = True, env: dict[str, str] | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        command_name = {"cache-audit": "audit", "cache-prune": "prune"}[args[0]]
+        return subprocess.run(
+            [
+                sys.executable,
+                str(self.helper_harness),
+                str(MODULE_PATH),
+                str(self.bin / "lsof"),
+                command_name,
+                *args[1:],
+            ],
+            check=check,
+            capture_output=True,
+            text=True,
+            env=env or self.environment,
+        )
+
     def audit(self, *extra: str) -> None:
-        self.run_script(
+        self.run_helper(
             "cache-audit",
             "--manifest",
             str(self.manifest),
@@ -1116,7 +1191,7 @@ raise SystemExit(status)
             args.extend(("--lsof-timeout-seconds", str(lsof_timeout)))
         for name in protect:
             args.extend(("--protect-candidate", name))
-        return self.run_script(
+        return self.run_helper(
             *args,
             check=check,
             env=env,
@@ -1142,7 +1217,7 @@ raise SystemExit(status)
 
     def test_prune_is_dry_run_by_default(self) -> None:
         self.audit()
-        result = self.run_script(
+        result = self.run_helper(
             "cache-prune",
             "--manifest",
             str(self.manifest),
@@ -1157,7 +1232,7 @@ raise SystemExit(status)
 
     def test_prune_lsof_timeout_override_and_range(self) -> None:
         self.audit()
-        result = self.run_script(
+        result = self.run_helper(
             "cache-prune",
             "--manifest",
             str(self.manifest),
@@ -1172,7 +1247,7 @@ raise SystemExit(status)
         )
         for value in ("29", "901", "not-a-number"):
             with self.subTest(value=value):
-                invalid = self.run_script(
+                invalid = self.run_helper(
                     "cache-prune",
                     "--manifest",
                     str(self.manifest),
@@ -1214,7 +1289,7 @@ raise SystemExit(status)
 
     def test_successful_holder_call_counts_match_batch_contract(self) -> None:
         self.audit()
-        dry_run = self.run_script(
+        dry_run = self.run_helper(
             "cache-prune",
             "--manifest",
             str(self.manifest),
@@ -1533,7 +1608,7 @@ raise SystemExit(status)
         self.audit()
 
         for _ in range(2):
-            result = self.run_script(
+            result = self.run_helper(
                 "cache-prune",
                 "--manifest",
                 str(self.manifest),
@@ -1552,7 +1627,7 @@ raise SystemExit(status)
         self.audit()
 
         for _ in range(2):
-            result = self.run_script(
+            result = self.run_helper(
                 "cache-prune",
                 "--manifest",
                 str(self.manifest),
@@ -1695,7 +1770,7 @@ raise SystemExit(status)
         last_root = self.add_ephemeral_candidate(last_name)
         self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
 
-        dry_run = self.run_script(
+        dry_run = self.run_helper(
             "cache-prune",
             "--manifest",
             str(self.manifest),
@@ -1798,7 +1873,7 @@ raise SystemExit(status)
             "runtime_protected_bytes": corrupt_candidate["size_bytes"],
         }
 
-        dry_run = self.run_script(
+        dry_run = self.run_helper(
             "cache-prune",
             "--manifest",
             str(self.manifest),
@@ -2133,7 +2208,7 @@ raise SystemExit(status)
         payload = json.loads(self.manifest.read_text())
         self.assertIn(name, [item["name"] for item in payload["candidates"]])
 
-        unsafe = self.run_script(
+        unsafe = self.run_helper(
             "cache-audit",
             "--manifest",
             str(self.manifest),
@@ -2318,7 +2393,7 @@ raise SystemExit(status)
         )
         self.write_projects(self.projects)
         self.audit()
-        result = self.run_script(
+        result = self.run_helper(
             "cache-prune",
             "--manifest",
             str(self.manifest),
@@ -2329,7 +2404,7 @@ raise SystemExit(status)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("host cache manifest is blocked", result.stderr)
 
-        dry_run = self.run_script(
+        dry_run = self.run_helper(
             "cache-prune",
             "--manifest",
             str(self.manifest),
@@ -2378,7 +2453,7 @@ raise SystemExit(status)
         self.assertIn("host cache manifest is blocked", blocked.stderr)
         self.assertFalse(self.deleted.exists())
 
-        allowed = self.run_script(
+        allowed = self.run_helper(
             "cache-prune",
             "--manifest",
             str(self.manifest),
