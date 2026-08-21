@@ -30,6 +30,8 @@ Options:
   --cache-dir PATH
                   Override the codebase-memory-mcp cache root.
   --apply         Execute cache-prune. Without it, cache-prune is a dry run.
+  --allow-blocked-manifest
+                  Let cache-prune process candidates while preserving blockers.
 EOF
 }
 
@@ -39,6 +41,7 @@ port="9749"
 manifest=""
 cache_dir=""
 apply="false"
+allow_blocked_manifest="false"
 ephemeral_prefixes=()
 command="${1:-}"
 [[ -n "$command" ]] && shift || true
@@ -71,6 +74,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --apply)
       apply="true"
+      shift
+      ;;
+    --allow-blocked-manifest)
+      allow_blocked_manifest="true"
       shift
       ;;
     -h|--help)
@@ -251,6 +258,10 @@ cmd_cache_audit() {
     printf -- '--apply is valid only with cache-prune\n' >&2
     exit 2
   }
+  [[ "$allow_blocked_manifest" == "false" ]] || {
+    printf -- '--allow-blocked-manifest is valid only with cache-prune\n' >&2
+    exit 2
+  }
   helper="$(cache_helper)"
   args=(audit --manifest "$manifest")
   [[ -z "$cache_dir" ]] || args+=(--cache-dir "$cache_dir")
@@ -277,6 +288,7 @@ cmd_cache_prune() {
   args=(prune --manifest "$manifest")
   [[ -z "$cache_dir" ]] || args+=(--cache-dir "$cache_dir")
   [[ "$apply" == "false" ]] || args+=(--apply)
+  [[ "$allow_blocked_manifest" == "false" ]] || args+=(--allow-blocked-manifest)
   python3 "$helper" "${args[@]}"
 }
 
