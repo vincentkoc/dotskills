@@ -3,21 +3,32 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import errno
 import hashlib
 import json
+import math
 import os
 import pathlib
 import shutil
 import socket
 import sqlite3
 import stat
+import struct
 import subprocess
 import sys
+import time
 import urllib.parse
 from typing import Any
 
 
 SCHEMA_VERSION = 1
+LSOF_ARGV_BUDGET = 128 * 1024
+LSOF_PATH = "/usr/sbin/lsof"
+LSOF_TIMEOUT_SECONDS = 300
+LSOF_TIMEOUT_MIN_SECONDS = 30
+LSOF_TIMEOUT_MAX_SECONDS = 900
+DELETE_BATCH_MAX_CANDIDATES = 8
+DELETE_BATCH_TIMEOUT_SECONDS = 600
 HOST_BLOCKING_REASONS = {
     "canonical_clone_not_full",
     "empty_root",
@@ -28,6 +39,21 @@ HOST_BLOCKING_REASONS = {
 
 class SafetyError(RuntimeError):
     pass
+
+
+class DeleteBatchError(SafetyError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        report: dict[str, Any],
+        expected_snapshot: list[dict[str, Any]],
+        projects: list[dict[str, Any]],
+    ):
+        super().__init__(message)
+        self.report = report
+        self.expected_snapshot = expected_snapshot
+        self.projects = projects
 
 
 def run(
@@ -580,21 +606,6 @@ def path_exists(path: pathlib.Path) -> bool:
     return True
 
 
-def db_is_held(path: pathlib.Path) -> bool:
-    lsof = shutil.which("lsof")
-    if not lsof:
-        raise SafetyError("lsof is required for cache pruning")
-    existing = [
-        str(candidate) for candidate in cache_paths(path) if path_exists(candidate)
-    ]
-    if not existing:
-        return False
-    result = run([lsof, "-F", "p", "--", *existing], check=False)
-    if result.returncode not in (0, 1):
-        raise SafetyError(f"lsof failed for {path}: {result.stderr.strip()}")
-    return bool(result.stdout.strip())
-
-
 def cache_fingerprint(path: pathlib.Path) -> dict[str, dict[str, int] | None]:
     fingerprint: dict[str, dict[str, int] | None] = {}
     for candidate in cache_paths(path):
@@ -616,22 +627,11 @@ def cache_fingerprint(path: pathlib.Path) -> dict[str, dict[str, int] | None]:
     return fingerprint
 
 
-def require_cache_absent(path: pathlib.Path) -> None:
-    residue = [
-        str(candidate) for candidate in cache_paths(path) if path_exists(candidate)
-    ]
-    if residue:
-        raise SafetyError("project cache residue remains: " + ", ".join(residue))
-
-
-def validate_database(
+def capture_cache_baseline(
     path: pathlib.Path, expected_size: int
 ) -> dict[str, dict[str, int] | None]:
-    if db_is_held(path):
-        raise SafetyError(f"project DB is held: {path.name}")
-
-    before = cache_fingerprint(path)
-    database = before[path.name]
+    fingerprint = cache_fingerprint(path)
+    database = fingerprint[path.name]
     if database is None:
         raise SafetyError(f"project DB is missing, non-regular, or symlinked: {path}")
     if database["size"] != expected_size:
@@ -641,10 +641,28 @@ def validate_database(
         )
 
     wal_path = pathlib.Path(f"{path}-wal")
-    wal = before[wal_path.name]
+    wal = fingerprint[wal_path.name]
     if wal is not None and wal["size"] != 0:
         raise SafetyError(f"project WAL is nonzero: {wal_path}")
+    return fingerprint
 
+
+def require_cache_absent(path: pathlib.Path) -> None:
+    residue = [
+        str(candidate) for candidate in cache_paths(path) if path_exists(candidate)
+    ]
+    if residue:
+        raise SafetyError("project cache residue remains: " + ", ".join(residue))
+
+
+def validate_database(
+    path: pathlib.Path,
+    baseline: dict[str, dict[str, int] | None],
+) -> None:
+    if cache_fingerprint(path) != baseline:
+        raise SafetyError(
+            f"project cache fingerprint changed before validation: {path.name}"
+        )
     try:
         encoded_path = urllib.parse.quote(str(path), safe="/")
         connection = sqlite3.connect(
@@ -659,13 +677,222 @@ def validate_database(
         raise SafetyError(f"project DB is corrupt: {path}: {error}") from error
     if not row or row[0] != "ok":
         raise SafetyError(f"project DB quick_check failed: {path}: {row}")
-    if cache_fingerprint(path) != before:
+    if cache_fingerprint(path) != baseline:
         raise SafetyError(
             f"project cache fingerprint changed during validation: {path.name}"
         )
-    if db_is_held(path):
-        raise SafetyError(f"project DB is held: {path.name}")
-    return before
+
+
+def lsof_argv_cost(value: str) -> int:
+    return len(os.fsencode(value)) + 1 + struct.calcsize("P")
+
+
+def lsof_binary() -> str:
+    path = pathlib.Path(LSOF_PATH)
+    if not path.is_file() or not os.access(path, os.X_OK):
+        raise SafetyError(f"lsof is missing or not executable: {path}")
+    return str(path)
+
+
+def lsof_command_prefix(lsof: str) -> list[str]:
+    return [lsof, "-nP", "-F0pfn", "-f", "--"]
+
+
+def holder_inventory(
+    *,
+    cache_dir: pathlib.Path,
+    candidates: list[dict[str, Any]],
+    fingerprints: dict[str, dict[str, dict[str, int] | None]],
+) -> list[dict[str, str]]:
+    inventory: list[dict[str, str]] = []
+    kinds = ("db", "wal", "shm")
+    for candidate in candidates:
+        database = db_path(cache_dir, candidate["name"])
+        baseline = fingerprints[candidate["name"]]
+        for kind, path in zip(kinds, cache_paths(database), strict=True):
+            if baseline[path.name] is not None:
+                inventory.append(
+                    {
+                        "candidate": candidate["name"],
+                        "kind": kind,
+                        "path": str(path.resolve()),
+                    }
+                )
+    return inventory
+
+
+def chunk_holder_inventory(
+    lsof: str,
+    inventory: list[dict[str, str]],
+    *,
+    budget: int = LSOF_ARGV_BUDGET,
+) -> list[list[dict[str, str]]]:
+    base = lsof_command_prefix(lsof)
+    base_cost = (
+        sum(lsof_argv_cost(value) for value in base)
+        + struct.calcsize("P")
+    )
+    chunks: list[list[dict[str, str]]] = []
+    current: list[dict[str, str]] = []
+    current_cost = base_cost
+    for item in inventory:
+        item_cost = lsof_argv_cost(item["path"])
+        if base_cost + item_cost > budget:
+            raise SafetyError(
+                f"project cache path exceeds lsof argv budget: {item['path']}"
+            )
+        if current and current_cost + item_cost > budget:
+            chunks.append(current)
+            current = []
+            current_cost = base_cost
+        current.append(item)
+        current_cost += item_cost
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def parse_lsof_holders(
+    output: bytes,
+    inventory: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    by_path = {item["path"]: item for item in inventory}
+
+    current_pid: str | None = None
+    current_file = False
+    mapped: list[dict[str, str]] = []
+    for raw in output.split(b"\0"):
+        field = os.fsdecode(raw)
+        if field.startswith("\n"):
+            field = field[1:]
+        if not field or field == "\n":
+            continue
+        tag, value = field[0], field[1:]
+        if tag == "p" and value.isdigit():
+            current_pid = value
+            current_file = False
+        elif tag == "f" and current_pid is not None and value:
+            current_file = True
+        elif (
+            tag == "n"
+            and current_pid is not None
+            and current_file
+            and value in by_path
+        ):
+            mapped.append({**by_path[value], "pid": current_pid})
+            current_file = False
+    if mapped:
+        return mapped
+
+    current_pid: str | None = None
+    current_file = False
+    saw_field = False
+    for raw in output.split(b"\0"):
+        field = os.fsdecode(raw)
+        if field.startswith("\n"):
+            field = field[1:]
+        if not field or field == "\n":
+            continue
+        saw_field = True
+        tag, value = field[0], field[1:]
+        if tag == "p":
+            if not value.isdigit():
+                raise SafetyError("lsof returned malformed process output")
+            current_pid = value
+            current_file = False
+            continue
+        if tag == "f":
+            if current_pid is None or not value:
+                raise SafetyError("lsof returned malformed file output")
+            current_file = True
+            continue
+        if (
+            tag != "n"
+            or current_pid is None
+            or not current_file
+            or not value
+        ):
+            raise SafetyError("lsof returned malformed holder output")
+        item = by_path.get(value)
+        if item is None:
+            raise SafetyError(f"lsof returned an unmapped cache path: {value}")
+        current_file = False
+    if current_file:
+        raise SafetyError("lsof returned an incomplete file record")
+    if saw_field:
+        raise SafetyError("lsof reported a holder without an attributed cache path")
+    return []
+
+
+def run_holder_chunk(
+    lsof: str,
+    inventory: list[dict[str, str]],
+    *,
+    timeout_seconds: int,
+) -> None:
+    command = [
+        *lsof_command_prefix(lsof),
+        *(item["path"] for item in inventory),
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SafetyError("lsof holder sweep timed out") from error
+    except OSError as error:
+        if error.errno == errno.E2BIG:
+            raise SafetyError(
+                "lsof holder sweep exceeded the system argv limit"
+            ) from error
+        raise SafetyError(f"lsof holder sweep failed to start: {error}") from error
+
+    holders = parse_lsof_holders(result.stdout, inventory)
+    if holders:
+        detail = ", ".join(
+            f"candidate={item['candidate']} kind={item['kind']} "
+            f"path={item['path']} pid={item['pid']}"
+            for item in holders
+        )
+        raise SafetyError(f"project DB is held: {detail}")
+    if result.returncode == 1 and not result.stderr:
+        return
+    if result.returncode == 0:
+        raise SafetyError("lsof returned success without a mapped holder")
+    detail = os.fsdecode(result.stderr).strip() or f"exit {result.returncode}"
+    raise SafetyError(f"lsof holder sweep failed: {detail}")
+
+
+def run_holder_sweep(
+    lsof: str,
+    chunks: list[list[dict[str, str]]],
+    *,
+    timeout_seconds: int,
+) -> None:
+    for chunk in chunks:
+        run_holder_chunk(
+            lsof,
+            chunk,
+            timeout_seconds=timeout_seconds,
+        )
+
+
+def require_fingerprints(
+    *,
+    cache_dir: pathlib.Path,
+    candidates: list[dict[str, Any]],
+    fingerprints: dict[str, dict[str, dict[str, int] | None]],
+    phase: str,
+) -> None:
+    for candidate in candidates:
+        path = db_path(cache_dir, candidate["name"])
+        if cache_fingerprint(path) != fingerprints[candidate["name"]]:
+            raise SafetyError(
+                f"project cache fingerprint changed {phase}: {candidate['name']}"
+            )
 
 
 def revalidate_candidate(
@@ -735,12 +962,409 @@ def revalidate_candidate(
         raise SafetyError(f"canonical graph size changed: {candidate['canonical_project']}")
 
 
-def delete_project(binary: str, project_name: str) -> None:
+def delete_project_command(binary: str, project_name: str) -> list[str]:
     payload = json.dumps({"project": project_name}, separators=(",", ":"))
-    result = run([binary, "cli", "delete_project", payload], check=False)
-    if result.returncode != 0:
-        detail = result.stderr.strip() or result.stdout.strip() or "unknown failure"
-        raise SafetyError(f"delete_project failed for {project_name}: {detail}")
+    return [binary, "cli", "delete_project", payload]
+
+
+def outcome_record(candidate: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "name": candidate["name"],
+        "bytes": candidate["size_bytes"],
+        "reason": candidate["reason"],
+    }
+
+
+def outcome_report(
+    candidates: list[dict[str, Any]],
+    *,
+    launched: set[str],
+    verified_deleted: set[str],
+    failed: set[str],
+    ambiguous: set[str],
+) -> dict[str, Any]:
+    report: dict[str, Any] = {}
+    for key, names in (
+        ("launched", launched),
+        ("verified_deleted", verified_deleted),
+        ("failed", failed),
+        ("ambiguous", ambiguous),
+    ):
+        records = [
+            outcome_record(candidate)
+            for candidate in candidates
+            if candidate["name"] in names
+        ]
+        report[key] = records
+        report[f"{key}_bytes"] = sum(item["bytes"] for item in records)
+    return report
+
+
+def merge_outcome_reports(
+    current: dict[str, Any],
+    addition: dict[str, Any],
+) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    for key in ("launched", "verified_deleted", "failed", "ambiguous"):
+        records = [*current[key], *addition[key]]
+        merged[key] = records
+        merged[f"{key}_bytes"] = sum(item["bytes"] for item in records)
+    return merged
+
+
+def empty_outcome_report() -> dict[str, Any]:
+    return outcome_report(
+        [],
+        launched=set(),
+        verified_deleted=set(),
+        failed=set(),
+        ambiguous=set(),
+    )
+
+
+def deletion_candidate_batches(
+    *,
+    lsof: str,
+    cache_dir: pathlib.Path,
+    candidates: list[dict[str, Any]],
+    fingerprints: dict[str, dict[str, dict[str, int] | None]],
+    budget: int = LSOF_ARGV_BUDGET,
+) -> list[list[dict[str, Any]]]:
+    base_cost = (
+        sum(lsof_argv_cost(value) for value in lsof_command_prefix(lsof))
+        + struct.calcsize("P")
+    )
+    batches: list[list[dict[str, Any]]] = []
+    current: list[dict[str, Any]] = []
+    current_cost = base_cost
+    for candidate in candidates:
+        inventory = holder_inventory(
+            cache_dir=cache_dir,
+            candidates=[candidate],
+            fingerprints=fingerprints,
+        )
+        candidate_cost = sum(
+            lsof_argv_cost(item["path"]) for item in inventory
+        )
+        if base_cost + candidate_cost > budget:
+            raise SafetyError(
+                f"candidate cache paths exceed lsof argv budget: "
+                f"{candidate['name']}"
+            )
+        if current and (
+            len(current) >= DELETE_BATCH_MAX_CANDIDATES
+            or current_cost + candidate_cost > budget
+        ):
+            batches.append(current)
+            current = []
+            current_cost = base_cost
+        current.append(candidate)
+        current_cost += candidate_cost
+    if current:
+        batches.append(current)
+    return batches
+
+
+def terminate_owned_children(
+    children: list[dict[str, Any]],
+) -> set[str]:
+    terminated: set[str] = set()
+    for child in children:
+        process = child["process"]
+        if process.poll() is None:
+            try:
+                process.terminate()
+            except ProcessLookupError:
+                continue
+            terminated.add(child["candidate"]["name"])
+    return terminated
+
+
+def drain_delete_children(
+    children: list[dict[str, Any]],
+    *,
+    deadline: float,
+) -> tuple[dict[str, dict[str, Any]], set[str]]:
+    results: dict[str, dict[str, Any]] = {}
+    timed_out: set[str] = set()
+    for child in children:
+        candidate = child["candidate"]
+        process = child["process"]
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            timed_out.update(
+                item["candidate"]["name"]
+                for item in children
+                if item["candidate"]["name"] not in results
+            )
+            timed_out.update(terminate_owned_children(children))
+            break
+        try:
+            stdout, stderr = process.communicate(timeout=remaining)
+        except subprocess.TimeoutExpired:
+            timed_out.update(
+                item["candidate"]["name"]
+                for item in children
+                if item["candidate"]["name"] not in results
+            )
+            timed_out.update(terminate_owned_children(children))
+            break
+        results[candidate["name"]] = {
+            "returncode": process.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+        }
+
+    for child in children:
+        candidate = child["candidate"]
+        process = child["process"]
+        if candidate["name"] in results:
+            continue
+        try:
+            stdout, stderr = process.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            timed_out.add(candidate["name"])
+            stdout, stderr = process.communicate()
+        results[candidate["name"]] = {
+            "returncode": process.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+        }
+    return results, timed_out
+
+
+def execute_delete_batch(
+    *,
+    binary: str,
+    lsof: str,
+    lsof_timeout_seconds: int,
+    cache_dir: pathlib.Path,
+    candidates: list[dict[str, Any]],
+    fingerprints: dict[str, dict[str, dict[str, int] | None]],
+    expected_snapshot: list[dict[str, Any]],
+    prefixes: list[pathlib.Path],
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    dict[str, Any],
+]:
+    deadline = time.monotonic() + DELETE_BATCH_TIMEOUT_SECONDS
+    projects = list_projects(binary)
+    validate_snapshot(expected_snapshot, projects)
+    for candidate in candidates:
+        revalidate_candidate(candidate, projects, prefixes)
+    live_fingerprints = {
+        candidate["name"]: cache_fingerprint(
+            db_path(cache_dir, candidate["name"])
+        )
+        for candidate in candidates
+    }
+    for candidate in candidates:
+        live = live_fingerprints[candidate["name"]]
+        if live != fingerprints[candidate["name"]]:
+            raise SafetyError(
+                f"project cache fingerprint changed before deletion batch: "
+                f"{candidate['name']}"
+            )
+        live_fingerprints[candidate["name"]] = live
+
+    inventory = holder_inventory(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=live_fingerprints,
+    )
+    chunks = chunk_holder_inventory(lsof, inventory)
+    if len(chunks) != 1:
+        raise SafetyError("deletion batch exceeds one lsof invocation")
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise SafetyError("deletion batch deadline expired before lsof")
+    run_holder_chunk(
+        lsof,
+        chunks[0],
+        timeout_seconds=min(
+            lsof_timeout_seconds,
+            max(1, math.ceil(remaining)),
+        ),
+    )
+    post_lsof_fingerprints = {
+        candidate["name"]: cache_fingerprint(
+            db_path(cache_dir, candidate["name"])
+        )
+        for candidate in candidates
+    }
+    for candidate in candidates:
+        current = post_lsof_fingerprints[candidate["name"]]
+        if (
+            current != fingerprints[candidate["name"]]
+            or current != live_fingerprints[candidate["name"]]
+        ):
+            raise SafetyError(
+                f"project cache fingerprint changed during final holder sweep: "
+                f"{candidate['name']}"
+            )
+
+    children: list[dict[str, Any]] = []
+    launched: set[str] = set()
+    failed: set[str] = set()
+    ambiguous: set[str] = set()
+    failure_reasons: list[str] = []
+    spawn_failed = False
+    for candidate in candidates:
+        if deadline - time.monotonic() <= 0:
+            failed.add(candidate["name"])
+            ambiguous.add(candidate["name"])
+            failure_reasons.append(
+                f"deletion batch deadline expired before launch: "
+                f"{candidate['name']}"
+            )
+            spawn_failed = True
+            break
+        try:
+            process = subprocess.Popen(
+                delete_project_command(binary, candidate["name"]),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except OSError as error:
+            failed.add(candidate["name"])
+            failure_reasons.append(
+                f"delete_project spawn failed for {candidate['name']}: {error}"
+            )
+            spawn_failed = True
+            break
+        launched.add(candidate["name"])
+        children.append({"candidate": candidate, "process": process})
+
+    results, timed_out = drain_delete_children(children, deadline=deadline)
+    failed.update(timed_out)
+    ambiguous.update(timed_out)
+    if timed_out:
+        failure_reasons.append(
+            "delete_project batch timed out: "
+            + ", ".join(
+                candidate["name"]
+                for candidate in candidates
+                if candidate["name"] in timed_out
+            )
+        )
+
+    try:
+        projects = list_projects(binary)
+    except SafetyError as error:
+        failed.update(launched)
+        ambiguous.update(launched)
+        report = outcome_report(
+            candidates,
+            launched=launched,
+            verified_deleted=set(),
+            failed=failed,
+            ambiguous=ambiguous,
+        )
+        raise DeleteBatchError(
+            f"cannot verify deletion batch: {error}",
+            report=report,
+            expected_snapshot=expected_snapshot,
+            projects=[],
+        ) from error
+
+    registered = {project["name"] for project in projects}
+    verified_deleted: set[str] = set()
+    absent_from_registry: set[str] = set()
+    for candidate in candidates:
+        name = candidate["name"]
+        path = db_path(cache_dir, name)
+        try:
+            cache_absent = all(
+                value is None for value in cache_fingerprint(path).values()
+            )
+        except SafetyError as error:
+            cache_absent = False
+            failed.add(name)
+            ambiguous.add(name)
+            failure_reasons.append(str(error))
+        registry_absent = name not in registered
+        if registry_absent:
+            absent_from_registry.add(name)
+        if registry_absent and cache_absent:
+            verified_deleted.add(name)
+        elif registry_absent and not cache_absent:
+            failed.add(name)
+            ambiguous.add(name)
+            failure_reasons.append(
+                f"project cache residue remains: {name}"
+            )
+        elif not registry_absent and cache_absent:
+            failed.add(name)
+            ambiguous.add(name)
+            failure_reasons.append(
+                f"deleted project remains registered: {name}"
+            )
+        elif name in launched:
+            failed.add(name)
+            failure_reasons.append(
+                f"deleted project remains registered: {name}"
+            )
+        elif registry_absent or cache_absent:
+            failed.add(name)
+            ambiguous.add(name)
+            failure_reasons.append(
+                f"unlaunched candidate state changed: {name}"
+            )
+
+        result = results.get(name)
+        if result is None:
+            if name in launched:
+                failed.add(name)
+                ambiguous.add(name)
+                failure_reasons.append(
+                    f"delete_project result is missing for {name}"
+                )
+            continue
+        if result["returncode"] != 0:
+            failed.add(name)
+            detail = (
+                os.fsdecode(result["stderr"]).strip()
+                or os.fsdecode(result["stdout"]).strip()
+                or f"exit {result['returncode']}"
+            )
+            failure_reasons.append(
+                f"delete_project failed for {name}: {detail}"
+            )
+        elif name not in verified_deleted:
+            failed.add(name)
+            failure_reasons.append(
+                f"delete_project returned success without full deletion: {name}"
+            )
+
+    next_expected_snapshot = [
+        item
+        for item in expected_snapshot
+        if item["name"] not in absent_from_registry
+    ]
+    try:
+        validate_snapshot(next_expected_snapshot, projects)
+    except SafetyError as error:
+        failed.update(launched)
+        ambiguous.update(launched)
+        failure_reasons.append(str(error))
+
+    report = outcome_report(
+        candidates,
+        launched=launched,
+        verified_deleted=verified_deleted,
+        failed=failed,
+        ambiguous=ambiguous,
+    )
+    if spawn_failed or failed or failure_reasons:
+        raise DeleteBatchError(
+            "; ".join(failure_reasons) or "deletion batch failed",
+            report=report,
+            expected_snapshot=next_expected_snapshot,
+            projects=projects,
+        )
+    return next_expected_snapshot, projects, report
 
 
 def preflight_candidates(
@@ -750,17 +1374,63 @@ def preflight_candidates(
     candidates: list[dict[str, Any]],
     expected_snapshot: list[dict[str, Any]],
     prefixes: list[pathlib.Path],
-) -> dict[str, dict[str, dict[str, int] | None]]:
+    lsof_timeout_seconds: int,
+) -> tuple[
+    dict[str, dict[str, dict[str, int] | None]],
+    str | None,
+]:
     fingerprints: dict[str, dict[str, dict[str, int] | None]] = {}
     for candidate in candidates:
         projects = list_projects(binary)
         validate_snapshot(expected_snapshot, projects)
         revalidate_candidate(candidate, projects, prefixes)
         path = db_path(cache_dir, candidate["name"])
-        fingerprints[candidate["name"]] = validate_database(
+        fingerprints[candidate["name"]] = capture_cache_baseline(
             path, candidate["size_bytes"]
         )
-    return fingerprints
+    if not candidates:
+        return fingerprints, None
+
+    lsof = lsof_binary()
+    inventory = holder_inventory(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=fingerprints,
+    )
+    chunks = chunk_holder_inventory(lsof, inventory)
+
+    run_holder_sweep(
+        lsof,
+        chunks,
+        timeout_seconds=lsof_timeout_seconds,
+    )
+    require_fingerprints(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=fingerprints,
+        phase="during the before-holder sweep",
+    )
+    for candidate in candidates:
+        path = db_path(cache_dir, candidate["name"])
+        validate_database(path, fingerprints[candidate["name"]])
+    require_fingerprints(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=fingerprints,
+        phase="after database validation",
+    )
+    run_holder_sweep(
+        lsof,
+        chunks,
+        timeout_seconds=lsof_timeout_seconds,
+    )
+    require_fingerprints(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=fingerprints,
+        phase="during the after-holder sweep",
+    )
+    return fingerprints, lsof
 
 
 def runtime_protected_candidates(
@@ -898,12 +1568,13 @@ def prune(args: argparse.Namespace) -> int:
     expected_snapshot = list(payload["snapshot"])
     for candidate in runtime_protected:
         revalidate_candidate(candidate, projects, prefixes)
-    fingerprints = preflight_candidates(
+    fingerprints, lsof = preflight_candidates(
         binary=binary,
         cache_dir=cache_dir,
         candidates=eligible_candidates,
         expected_snapshot=expected_snapshot,
         prefixes=prefixes,
+        lsof_timeout_seconds=args.lsof_timeout_seconds,
     )
     execution_summary = candidate_execution_summary(
         manifest_candidates=payload["candidates"],
@@ -924,6 +1595,7 @@ def prune(args: argparse.Namespace) -> int:
                         project["size_bytes"] for project in projects
                     ),
                     "blocked_manifest_allowed": args.allow_blocked_manifest,
+                    "lsof_timeout_seconds": args.lsof_timeout_seconds,
                     "applied": False,
                 },
                 sort_keys=True,
@@ -933,48 +1605,45 @@ def prune(args: argparse.Namespace) -> int:
 
     before_projects = len(projects)
     before_bytes = sum(project["size_bytes"] for project in projects)
-    deleted: list[dict[str, Any]] = []
+    outcomes = empty_outcome_report()
     try:
-        for candidate in eligible_candidates:
-            projects = list_projects(binary)
-            validate_snapshot(expected_snapshot, projects)
-            path = db_path(cache_dir, candidate["name"])
-            revalidate_candidate(candidate, projects, prefixes)
-            if cache_fingerprint(path) != fingerprints[candidate["name"]]:
-                raise SafetyError(
-                    f"project cache fingerprint changed: {candidate['name']}"
+        if eligible_candidates and lsof is None:
+            raise SafetyError("lsof is required for cache pruning")
+        batches = deletion_candidate_batches(
+            lsof=lsof or LSOF_PATH,
+            cache_dir=cache_dir,
+            candidates=eligible_candidates,
+            fingerprints=fingerprints,
+        )
+        for batch in batches:
+            try:
+                expected_snapshot, projects, report = execute_delete_batch(
+                    binary=binary,
+                    lsof=lsof or LSOF_PATH,
+                    lsof_timeout_seconds=args.lsof_timeout_seconds,
+                    cache_dir=cache_dir,
+                    candidates=batch,
+                    fingerprints=fingerprints,
+                    expected_snapshot=expected_snapshot,
+                    prefixes=prefixes,
                 )
-            if db_is_held(path):
-                raise SafetyError(f"project DB is held: {candidate['name']}")
-
-            delete_project(binary, candidate["name"])
-            projects = list_projects(binary)
-            if any(
-                project["name"] == candidate["name"] for project in projects
-            ):
-                raise SafetyError(
-                    f"deleted project remains registered: {candidate['name']}"
-                )
-            expected_snapshot = [
-                item
-                for item in expected_snapshot
-                if item["name"] != candidate["name"]
-            ]
-            deleted.append(
-                {
-                    "name": candidate["name"],
-                    "bytes": candidate["size_bytes"],
-                    "reason": candidate["reason"],
-                }
-            )
-            validate_snapshot(expected_snapshot, projects)
-            require_cache_absent(path)
+            except DeleteBatchError as error:
+                outcomes = merge_outcome_reports(outcomes, error.report)
+                expected_snapshot = error.expected_snapshot
+                projects = error.projects
+                raise
+            outcomes = merge_outcome_reports(outcomes, report)
     except SafetyError as error:
-        already_deleted = [item["name"] for item in deleted]
+        already_deleted = [
+            item["name"] for item in outcomes["verified_deleted"]
+        ]
         raise SafetyError(
-            f"{error}; already_deleted={json.dumps(already_deleted)}"
+            f"{error}; delete_outcomes="
+            f"{json.dumps(outcomes, sort_keys=True, separators=(',', ':'))}; "
+            f"already_deleted={json.dumps(already_deleted)}"
         ) from error
 
+    deleted = outcomes["verified_deleted"]
     print(
         json.dumps(
             {
@@ -983,9 +1652,18 @@ def prune(args: argparse.Namespace) -> int:
                 **execution_summary,
                 "applied": True,
                 "deleted": deleted,
-                "deleted_bytes": sum(item["bytes"] for item in deleted),
+                "deleted_bytes": outcomes["verified_deleted_bytes"],
+                "launched": outcomes["launched"],
+                "launched_bytes": outcomes["launched_bytes"],
+                "verified_deleted": outcomes["verified_deleted"],
+                "verified_deleted_bytes": outcomes["verified_deleted_bytes"],
+                "failed": outcomes["failed"],
+                "failed_bytes": outcomes["failed_bytes"],
+                "ambiguous": outcomes["ambiguous"],
+                "ambiguous_bytes": outcomes["ambiguous_bytes"],
                 "skipped": [],
                 "blocked_manifest_allowed": args.allow_blocked_manifest,
+                "lsof_timeout_seconds": args.lsof_timeout_seconds,
                 "before_projects": before_projects,
                 "before_bytes": before_bytes,
                 "after_projects": len(projects),
@@ -997,6 +1675,21 @@ def prune(args: argparse.Namespace) -> int:
         )
     )
     return 0
+
+
+def lsof_timeout_seconds(value: str) -> int:
+    try:
+        timeout = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(
+            "--lsof-timeout-seconds must be an integer"
+        ) from error
+    if not LSOF_TIMEOUT_MIN_SECONDS <= timeout <= LSOF_TIMEOUT_MAX_SECONDS:
+        raise argparse.ArgumentTypeError(
+            "--lsof-timeout-seconds must be between "
+            f"{LSOF_TIMEOUT_MIN_SECONDS} and {LSOF_TIMEOUT_MAX_SECONDS}"
+        )
+    return timeout
 
 
 def parser() -> argparse.ArgumentParser:
@@ -1019,6 +1712,11 @@ def parser() -> argparse.ArgumentParser:
     prune_parser.add_argument("--apply", action="store_true")
     prune_parser.add_argument("--allow-blocked-manifest", action="store_true")
     prune_parser.add_argument("--protect-candidate", action="append", default=[])
+    prune_parser.add_argument(
+        "--lsof-timeout-seconds",
+        type=lsof_timeout_seconds,
+        default=LSOF_TIMEOUT_SECONDS,
+    )
     return root
 
 
