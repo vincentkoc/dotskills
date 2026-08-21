@@ -276,6 +276,25 @@ def path_is_under(path: pathlib.Path, prefix: pathlib.Path) -> bool:
         return False
 
 
+def declared_root(raw: str) -> pathlib.Path | None:
+    path = pathlib.Path(raw).expanduser()
+    if not path.is_absolute():
+        return None
+    return pathlib.Path(os.path.normpath(path))
+
+
+def symlink_components(path: pathlib.Path) -> int:
+    current = pathlib.Path(path.anchor)
+    count = 0
+    for part in path.parts[1:]:
+        current /= part
+        try:
+            count += int(current.is_symlink())
+        except OSError:
+            return sys.maxsize
+    return count
+
+
 def project_for_root(
     projects: list[dict[str, Any]], root: pathlib.Path
 ) -> dict[str, Any] | None:
@@ -284,15 +303,30 @@ def project_for_root(
         raw = project["root_path"]
         if not raw:
             continue
+        declared = declared_root(raw)
+        if declared is None:
+            continue
         try:
-            candidate = pathlib.Path(raw).expanduser().resolve(strict=False)
+            if declared.resolve(strict=False) == root:
+                matches.append((project, declared))
         except OSError:
             continue
-        if candidate == root:
-            matches.append(project)
-    if len(matches) > 1:
+    exact = [project for project, declared in matches if declared == root]
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
         raise SafetyError(f"multiple projects map to canonical root: {root}")
-    return matches[0] if matches else None
+    if not matches:
+        return None
+    fewest = min(symlink_components(declared) for _, declared in matches)
+    preferred = [
+        project
+        for project, declared in matches
+        if symlink_components(declared) == fewest
+    ]
+    if len(preferred) > 1:
+        raise SafetyError(f"multiple projects map to canonical root: {root}")
+    return preferred[0]
 
 
 def build_manifest(
@@ -343,9 +377,6 @@ def build_manifest(
             )
             continue
         canonical_root = pathlib.Path(resolved["canonical_root"])
-        if pathlib.Path(resolved["root"]) == canonical_root:
-            protected.append({**base, "reason": "canonical_root"})
-            continue
         canonical_project = project_for_root(projects, canonical_root)
         if canonical_project is None:
             protected.append(
@@ -353,6 +384,32 @@ def build_manifest(
                     **base,
                     "reason": "missing_canonical_graph",
                     "canonical_root": str(canonical_root),
+                }
+            )
+            continue
+        if canonical_project["name"] == project["name"]:
+            protected.append({**base, "reason": "canonical_root"})
+            continue
+        if pathlib.Path(resolved["root"]) == canonical_root:
+            if not resolved["clone"]["full"]:
+                protected.append(
+                    {
+                        **base,
+                        "reason": "canonical_clone_not_full",
+                        "canonical_root": str(canonical_root),
+                        "canonical_project": canonical_project["name"],
+                    }
+                )
+                continue
+            candidates.append(
+                {
+                    **base,
+                    "reason": "canonical_alias_duplicate",
+                    "canonical_root": str(canonical_root),
+                    "canonical_project": canonical_project["name"],
+                    "canonical_project_root_path": canonical_project["root_path"],
+                    "canonical_size_bytes": canonical_project["size_bytes"],
+                    "common_dir": resolved["common_dir"],
                 }
             )
             continue
@@ -502,7 +559,7 @@ def revalidate_candidate(
         if expected_prefix not in prefixes or not path_is_under(root, expected_prefix):
             raise SafetyError(f"ephemeral prefix guard failed: {root}")
         return
-    if reason != "linked_worktree_duplicate":
+    if reason not in {"canonical_alias_duplicate", "linked_worktree_duplicate"}:
         raise SafetyError(f"unsupported candidate reason: {reason}")
 
     resolved = resolve_repository(root)
@@ -512,8 +569,16 @@ def revalidate_candidate(
         raise SafetyError(f"candidate canonical root changed: {root}")
     if resolved["common_dir"] != candidate["common_dir"]:
         raise SafetyError(f"candidate Git common dir changed: {root}")
-    if not resolved["linked_worktree"]:
-        raise SafetyError(f"candidate is no longer a linked worktree: {root}")
+    if reason == "linked_worktree_duplicate":
+        if not resolved["linked_worktree"]:
+            raise SafetyError(f"candidate is no longer a linked worktree: {root}")
+    else:
+        if resolved["linked_worktree"]:
+            raise SafetyError(f"canonical alias became a linked worktree: {root}")
+        if declared_root(candidate["root_path"]) == pathlib.Path(
+            candidate["canonical_root"]
+        ):
+            raise SafetyError(f"canonical alias became the canonical path: {root}")
     if not resolved["clone"]["full"]:
         raise SafetyError(f"candidate canonical clone is not full: {root}")
     canonical = next(

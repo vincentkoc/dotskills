@@ -268,6 +268,61 @@ raise SystemExit(2)
         remaining = json.loads(self.state.read_text())
         self.assertEqual([item["name"] for item in remaining], [self.main_name])
 
+    def test_symlink_named_graph_is_a_guarded_alias_duplicate(self) -> None:
+        alias = self.temp / "legacy-home" / "repo"
+        alias.parent.mkdir()
+        alias.symlink_to(self.main, target_is_directory=True)
+        alias_name = "fixture-legacy-alias"
+        alias_size = sqlite_file(self.cache / f"{alias_name}.db")
+        self.projects.append(
+            {
+                "name": alias_name,
+                "root_path": str(alias),
+                "size_bytes": alias_size,
+                "nodes": 1,
+                "edges": 1,
+            }
+        )
+        self.write_projects(self.projects)
+
+        self.audit()
+        payload = json.loads(self.manifest.read_text())
+        alias_candidate = next(
+            item
+            for item in payload["candidates"]
+            if item["name"] == alias_name
+        )
+        self.assertEqual(alias_candidate["reason"], "canonical_alias_duplicate")
+        self.assertEqual(alias_candidate["canonical_project"], self.main_name)
+
+        result = self.apply()
+        deleted = json.loads(result.stdout)["deleted"]
+        self.assertIn(alias_name, [item["name"] for item in deleted])
+        self.assertIn(
+            self.main_name,
+            [item["name"] for item in json.loads(self.state.read_text())],
+        )
+
+    def test_only_symlink_named_graph_is_preserved(self) -> None:
+        alias = self.temp / "legacy-home" / "repo"
+        alias.parent.mkdir()
+        alias.symlink_to(self.main, target_is_directory=True)
+        alias_name = "fixture-legacy-alias"
+        self.projects = [
+            {
+                "name": alias_name,
+                "root_path": str(alias),
+                "size_bytes": sqlite_file(self.cache / f"{alias_name}.db"),
+                "nodes": 1,
+                "edges": 1,
+            }
+        ]
+        self.write_projects(self.projects)
+        self.audit()
+        payload = json.loads(self.manifest.read_text())
+        self.assertFalse(payload["candidates"])
+        self.assertEqual(payload["protected"][0]["reason"], "canonical_root")
+
     def test_modified_manifest_is_rejected(self) -> None:
         self.audit()
         payload = json.loads(self.manifest.read_text())
