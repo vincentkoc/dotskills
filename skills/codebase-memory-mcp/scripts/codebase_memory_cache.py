@@ -624,17 +624,33 @@ def require_cache_absent(path: pathlib.Path) -> None:
         raise SafetyError("project cache residue remains: " + ", ".join(residue))
 
 
-def validate_database(path: pathlib.Path, expected_size: int) -> None:
-    if not path.is_file() or path.is_symlink():
+def validate_database(
+    path: pathlib.Path, expected_size: int
+) -> dict[str, dict[str, int] | None]:
+    if db_is_held(path):
+        raise SafetyError(f"project DB is held: {path.name}")
+
+    before = cache_fingerprint(path)
+    database = before[path.name]
+    if database is None:
         raise SafetyError(f"project DB is missing, non-regular, or symlinked: {path}")
-    actual_size = path.stat().st_size
-    if actual_size != expected_size:
+    if database["size"] != expected_size:
         raise SafetyError(
-            f"project DB size changed for {path.name}: {actual_size} != {expected_size}"
+            f"project DB size changed for {path.name}: "
+            f"{database['size']} != {expected_size}"
         )
+
+    wal_path = pathlib.Path(f"{path}-wal")
+    wal = before[wal_path.name]
+    if wal is not None and wal["size"] != 0:
+        raise SafetyError(f"project WAL is nonzero: {wal_path}")
+
     try:
         encoded_path = urllib.parse.quote(str(path), safe="/")
-        connection = sqlite3.connect(f"file:{encoded_path}?mode=ro", uri=True)
+        connection = sqlite3.connect(
+            f"file:{encoded_path}?mode=ro&immutable=1",
+            uri=True,
+        )
         try:
             row = connection.execute("PRAGMA quick_check").fetchone()
         finally:
@@ -643,6 +659,13 @@ def validate_database(path: pathlib.Path, expected_size: int) -> None:
         raise SafetyError(f"project DB is corrupt: {path}: {error}") from error
     if not row or row[0] != "ok":
         raise SafetyError(f"project DB quick_check failed: {path}: {row}")
+    if cache_fingerprint(path) != before:
+        raise SafetyError(
+            f"project cache fingerprint changed during validation: {path.name}"
+        )
+    if db_is_held(path):
+        raise SafetyError(f"project DB is held: {path.name}")
+    return before
 
 
 def revalidate_candidate(
@@ -734,16 +757,9 @@ def preflight_candidates(
         validate_snapshot(expected_snapshot, projects)
         revalidate_candidate(candidate, projects, prefixes)
         path = db_path(cache_dir, candidate["name"])
-        before = cache_fingerprint(path)
-        validate_database(path, candidate["size_bytes"])
-        after = cache_fingerprint(path)
-        if after != before:
-            raise SafetyError(
-                f"project cache fingerprint changed during preflight: {candidate['name']}"
-            )
-        if db_is_held(path):
-            raise SafetyError(f"project DB is held: {candidate['name']}")
-        fingerprints[candidate["name"]] = after
+        fingerprints[candidate["name"]] = validate_database(
+            path, candidate["size_bytes"]
+        )
     return fingerprints
 
 
