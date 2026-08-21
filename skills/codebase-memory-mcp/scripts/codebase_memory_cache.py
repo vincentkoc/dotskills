@@ -795,7 +795,15 @@ def prune(args: argparse.Namespace) -> int:
         raise SafetyError(
             f"cache root mismatch: {cache_dir} != {payload.get('cache_dir')}"
         )
-    prefixes = [pathlib.Path(value) for value in payload["ephemeral_prefixes"]]
+    home = pathlib.Path.home().resolve()
+    prefixes = []
+    for value in payload["ephemeral_prefixes"]:
+        normalized = normalize_prefix(value, cache_dir=cache_dir, home=home)
+        if value != str(normalized):
+            raise SafetyError(
+                f"manifest ephemeral prefix is not normalized: {value}"
+            )
+        prefixes.append(normalized)
     projects = list_projects(binary)
     validate_snapshot(payload["snapshot"], projects)
     if payload["blockers"] and not args.allow_blocked_manifest:
@@ -844,13 +852,13 @@ def prune(args: argparse.Namespace) -> int:
             projects = list_projects(binary)
             validate_snapshot(expected_snapshot, projects)
             path = db_path(cache_dir, candidate["name"])
-            if db_is_held(path):
-                raise SafetyError(f"project DB is held: {candidate['name']}")
             revalidate_candidate(candidate, projects, prefixes)
             if cache_fingerprint(path) != fingerprints[candidate["name"]]:
                 raise SafetyError(
                     f"project cache fingerprint changed: {candidate['name']}"
                 )
+            if db_is_held(path):
+                raise SafetyError(f"project DB is held: {candidate['name']}")
 
             delete_project(binary, candidate["name"])
             projects = list_projects(binary)

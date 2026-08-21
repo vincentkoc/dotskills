@@ -77,6 +77,10 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --allow-blocked-manifest)
+      if [[ "$command" != "cache-prune" ]]; then
+        printf -- '--allow-blocked-manifest is valid only with cache-prune\n' >&2
+        exit 2
+      fi
       allow_blocked_manifest="true"
       shift
       ;;
@@ -256,10 +260,6 @@ cmd_cache_audit() {
   }
   [[ "$apply" == "false" ]] || {
     printf -- '--apply is valid only with cache-prune\n' >&2
-    exit 2
-  }
-  [[ "$allow_blocked_manifest" == "false" ]] || {
-    printf -- '--allow-blocked-manifest is valid only with cache-prune\n' >&2
     exit 2
   }
   helper="$(cache_helper)"

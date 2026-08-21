@@ -176,6 +176,12 @@ import json, os, pathlib, sys
 state = pathlib.Path(os.environ["FAKE_CBM_STATE"])
 payload = json.loads(state.read_text())
 if sys.argv[1:3] == ["cli", "list_projects"]:
+    calls = pathlib.Path(os.environ["FAKE_CBM_LIST_CALLS"])
+    call = int(calls.read_text()) if calls.exists() else 0
+    calls.write_text(str(call + 1))
+    if os.environ.get("FAKE_CBM_MUTATE_ON_LIST_CALL") == str(call + 1):
+        with pathlib.Path(os.environ["FAKE_CBM_MUTATE_PATH"]).open("ab") as handle:
+            handle.write(b"x")
     print(json.dumps({"projects": payload}))
     raise SystemExit(0)
 if sys.argv[1:3] == ["cli", "delete_project"]:
@@ -213,9 +219,6 @@ if statuses:
     status = values[min(call, len(values) - 1)]
 else:
     status = int(os.environ.get("FAKE_LSOF_STATUS", "1"))
-if os.environ.get("FAKE_LSOF_MUTATE_ON_CALL") == str(call + 1):
-    with pathlib.Path(sys.argv[-1]).open("ab") as handle:
-        handle.write(b"x")
 if status == 0:
     print("p123")
 raise SystemExit(status)
@@ -227,6 +230,7 @@ raise SystemExit(status)
             "PATH": f"{self.bin}:{os.environ['PATH']}",
             "FAKE_CBM_STATE": str(self.state),
             "FAKE_CBM_DELETED": str(self.deleted),
+            "FAKE_CBM_LIST_CALLS": str(self.temp / "list-calls"),
             "FAKE_LSOF_STATE": str(self.temp / "lsof-state"),
             "CBM_CACHE_DIR": str(self.cache),
         }
@@ -468,7 +472,7 @@ raise SystemExit(status)
                 "remote.origin.promisor",
             )
 
-    def test_holder_after_preflight_stops_before_first_delete(self) -> None:
+    def test_holder_opened_after_final_revalidation_stops_before_delete(self) -> None:
         self.audit()
         environment = {
             **self.environment,
@@ -482,9 +486,14 @@ raise SystemExit(status)
 
     def test_fingerprint_change_after_preflight_stops_before_delete(self) -> None:
         self.audit()
+        list_calls = pathlib.Path(self.environment["FAKE_CBM_LIST_CALLS"])
+        list_calls.write_text("0")
         environment = {
             **self.environment,
-            "FAKE_LSOF_MUTATE_ON_CALL": "2",
+            "FAKE_CBM_MUTATE_ON_LIST_CALL": "3",
+            "FAKE_CBM_MUTATE_PATH": str(
+                self.cache / f"{self.worktree_name}.db"
+            ),
         }
         result = self.apply(check=False, env=environment)
         self.assertNotEqual(result.returncode, 0)
@@ -560,6 +569,53 @@ raise SystemExit(status)
         )
         self.assertNotEqual(unsafe.returncode, 0)
         self.assertIn("unsafe ephemeral prefix", unsafe.stderr)
+
+    def test_prune_rejects_unsafe_or_non_normalized_manifest_prefixes(self) -> None:
+        prefix = self.temp / "ephemeral"
+        self.add_ephemeral_candidate("fixture-ephemeral")
+        self.audit("--ephemeral-prefix", str(prefix))
+        unsafe_prefixes = {
+            "root": "/",
+            "home": str(pathlib.Path.home()),
+            "cache": str(self.cache),
+            "relative": "relative/path",
+            "non-normalized": str(prefix / ".." / "other"),
+            "unexpanded-home": "~/ephemeral",
+        }
+        for name, unsafe_prefix in unsafe_prefixes.items():
+            with self.subTest(name=name):
+                payload = json.loads(self.manifest.read_text())
+                payload["ephemeral_prefixes"] = [unsafe_prefix]
+                self.rewrite_manifest(payload)
+                result = self.apply(check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("ephemeral prefix", result.stderr)
+                self.assertFalse(self.deleted.exists())
+
+    def test_allow_blocked_manifest_is_rejected_outside_cache_prune(self) -> None:
+        commands = (
+            "init",
+            "index",
+            "canonical",
+            "start-ui",
+            "stop-ui",
+            "status",
+            "schema",
+            "cache-audit",
+            "keepalive",
+        )
+        for command_name in commands:
+            with self.subTest(command=command_name):
+                result = self.run_script(
+                    command_name,
+                    "--allow-blocked-manifest",
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertIn(
+                    "--allow-blocked-manifest is valid only with cache-prune",
+                    result.stderr,
+                )
 
     def test_unmapped_live_root_blocks_the_host(self) -> None:
         invalid_root = self.temp / "invalid-live-root"
