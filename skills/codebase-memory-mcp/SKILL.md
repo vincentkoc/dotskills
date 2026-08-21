@@ -51,6 +51,7 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
      `scripts/codebase-memory-graph.sh cache-audit --manifest /secure/path/cbm-cache.json`
    - Missing roots are protected unless the audit names an explicit narrow `--ephemeral-prefix`.
    - Linked-worktree candidates require a mapped, indexed, healthy full canonical clone. Shallow, promisor, partial, missing, or ambiguous canonical graphs stay protected.
+   - When legacy home symlinks name the same physical checkout, preserve the exact canonical graph and treat only the symlink-named graph as a duplicate. Preserve a sole symlink-named graph.
    - Review the manifest, then dry-run it:
      `scripts/codebase-memory-graph.sh cache-prune --manifest /secure/path/cbm-cache.json`
    - Apply only the unchanged manifest:
