@@ -9,6 +9,8 @@ import sqlite3
 import subprocess
 import tempfile
 import unittest
+import urllib.parse
+from unittest import mock
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -121,6 +123,93 @@ class ResolverTests(unittest.TestCase):
                 with self.subTest(path=path):
                     with self.assertRaises(CBM.SafetyError):
                         CBM.resolve_repository(path)
+
+
+class DatabaseValidationTests(unittest.TestCase):
+    def test_uses_exact_immutable_read_only_uri(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = pathlib.Path(directory) / "project.db"
+            size = sqlite_file(database)
+            before = CBM.cache_fingerprint(database)
+            with (
+                mock.patch.object(CBM, "db_is_held", return_value=False),
+                mock.patch.object(
+                    CBM.sqlite3,
+                    "connect",
+                    wraps=sqlite3.connect,
+                ) as connect,
+            ):
+                fingerprint = CBM.validate_database(database, size)
+
+            encoded = urllib.parse.quote(str(database), safe="/")
+            connect.assert_called_once_with(
+                f"file:{encoded}?mode=ro&immutable=1",
+                uri=True,
+            )
+            self.assertEqual(fingerprint, before)
+
+    def test_holder_before_validation_does_not_open_sqlite(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = pathlib.Path(directory) / "project.db"
+            size = sqlite_file(database)
+            with (
+                mock.patch.object(CBM, "db_is_held", return_value=True),
+                mock.patch.object(CBM.sqlite3, "connect") as connect,
+                self.assertRaisesRegex(CBM.SafetyError, "project DB is held"),
+            ):
+                CBM.validate_database(database, size)
+            connect.assert_not_called()
+
+    def test_database_and_sidecar_mutation_during_validation_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            temp = pathlib.Path(directory)
+            for suffix in ("", "-wal", "-shm"):
+                with self.subTest(suffix=suffix):
+                    database = temp / f"project{suffix or '-db'}.db"
+                    size = sqlite_file(database)
+                    target = pathlib.Path(f"{database}{suffix}")
+                    if suffix == "-wal":
+                        target.write_bytes(b"")
+                    elif suffix == "-shm":
+                        target.write_bytes(b"\0" * 32768)
+
+                    real_connect = sqlite3.connect
+
+                    def mutating_connect(*args, **kwargs):
+                        connection = real_connect(*args, **kwargs)
+                        real_execute = connection.execute
+
+                        class Connection:
+                            def execute(self, statement):
+                                cursor = real_execute(statement)
+                                metadata = target.stat()
+                                os.utime(
+                                    target,
+                                    ns=(
+                                        metadata.st_atime_ns,
+                                        metadata.st_mtime_ns + 1_000_000_000,
+                                    ),
+                                )
+                                return cursor
+
+                            def close(self):
+                                connection.close()
+
+                        return Connection()
+
+                    with (
+                        mock.patch.object(CBM, "db_is_held", return_value=False),
+                        mock.patch.object(
+                            CBM.sqlite3,
+                            "connect",
+                            side_effect=mutating_connect,
+                        ),
+                        self.assertRaisesRegex(
+                            CBM.SafetyError,
+                            "fingerprint changed during validation",
+                        ),
+                    ):
+                        CBM.validate_database(database, size)
 
 
 class CacheManifestTests(unittest.TestCase):
@@ -402,6 +491,97 @@ raise SystemExit(status)
         self.assertIn("project DB is held", result.stderr)
         self.assertFalse(self.deleted.exists())
 
+    def test_holder_after_validation_stops_preflight_without_delete(self) -> None:
+        self.audit()
+        environment = {
+            **self.environment,
+            "FAKE_LSOF_STATUSES": "1,0",
+        }
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("project DB is held", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_clean_wal_mode_database_passes_repeatedly_without_sidecars(self) -> None:
+        database = self.cache / f"{self.worktree_name}.db"
+        connection = sqlite3.connect(database)
+        try:
+            mode = connection.execute("PRAGMA journal_mode=WAL").fetchone()
+        finally:
+            connection.close()
+        self.assertEqual(mode, ("wal",))
+        sidecars = (
+            pathlib.Path(f"{database}-wal"),
+            pathlib.Path(f"{database}-shm"),
+        )
+        self.assertFalse(any(path.exists() for path in sidecars))
+        self.projects[1]["size_bytes"] = database.stat().st_size
+        self.write_projects(self.projects)
+        self.audit()
+
+        for _ in range(2):
+            result = self.run_script(
+                "cache-prune",
+                "--manifest",
+                str(self.manifest),
+                "--cache-dir",
+                str(self.cache),
+            )
+            self.assertEqual(json.loads(result.stdout)["preflighted"], 1)
+            self.assertFalse(any(path.exists() for path in sidecars))
+        self.assertFalse(self.deleted.exists())
+
+    def test_zero_wal_and_stable_shm_pass_unchanged(self) -> None:
+        database = self.cache / f"{self.worktree_name}.db"
+        pathlib.Path(f"{database}-wal").write_bytes(b"")
+        pathlib.Path(f"{database}-shm").write_bytes(b"\0" * 32768)
+        before = CBM.cache_fingerprint(database)
+        self.audit()
+
+        for _ in range(2):
+            result = self.run_script(
+                "cache-prune",
+                "--manifest",
+                str(self.manifest),
+                "--cache-dir",
+                str(self.cache),
+            )
+            self.assertEqual(json.loads(result.stdout)["preflighted"], 1)
+            self.assertEqual(CBM.cache_fingerprint(database), before)
+        self.assertFalse(self.deleted.exists())
+
+    def test_nonzero_orphan_wal_stops_before_delete(self) -> None:
+        database = self.cache / f"{self.worktree_name}.db"
+        pathlib.Path(f"{database}-wal").write_bytes(b"orphan")
+        self.audit()
+        result = self.apply(check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("project WAL is nonzero", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_sidecar_symlink_or_nonregular_file_stops_before_delete(self) -> None:
+        database = self.cache / f"{self.worktree_name}.db"
+        target = self.temp / "sidecar-target"
+        target.write_bytes(b"target")
+        self.audit()
+
+        for suffix in ("-wal", "-shm"):
+            sidecar = pathlib.Path(f"{database}{suffix}")
+            with self.subTest(suffix=suffix, kind="symlink"):
+                sidecar.symlink_to(target)
+                result = self.apply(check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("non-regular or symlinked", result.stderr)
+                self.assertFalse(self.deleted.exists())
+                sidecar.unlink()
+            with self.subTest(suffix=suffix, kind="directory"):
+                sidecar.mkdir()
+                result = self.apply(check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("non-regular or symlinked", result.stderr)
+                self.assertFalse(self.deleted.exists())
+                sidecar.rmdir()
+
     def test_corrupt_later_candidate_stops_preflight_without_delete(self) -> None:
         name = "fixture-z-corrupt"
         self.add_ephemeral_candidate(name)
@@ -476,7 +656,7 @@ raise SystemExit(status)
         self.audit()
         environment = {
             **self.environment,
-            "FAKE_LSOF_STATUSES": "1,0",
+            "FAKE_LSOF_STATUSES": "1,1,0",
         }
         result = self.apply(check=False, env=environment)
         self.assertNotEqual(result.returncode, 0)
@@ -494,6 +674,23 @@ raise SystemExit(status)
             "FAKE_CBM_MUTATE_PATH": str(
                 self.cache / f"{self.worktree_name}.db"
             ),
+        }
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("fingerprint changed", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
+    def test_sidecar_change_after_preflight_stops_before_delete(self) -> None:
+        database = self.cache / f"{self.worktree_name}.db"
+        sidecar = pathlib.Path(f"{database}-shm")
+        sidecar.write_bytes(b"\0" * 32768)
+        self.audit()
+        list_calls = pathlib.Path(self.environment["FAKE_CBM_LIST_CALLS"])
+        list_calls.write_text("0")
+        environment = {
+            **self.environment,
+            "FAKE_CBM_MUTATE_ON_LIST_CALL": "3",
+            "FAKE_CBM_MUTATE_PATH": str(sidecar),
         }
         result = self.apply(check=False, env=environment)
         self.assertNotEqual(result.returncode, 0)

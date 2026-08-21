@@ -57,8 +57,8 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Manifests with host blockers fail closed by default. After reviewing every relationship, explicitly add `--allow-blocked-manifest` to preflight and prune only independent candidates while preserving all protected and blocked projects.
    - Apply only the unchanged manifest:
      `scripts/codebase-memory-graph.sh cache-prune --manifest /secure/path/cbm-cache.json --apply`
-   - Dry-run and apply preflight every candidate before deletion. Apply then rechecks the snapshot, candidate rules, and inode/device/size/mtime fingerprints, with the holder probe last immediately before each deletion.
-   - Held databases, unmapped or reappeared roots, missing or unhealthy canonical graphs, corrupt databases, drift, fingerprint changes, deletion failures, or database/WAL/SHM residue stop immediately. The failure reports any projects already deleted.
+   - Dry-run and apply preflight every candidate before deletion. Preflight probes holders before SQLite, snapshots regular DB/WAL/SHM files, rejects nonzero WAL, runs `quick_check` through exact `mode=ro&immutable=1`, requires every fingerprint including SHM to remain unchanged, then probes holders again. An absent or zero-byte WAL and a stable regular SHM are allowed.
+   - Apply then rechecks the snapshot, candidate rules, and inode/device/size/mtime fingerprints, with the holder probe last immediately before each deletion. Held databases, nonregular sidecars, nonzero WAL, corrupt databases, drift, fingerprint changes, deletion failures, or database/WAL/SHM residue stop immediately. The failure reports any projects already deleted.
    - Deletion uses `codebase-memory-mcp cli delete_project` only. Never remove project databases directly.
 8. Report exact proof.
    - Indexed project name.
