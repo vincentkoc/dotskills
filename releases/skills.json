@@ -120,6 +120,12 @@
       "source": "./skills/tmux-lane-orchestrator",
       "description": "Act as the manager for one tmux worker lane. Keep visibility over the lane's panes, infer what each worker is doing from tmux and Codex logs, surface blockers, and give the operator short status summaries with concrete next actions.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill tmux-lane-orchestrator -y"
+    },
+    {
+      "name": "xquik-source-intake",
+      "source": "./skills/xquik-source-intake",
+      "description": "Collect public X evidence with Xquik before an agent drafts research, support, product, or content decisions that depend on current social context.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill xquik-source-intake -y"
     }
   ]
 }

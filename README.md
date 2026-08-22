@@ -51,6 +51,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 | `technical-skill-finder` | Turn real agent pain into new skills: mine logs, rank wins, draft next steps. | `npx skills add vincentkoc/dotskills --skill technical-skill-finder -y` |
 | `tmux-agent-lane-orchestrator` | Monitor tmux coding-agent lanes and produce evidence-backed manager summaries. | `npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y` |
 | `tmux-lane-orchestrator` | Coordinate one tmux worker lane from its matching manager pane. | `npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y` |
+| `xquik-source-intake` | Collect public X evidence with Xquik REST or MCP. | `npx skills add vincentkoc/dotskills --skill xquik-source-intake -y` |
 
 Local-only skills may live under ignored `private-skills/`, but must never be tracked in this public repository.
 
@@ -79,6 +80,7 @@ npx skills add vincentkoc/dotskills --skill graincrawl -y
 npx skills add vincentkoc/dotskills --skill semantic-slicing -y
 npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y
 npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y
+npx skills add vincentkoc/dotskills --skill xquik-source-intake -y
 ```
 
 List available public skills:
