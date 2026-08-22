@@ -129,7 +129,7 @@ class ResolverTests(unittest.TestCase):
     def test_resolve_index_rewrites_reserved_linked_worktree_and_subdir(
         self,
     ) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=pathlib.Path.home()) as directory:
             temp = pathlib.Path(directory)
             home = temp / "home"
             home.mkdir()
@@ -165,7 +165,7 @@ class ResolverTests(unittest.TestCase):
                     self.assertTrue(result["linked_worktree"])
 
     def test_resolve_index_rejects_reserved_independent_roots(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=pathlib.Path.home()) as directory:
             temp = pathlib.Path(directory)
             home = temp / "home"
             home.mkdir()
@@ -221,7 +221,7 @@ class ResolverTests(unittest.TestCase):
     def test_worktrees_component_is_case_insensitive_only_on_darwin(
         self,
     ) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=pathlib.Path.home()) as directory:
             temp = pathlib.Path(directory)
             home = temp / "home"
             candidate = temp / ".WorkTrees" / "repo"
@@ -243,7 +243,7 @@ class ResolverTests(unittest.TestCase):
     def test_resolve_index_rejects_reserved_owner_and_symlink_bypasses(
         self,
     ) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=pathlib.Path.home()) as directory:
             temp = pathlib.Path(directory)
             home = temp / "home"
             home.mkdir()
@@ -306,7 +306,7 @@ class ResolverTests(unittest.TestCase):
                 )
 
     def test_resolve_index_keeps_separate_safe_clones_distinct(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=pathlib.Path.home()) as directory:
             temp = pathlib.Path(directory)
             home = temp / "home"
             first = temp / "first"
@@ -324,7 +324,7 @@ class ResolverTests(unittest.TestCase):
     def test_resolve_index_missing_bare_invalid_ambiguous_and_nul_fail(
         self,
     ) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=pathlib.Path.home()) as directory:
             temp = pathlib.Path(directory)
             home = temp / "home"
             bare = temp / "bare.git"

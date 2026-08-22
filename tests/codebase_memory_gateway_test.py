@@ -297,7 +297,7 @@ class GraphUiBoundaryTests(unittest.TestCase):
                     self.assertFalse(calls.exists())
 
     def test_init_does_not_enable_or_start_ui(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=pathlib.Path.home()) as directory:
             temp = pathlib.Path(directory)
             repo = temp / "repo"
             repo.mkdir()
