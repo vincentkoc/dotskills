@@ -188,6 +188,13 @@ print(json.dumps({"canonical_root": os.environ["FAKE_CANONICAL"]}))
         )
         self.assertFalse(self.backend_log.exists())
 
+    def test_zero_arg_stdio_startup_intentionally_execs_backend(self) -> None:
+        result = self.run_gateway()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        response = json.loads(result.stdout)
+        self.assertEqual(response["argv"], [str(self.backend)])
+        self.assertFalse(self.resolver_log.exists())
+
     def test_non_index_passthrough_uses_exact_exec_pid_exit_and_signal(
         self,
     ) -> None:

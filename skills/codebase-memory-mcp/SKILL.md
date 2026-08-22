@@ -33,7 +33,7 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Independent roots under `~/.codex/worktrees`, `~/GIT/_Worktrees`, any `.worktrees` component, `/tmp`, or `/private/tmp` are never indexed. Linked worktrees under those paths may only rewrite to one existing nonreserved owner.
    - Missing, invalid, bare, ambiguous, ownerless, reserved-owner, or NUL-containing repositories fail closed.
 3. Prefer exposed MCP graph tools for discovery.
-   - The MCP `index_repository` tool is intentionally disabled because it cannot enforce the canonical indexing boundary.
+   - Installer or client configuration must separately disable the MCP `index_repository` tool because it cannot enforce the canonical indexing boundary. For Codex installs, render the private `disabled_tools` configuration accordingly.
    - When a graph is missing, run `scripts/codebase-memory-graph.sh index --repo "$(git rev-parse --show-toplevel)" --mode full`.
    - Use `search_graph`, `trace_path`, and `get_code_snippet` before broad text scans.
 4. Use the helper for CLI indexing.
@@ -41,6 +41,7 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - The helper always sends the canonical owning checkout to `index_repository`.
    - Use `--mode fast` for a smoke index.
    - Installer integrations render `scripts/codebase-memory-gateway.py.tmpl` with an approved pinned backend path. Replace `@@PYTHON_PATH_SHEBANG@@` with the raw absolute interpreter path and replace `@@PYTHON_PATH_JSON@@`, `@@BACKEND_PATH_JSON@@`, and `@@RESOLVER_PATH_JSON@@` with JSON string literals containing the exact absolute interpreter, backend, and `codebase_memory_cache.py` paths. The rendered gateway has no upgrade logic and uses `execve` for pass-through.
+   - The gateway guards raw CLI calls only. Zero-argument MCP stdio startup intentionally passes through to the approved backend, so the gateway is not an MCP tool-filtering proxy and does not replace the separate `disabled_tools` control.
 5. Verify the graph.
    - `codebase-memory-mcp cli list_projects`
    - `scripts/codebase-memory-graph.sh schema --repo "$(git rev-parse --show-toplevel)"`
