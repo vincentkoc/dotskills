@@ -399,6 +399,461 @@ class ResolverTests(unittest.TestCase):
         self.assertIn("missing or not a directory", result.stderr)
 
 
+class ReservedCacheClassificationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.temp = pathlib.Path(self.temporary.name)
+        self.home = self.temp / "home"
+        self.cache = self.temp / "cache"
+        self.home.mkdir()
+        self.cache.mkdir()
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def project(
+        self,
+        name: str,
+        root: pathlib.Path,
+        *,
+        size_bytes: int = 1,
+    ) -> dict[str, object]:
+        return {
+            "name": name,
+            "root_path": str(root),
+            "size_bytes": size_bytes,
+            "nodes": 1,
+            "edges": 1,
+        }
+
+    def manifest(
+        self,
+        projects: list[dict[str, object]],
+        *,
+        platform: str = "darwin",
+    ) -> dict[str, object]:
+        payload = CBM.build_manifest(
+            projects=projects,
+            cache_dir=self.cache,
+            ephemeral_prefixes=[],
+            home=self.home,
+            platform=platform,
+        )
+        CBM.validate_manifest_relationships(payload)
+        return payload
+
+    def record(
+        self,
+        payload: dict[str, object],
+        name: str,
+    ) -> dict[str, object]:
+        for collection in ("candidates", "protected"):
+            for item in payload[collection]:
+                if item["name"] == name:
+                    return item
+        raise AssertionError(name)
+
+    def test_reserved_boundaries_and_exact_component_negatives(self) -> None:
+        reserved = {
+            "codex": self.home / ".codex" / "worktrees" / "gone",
+            "gwt": self.home / "GIT" / "_Worktrees" / "gone",
+            "component": self.temp / "repo" / ".worktrees" / "gone",
+            "mixed": self.temp / "repo" / ".WorkTrees" / "gone",
+        }
+        lookalikes = {
+            "codex-lookalike": self.home / ".codex" / "worktrees-copy" / "gone",
+            "gwt-lookalike": self.home / "GIT" / "_WorktreesExtra" / "gone",
+            "component-prefix": self.temp / "repo" / ".worktrees-copy" / "gone",
+            "component-suffix": self.temp / "repo" / "x.worktrees" / "gone",
+        }
+        payload = self.manifest(
+            [
+                self.project(name, path)
+                for name, path in {**reserved, **lookalikes}.items()
+            ]
+        )
+        for name in reserved:
+            self.assertEqual(
+                self.record(payload, name)["reason"],
+                "reserved_missing_root",
+            )
+        for name in lookalikes:
+            self.assertEqual(
+                self.record(payload, name)["reason"],
+                "missing_root_outside_prefix",
+            )
+        self.assertEqual(payload["operational_preconditions"], [])
+
+        linux = self.manifest(
+            [self.project("mixed", reserved["mixed"])],
+            platform="linux",
+        )
+        self.assertEqual(
+            self.record(linux, "mixed")["reason"],
+            "missing_root_outside_prefix",
+        )
+        tmp_evidence = CBM.reserved_path_evidence(
+            [
+                ("lexical_root", pathlib.Path("/tmp/example/repo")),
+                ("resolved_root", pathlib.Path("/private/tmp/example/repo")),
+            ],
+            home=self.home,
+            platform="darwin",
+        )
+        self.assertEqual(
+            {
+                (item["path_kind"], item["boundary"])
+                for item in tmp_evidence
+            },
+            {
+                ("lexical_root", "/tmp"),
+                ("resolved_root", "/private/tmp"),
+            },
+        )
+
+    def test_reserved_alias_and_linked_worktree_use_protected_owner(self) -> None:
+        owner = self.temp / "owner"
+        init_repo(owner)
+        alias = self.home / "GIT" / "_Worktrees" / "alias"
+        linked = self.home / ".codex" / "worktrees" / "linked"
+        alias.parent.mkdir(parents=True)
+        linked.parent.mkdir(parents=True)
+        alias.symlink_to(owner, target_is_directory=True)
+        command(
+            "git",
+            "-C",
+            str(owner),
+            "worktree",
+            "add",
+            "-q",
+            "-b",
+            "reserved-linked",
+            str(linked),
+        )
+        payload = self.manifest(
+            [
+                self.project("owner", owner),
+                self.project("alias", alias),
+                self.project("linked", linked),
+            ]
+        )
+        self.assertEqual(self.record(payload, "owner")["reason"], "canonical_root")
+        self.assertEqual(
+            self.record(payload, "alias")["reason"],
+            "canonical_alias_duplicate",
+        )
+        self.assertEqual(
+            self.record(payload, "linked")["reason"],
+            "linked_worktree_duplicate",
+        )
+        for name in ("alias", "linked"):
+            self.assertEqual(
+                self.record(payload, name)["canonical_project"],
+                "owner",
+            )
+
+    def test_alias_into_reserved_owner_and_shared_owner_are_independent(self) -> None:
+        owner = self.home / ".codex" / "worktrees" / "owner"
+        owner.parent.mkdir(parents=True)
+        init_repo(owner)
+        alias = self.temp / "safe-alias"
+        alias.symlink_to(owner, target_is_directory=True)
+        payload = self.manifest(
+            [
+                self.project("reserved-owner", owner),
+                self.project("safe-alias", alias),
+            ]
+        )
+        self.assertEqual(
+            {
+                item["name"]: item["reason"]
+                for item in payload["candidates"]
+            },
+            {
+                "reserved-owner": "reserved_live_root",
+                "safe-alias": "reserved_live_root",
+            },
+        )
+        self.assertFalse(payload["protected"])
+        self.assertEqual(
+            payload["operational_preconditions"],
+            [CBM.RESERVED_ROOT_OPERATIONAL_PRECONDITION],
+        )
+
+    def test_reserved_live_full_shallow_promisor_and_partial_are_candidates(
+        self,
+    ) -> None:
+        origin = self.temp / "origin"
+        init_repo(origin)
+        base = self.home / ".codex" / "worktrees"
+        base.mkdir(parents=True)
+        full = base / "full"
+        shallow = base / "shallow"
+        promisor = base / "promisor"
+        partial = base / "partial"
+        init_repo(full)
+        command(
+            "git",
+            "clone",
+            "-q",
+            "--depth",
+            "1",
+            f"file://{origin}",
+            str(shallow),
+        )
+        init_repo(promisor)
+        command(
+            "git",
+            "-C",
+            str(promisor),
+            "config",
+            "remote.origin.promisor",
+            "true",
+        )
+        init_repo(partial)
+        command(
+            "git",
+            "-C",
+            str(partial),
+            "config",
+            "remote.origin.partialclonefilter",
+            "blob:none",
+        )
+        payload = self.manifest(
+            [
+                self.project(name, path)
+                for name, path in (
+                    ("full", full),
+                    ("shallow", shallow),
+                    ("promisor", promisor),
+                    ("partial", partial),
+                )
+            ]
+        )
+        self.assertEqual(
+            {item["reason"] for item in payload["candidates"]},
+            {"reserved_live_root"},
+        )
+        self.assertEqual(len(payload["candidates"]), 4)
+
+    def test_reserved_bare_non_git_and_dangling_roots_block(self) -> None:
+        base = self.home / ".codex" / "worktrees"
+        base.mkdir(parents=True)
+        bare = base / "bare.git"
+        invalid = base / "invalid"
+        dangling = base / "dangling"
+        command("git", "init", "-q", "--bare", str(bare))
+        invalid.mkdir()
+        dangling.symlink_to(base / "missing-target", target_is_directory=True)
+        payload = self.manifest(
+            [
+                self.project("bare", bare),
+                self.project("invalid", invalid),
+                self.project("dangling", dangling),
+            ]
+        )
+        self.assertEqual(
+            {item["reason"] for item in payload["protected"]},
+            {"live_root_unmapped"},
+        )
+        self.assertEqual(
+            {item["name"] for item in payload["blockers"]},
+            {"bare", "invalid", "dangling"},
+        )
+
+    def test_external_unhealthy_owner_and_missing_graph_block_alias(self) -> None:
+        origin = self.temp / "origin"
+        init_repo(origin)
+        shallow = self.temp / "shallow"
+        promisor = self.temp / "promisor"
+        partial = self.temp / "partial"
+        command(
+            "git",
+            "clone",
+            "-q",
+            "--depth",
+            "1",
+            f"file://{origin}",
+            str(shallow),
+        )
+        init_repo(promisor)
+        command(
+            "git",
+            "-C",
+            str(promisor),
+            "config",
+            "remote.origin.promisor",
+            "true",
+        )
+        init_repo(partial)
+        command(
+            "git",
+            "-C",
+            str(partial),
+            "config",
+            "remote.origin.partialclonefilter",
+            "blob:none",
+        )
+        aliases = []
+        for name, owner in (
+            ("shallow", shallow),
+            ("promisor", promisor),
+            ("partial", partial),
+        ):
+            alias = self.home / "GIT" / "_Worktrees" / name
+            alias.parent.mkdir(parents=True, exist_ok=True)
+            alias.symlink_to(owner, target_is_directory=True)
+            aliases.append(alias)
+            unhealthy = self.manifest(
+                [
+                    self.project(f"{name}-owner", owner),
+                    self.project(f"{name}-alias", alias),
+                ]
+            )
+            self.assertEqual(
+                self.record(unhealthy, f"{name}-alias")["reason"],
+                "canonical_clone_not_full",
+            )
+
+        missing = self.manifest([self.project("alias", aliases[0])])
+        self.assertEqual(
+            self.record(missing, "alias")["reason"],
+            "missing_canonical_graph",
+        )
+
+    def test_nonreserved_sole_alias_stays_protected(self) -> None:
+        owner = self.temp / "owner"
+        alias = self.temp / "alias"
+        init_repo(owner)
+        alias.symlink_to(owner, target_is_directory=True)
+        payload = self.manifest([self.project("alias", alias)])
+        self.assertFalse(payload["candidates"])
+        self.assertEqual(
+            self.record(payload, "alias")["reason"],
+            "canonical_root",
+        )
+
+    def test_reserved_missing_reappearance_and_ancestor_retarget_abort(self) -> None:
+        direct = self.home / ".codex" / "worktrees" / "direct"
+        direct.parent.mkdir(parents=True)
+        direct_projects = [self.project("direct", direct)]
+        direct_payload = self.manifest(direct_projects)
+        direct_candidate = self.record(direct_payload, "direct")
+        direct.mkdir()
+        with self.assertRaisesRegex(
+            CBM.SafetyError,
+            "reserved missing root became live",
+        ):
+            CBM.revalidate_candidate(
+                direct_candidate,
+                direct_projects,
+                [],
+                home=self.home,
+                platform="darwin",
+            )
+
+        target_a = self.temp / "target-a"
+        target_b = self.temp / "target-b"
+        target_a.mkdir()
+        target_b.mkdir()
+        ancestor = self.home / "GIT" / "_Worktrees" / "ancestor"
+        ancestor.parent.mkdir(parents=True)
+        ancestor.symlink_to(target_a, target_is_directory=True)
+        missing = ancestor / "gone"
+        projects = [self.project("retarget", missing)]
+        payload = self.manifest(projects)
+        candidate = self.record(payload, "retarget")
+        ancestor.unlink()
+        ancestor.symlink_to(target_b, target_is_directory=True)
+        with self.assertRaisesRegex(
+            CBM.SafetyError,
+            "relationship changed",
+        ):
+            CBM.revalidate_candidate(
+                candidate,
+                projects,
+                [],
+                home=self.home,
+                platform="darwin",
+            )
+
+    def test_reserved_live_canonical_and_common_dir_drift_abort(self) -> None:
+        first = self.home / ".codex" / "worktrees" / "first"
+        second = self.home / ".codex" / "worktrees" / "second"
+        first.parent.mkdir(parents=True)
+        init_repo(first)
+        init_repo(second)
+        alias = self.temp / "alias"
+        alias.symlink_to(first, target_is_directory=True)
+        projects = [self.project("alias", alias)]
+        payload = self.manifest(projects)
+        candidate = self.record(payload, "alias")
+        alias.unlink()
+        alias.symlink_to(second, target_is_directory=True)
+        with self.assertRaises(CBM.SafetyError):
+            CBM.revalidate_candidate(
+                candidate,
+                projects,
+                [],
+                home=self.home,
+                platform="darwin",
+            )
+
+    def test_manifest_rejects_candidate_preservation_and_reason_tamper(
+        self,
+    ) -> None:
+        owner = self.temp / "owner"
+        init_repo(owner)
+        alias = self.home / "GIT" / "_Worktrees" / "alias"
+        alias.parent.mkdir(parents=True)
+        alias.symlink_to(owner, target_is_directory=True)
+        missing = self.home / ".codex" / "worktrees" / "missing"
+        payload = self.manifest(
+            [
+                self.project("owner", owner),
+                self.project("alias", alias),
+                self.project("missing", missing),
+            ]
+        )
+        alias_candidate = next(
+            item for item in payload["candidates"] if item["name"] == "alias"
+        )
+        missing_candidate = next(
+            item for item in payload["candidates"] if item["name"] == "missing"
+        )
+        alias_candidate["canonical_project"] = "missing"
+        alias_candidate["canonical_project_root_path"] = missing_candidate[
+            "root_path"
+        ]
+        alias_candidate["canonical_size_bytes"] = missing_candidate["size_bytes"]
+        with self.assertRaisesRegex(
+            CBM.SafetyError,
+            "final protected canonical graph",
+        ):
+            CBM.validate_manifest_relationships(payload)
+
+        clean = self.manifest([self.project("missing", missing)])
+        clean["candidates"][0]["detail"] = "tampered"
+        with self.assertRaisesRegex(
+            CBM.SafetyError,
+            "fields are invalid",
+        ):
+            CBM.validate_manifest_relationships(clean)
+
+    def test_stale_schema_is_rejected(self) -> None:
+        missing = self.home / ".codex" / "worktrees" / "missing"
+        payload = self.manifest([self.project("missing", missing)])
+        payload["schema_version"] = 1
+        payload["manifest_digest"] = CBM.manifest_digest(payload)
+        path = self.temp / "stale-manifest.json"
+        path.write_text(json.dumps(payload))
+        with self.assertRaisesRegex(
+            CBM.SafetyError,
+            "unsupported manifest schema",
+        ):
+            CBM.load_manifest(path)
+
+
 class DatabaseValidationTests(unittest.TestCase):
     def test_uses_exact_immutable_read_only_uri(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -1090,7 +1545,7 @@ class DeletionBatchTests(unittest.TestCase):
                 mock.patch.object(
                     CBM,
                     "list_projects",
-                    side_effect=[[], [second_registered]],
+                    side_effect=[[], [], [second_registered]],
                 ) as list_projects,
                 mock.patch.object(CBM, "validate_snapshot"),
                 mock.patch.object(CBM, "revalidate_candidate"),
@@ -1118,7 +1573,7 @@ class DeletionBatchTests(unittest.TestCase):
 
             report = raised.exception.report
             self.assertTrue(process.communicated)
-            self.assertEqual(list_projects.call_count, 2)
+            self.assertEqual(list_projects.call_count, 3)
             self.assertEqual(
                 [
                     json.loads(call.args[0][3])["project"]
@@ -1189,7 +1644,7 @@ class DeletionBatchTests(unittest.TestCase):
                 mock.patch.object(
                     CBM,
                     "list_projects",
-                    side_effect=[[], [registered]],
+                    side_effect=[[], [], [registered]],
                 ),
                 mock.patch.object(CBM, "validate_snapshot"),
                 mock.patch.object(CBM, "revalidate_candidate"),
@@ -1383,6 +1838,8 @@ if os.environ.get("FAKE_LSOF_MUTATE_ON_CALL") == str(call + 1):
     action = os.environ.get("FAKE_LSOF_MUTATE_ACTION", "append")
     if action == "create":
         target.write_bytes(b"")
+    elif action == "mkdir":
+        target.mkdir(parents=True)
     elif action == "remove":
         target.unlink()
     elif action == "touch":
@@ -1615,7 +2072,10 @@ raise SystemExit(module.main())
         self.assertFalse((self.cache / f"{self.worktree_name}.db").exists())
         events = self.events.read_text().splitlines()
         delete_index = events.index(f"delete-start:{self.worktree_name}")
-        self.assertEqual(events[delete_index - 1], "lsof")
+        self.assertEqual(events[delete_index - 2 : delete_index], [
+            "lsof",
+            "list_projects",
+        ])
 
     def test_successful_holder_call_counts_match_batch_contract(self) -> None:
         self.audit()
@@ -1752,7 +2212,10 @@ raise SystemExit(module.main())
             "list_projects",
             events[prior_end + 1 : next_start],
         )
-        self.assertEqual(events[next_start - 1], "lsof")
+        self.assertEqual(events[next_start - 2 : next_start], [
+            "lsof",
+            "list_projects",
+        ])
 
     def test_sidecar_holder_blocks_final_batch_before_any_launch(self) -> None:
         name = "fixture-z-ephemeral"
@@ -1804,6 +2267,55 @@ raise SystemExit(module.main())
                 for event in self.events.read_text().splitlines()
             )
         )
+
+    def test_future_reserved_relationship_drift_after_final_lsof_blocks_batch(
+        self,
+    ) -> None:
+        for index in range(8):
+            self.add_ephemeral_candidate(f"fixture-a-{index}")
+        with tempfile.TemporaryDirectory(
+            prefix="cbm-reserved-",
+            dir="/tmp",
+        ) as reserved_directory:
+            missing = pathlib.Path(reserved_directory) / "gone"
+            name = "fixture-z-reserved"
+            self.projects.append(
+                {
+                    "name": name,
+                    "root_path": str(missing),
+                    "size_bytes": sqlite_file(self.cache / f"{name}.db"),
+                    "nodes": 1,
+                    "edges": 1,
+                }
+            )
+            self.write_projects(self.projects)
+            self.audit("--ephemeral-prefix", str(self.temp / "ephemeral"))
+            manifest = json.loads(self.manifest.read_text())
+            self.assertEqual(
+                next(
+                    item
+                    for item in manifest["candidates"]
+                    if item["name"] == name
+                )["reason"],
+                "reserved_missing_root",
+            )
+            environment = {
+                **self.environment,
+                "FAKE_LSOF_MUTATE_ON_CALL": "3",
+                "FAKE_LSOF_MUTATE_PATH": str(missing),
+                "FAKE_LSOF_MUTATE_ACTION": "mkdir",
+            }
+
+            result = self.apply(check=False, env=environment)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("reserved missing root became live", result.stderr)
+            self.assertFalse(self.deleted.exists())
+            self.assertFalse(
+                any(
+                    event.startswith("delete-start:")
+                    for event in self.events.read_text().splitlines()
+                )
+            )
 
     def test_nonzero_in_first_batch_drains_and_stops_future_batches(self) -> None:
         for index in range(8):

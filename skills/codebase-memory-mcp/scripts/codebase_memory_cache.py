@@ -21,7 +21,7 @@ import urllib.parse
 from typing import Any
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 GIT_TIMEOUT_SECONDS = 30
 LSOF_ARGV_BUDGET = 128 * 1024
 LSOF_PATH = "/usr/sbin/lsof"
@@ -36,6 +36,10 @@ HOST_BLOCKING_REASONS = {
     "live_root_unmapped",
     "missing_canonical_graph",
 }
+RESERVED_ROOT_OPERATIONAL_PRECONDITION = (
+    "reserved-root indexing prevention is deployed and legacy index/server "
+    "surfaces are quiescent"
+)
 
 
 class SafetyError(RuntimeError):
@@ -284,12 +288,13 @@ def path_is_within_lexical(path: pathlib.Path, prefix: pathlib.Path) -> bool:
         return False
 
 
-def reserved_index_path(
+def reserved_boundary_matches(
     path: pathlib.Path,
     *,
     home: pathlib.Path,
     platform: str,
-) -> bool:
+) -> list[dict[str, str]]:
+    normalized = lexical_absolute_path(path)
     home_lexical = lexical_absolute_path(home)
     home_resolved = home_lexical.resolve(strict=False)
     prefixes = (
@@ -300,15 +305,84 @@ def reserved_index_path(
         pathlib.Path("/tmp"),
         pathlib.Path("/private/tmp"),
     )
-    if any(path_is_within_lexical(path, prefix) for prefix in prefixes):
-        return True
-    for part in path.parts[1:]:
-        if platform == "darwin":
-            if part.casefold() == ".worktrees":
-                return True
-        elif part == ".worktrees":
-            return True
-    return False
+    matches = [
+        {
+            "boundary_kind": "prefix",
+            "boundary": str(prefix),
+        }
+        for prefix in prefixes
+        if path_is_within_lexical(normalized, prefix)
+    ]
+    for part in normalized.parts[1:]:
+        matched = (
+            part.casefold() == ".worktrees"
+            if platform == "darwin"
+            else part == ".worktrees"
+        )
+        if matched:
+            matches.append(
+                {
+                    "boundary_kind": "component",
+                    "boundary": part,
+                }
+            )
+    return sorted(matches, key=lambda item: canonical_json(item))
+
+
+def reserved_index_path(
+    path: pathlib.Path,
+    *,
+    home: pathlib.Path,
+    platform: str,
+) -> bool:
+    return bool(
+        reserved_boundary_matches(path, home=home, platform=platform)
+    )
+
+
+def reserved_path_evidence(
+    paths: list[tuple[str, pathlib.Path]],
+    *,
+    home: pathlib.Path,
+    platform: str,
+) -> list[dict[str, str]]:
+    evidence: list[dict[str, str]] = []
+    for path_kind, path in paths:
+        normalized = lexical_absolute_path(path)
+        for match in reserved_boundary_matches(
+            normalized,
+            home=home,
+            platform=platform,
+        ):
+            evidence.append(
+                {
+                    "path_kind": path_kind,
+                    "path": str(normalized),
+                    **match,
+                }
+            )
+    return sorted(evidence, key=lambda item: canonical_json(item))
+
+
+def repository_reserved_evidence(
+    *,
+    lexical_root: pathlib.Path,
+    resolved_root: pathlib.Path,
+    canonical_root: pathlib.Path,
+    common_dir: pathlib.Path,
+    home: pathlib.Path,
+    platform: str,
+) -> list[dict[str, str]]:
+    return reserved_path_evidence(
+        [
+            ("lexical_root", lexical_root),
+            ("resolved_root", resolved_root),
+            ("canonical_root", canonical_root),
+            ("common_dir", common_dir),
+        ],
+        home=home,
+        platform=platform,
+    )
 
 
 def resolve_index_repository(
@@ -448,6 +522,24 @@ def declared_root(raw: str) -> pathlib.Path | None:
     return pathlib.Path(os.path.normpath(path))
 
 
+def dangling_symlink_component(path: pathlib.Path) -> pathlib.Path | None:
+    current = pathlib.Path(path.anchor)
+    for part in path.parts[1:]:
+        current /= part
+        try:
+            metadata = current.lstat()
+        except FileNotFoundError:
+            return None
+        except OSError as error:
+            raise SafetyError(f"cannot inspect repository path {current}: {error}") from error
+        if stat.S_ISLNK(metadata.st_mode):
+            try:
+                current.resolve(strict=True)
+            except (OSError, RuntimeError):
+                return current
+    return None
+
+
 def symlink_components(path: pathlib.Path) -> int:
     current = pathlib.Path(path.anchor)
     count = 0
@@ -499,9 +591,16 @@ def build_manifest(
     projects: list[dict[str, Any]],
     cache_dir: pathlib.Path,
     ephemeral_prefixes: list[pathlib.Path],
+    home: pathlib.Path | None = None,
+    platform: str | None = None,
 ) -> dict[str, Any]:
-    candidates: list[dict[str, Any]] = []
-    protected: list[dict[str, Any]] = []
+    home = lexical_absolute_path(
+        pathlib.Path.home() if home is None else home
+    )
+    platform = sys.platform if platform is None else platform
+    inspections: dict[str, dict[str, Any]] = {}
+    classifications: dict[str, dict[str, Any]] = {}
+
     for project in projects:
         raw_root = project["root_path"]
         base = {
@@ -510,11 +609,66 @@ def build_manifest(
             "size_bytes": project["size_bytes"],
         }
         if not raw_root:
-            protected.append({**base, "reason": "empty_root"})
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {**base, "reason": "empty_root"},
+            }
             continue
-        root = pathlib.Path(raw_root).expanduser()
+        root = declared_root(raw_root)
+        if root is None:
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
+                    **base,
+                    "reason": "live_root_unmapped",
+                    "detail": "repository root is not absolute",
+                },
+            }
+            continue
+        dangling = dangling_symlink_component(root)
+        if dangling is not None:
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
+                    **base,
+                    "reason": "live_root_unmapped",
+                    "detail": f"repository path contains dangling symlink: {dangling}",
+                },
+            }
+            continue
         if not root.exists():
-            normalized = root.resolve(strict=False)
+            try:
+                normalized = root.resolve(strict=False)
+            except (OSError, RuntimeError) as error:
+                classifications[project["name"]] = {
+                    "collection": "protected",
+                    "record": {
+                        **base,
+                        "reason": "live_root_unmapped",
+                        "detail": f"cannot resolve missing repository root: {error}",
+                    },
+                }
+                continue
+            evidence = reserved_path_evidence(
+                [
+                    ("lexical_root", root),
+                    ("resolved_root", normalized),
+                ],
+                home=home,
+                platform=platform,
+            )
+            if evidence:
+                classifications[project["name"]] = {
+                    "collection": "candidates",
+                    "record": {
+                        **base,
+                        "reason": "reserved_missing_root",
+                        "lexical_root": str(root),
+                        "resolved_root": str(normalized),
+                        "reserved_boundaries": evidence,
+                    },
+                }
+                continue
             matching_prefix = next(
                 (
                     prefix
@@ -524,88 +678,243 @@ def build_manifest(
                 None,
             )
             if matching_prefix is None:
-                protected.append({**base, "reason": "missing_root_outside_prefix"})
+                classifications[project["name"]] = {
+                    "collection": "protected",
+                    "record": {
+                        **base,
+                        "reason": "missing_root_outside_prefix",
+                    },
+                }
             else:
-                candidates.append(
-                    {
+                classifications[project["name"]] = {
+                    "collection": "candidates",
+                    "record": {
                         **base,
                         "reason": "ephemeral_missing_root",
                         "ephemeral_prefix": str(matching_prefix),
-                    }
-                )
+                    },
+                }
             continue
         try:
-            resolved = resolve_repository(root)
+            details = resolve_repository_details(root)
         except SafetyError as error:
-            protected.append(
-                {**base, "reason": "live_root_unmapped", "detail": str(error)}
-            )
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
+                    **base,
+                    "reason": "live_root_unmapped",
+                    "detail": str(error),
+                },
+            }
             continue
-        canonical_root = pathlib.Path(resolved["canonical_root"])
-        canonical_project = project_for_root(projects, canonical_root)
-        if canonical_project is None:
-            protected.append(
-                {
+        try:
+            resolved_root = root.resolve(strict=True)
+        except (OSError, RuntimeError) as error:
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
+                    **base,
+                    "reason": "live_root_unmapped",
+                    "detail": f"cannot resolve repository root: {error}",
+                },
+            }
+            continue
+        evidence = repository_reserved_evidence(
+            lexical_root=root,
+            resolved_root=resolved_root,
+            canonical_root=details["canonical_root"],
+            common_dir=details["common_dir"],
+            home=home,
+            platform=platform,
+        )
+        canonical_reserved = reserved_index_path(
+            details["canonical_root"],
+            home=home,
+            platform=platform,
+        )
+        common_reserved = reserved_index_path(
+            details["common_dir"],
+            home=home,
+            platform=platform,
+        )
+        inspections[project["name"]] = {
+            "project": project,
+            "base": base,
+            "root": root,
+            "resolved_root": resolved_root,
+            "details": details,
+            "reserved_boundaries": evidence,
+        }
+        if canonical_reserved and common_reserved:
+            classifications[project["name"]] = {
+                "collection": "candidates",
+                "record": {
+                    **base,
+                    "reason": "reserved_live_root",
+                    "lexical_root": str(root),
+                    "resolved_root": str(resolved_root),
+                    "reserved_boundaries": evidence,
+                    "canonical_root": str(details["canonical_root"]),
+                    "common_dir": str(details["common_dir"]),
+                },
+            }
+            continue
+        if canonical_reserved != common_reserved:
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
+                    **base,
+                    "reason": "live_root_unmapped",
+                    "detail": (
+                        "canonical root and Git common dir cross the reserved "
+                        "boundary"
+                    ),
+                },
+            }
+            continue
+        canonical_root = details["canonical_root"]
+        try:
+            canonical_project = project_for_root(projects, canonical_root)
+        except SafetyError as error:
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
                     **base,
                     "reason": "missing_canonical_graph",
                     "canonical_root": str(canonical_root),
-                }
-            )
+                    "detail": str(error),
+                },
+            }
+            continue
+        if canonical_project is None:
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
+                    **base,
+                    "reason": "missing_canonical_graph",
+                    "canonical_root": str(canonical_root),
+                    "detail": "no registered graph maps to the canonical root",
+                },
+            }
             continue
         if canonical_project["name"] == project["name"]:
-            protected.append({**base, "reason": "canonical_root"})
-            continue
-        if pathlib.Path(resolved["root"]) == canonical_root:
-            if not resolved["clone"]["full"]:
-                protected.append(
-                    {
+            if evidence:
+                classifications[project["name"]] = {
+                    "collection": "protected",
+                    "record": {
                         **base,
-                        "reason": "canonical_clone_not_full",
+                        "reason": "missing_canonical_graph",
                         "canonical_root": str(canonical_root),
-                        "canonical_project": canonical_project["name"],
-                    }
-                )
-                continue
-            candidates.append(
-                {
-                    **base,
-                    "reason": "canonical_alias_duplicate",
-                    "canonical_root": str(canonical_root),
-                    "canonical_project": canonical_project["name"],
-                    "canonical_project_root_path": canonical_project["root_path"],
-                    "canonical_size_bytes": canonical_project["size_bytes"],
-                    "common_dir": resolved["common_dir"],
+                        "detail": (
+                            "reserved alias has no separate final-protected "
+                            "canonical graph"
+                        ),
+                    },
                 }
-            )
-            continue
-        if not resolved["clone"]["full"]:
-            protected.append(
-                {
-                    **base,
-                    "reason": "canonical_clone_not_full",
-                    "canonical_root": str(canonical_root),
-                    "canonical_project": canonical_project["name"],
+            else:
+                classifications[project["name"]] = {
+                    "collection": "protected",
+                    "record": {**base, "reason": "canonical_root"},
                 }
-            )
             continue
-        candidates.append(
-            {
+        classifications[project["name"]] = {
+            "collection": "pending_duplicate",
+            "record": {
                 **base,
-                "reason": "linked_worktree_duplicate",
+                "reason": (
+                    "canonical_alias_duplicate"
+                    if details["root"] == canonical_root
+                    else "linked_worktree_duplicate"
+                ),
+                "lexical_root": str(root),
+                "resolved_root": str(resolved_root),
+                "reserved_boundaries": evidence,
                 "canonical_root": str(canonical_root),
                 "canonical_project": canonical_project["name"],
                 "canonical_project_root_path": canonical_project["root_path"],
                 "canonical_size_bytes": canonical_project["size_bytes"],
-                "common_dir": resolved["common_dir"],
-            }
+                "common_dir": str(details["common_dir"]),
+            },
+        }
+
+    for project in projects:
+        classification = classifications[project["name"]]
+        if classification["collection"] != "pending_duplicate":
+            continue
+        record = classification["record"]
+        inspection = inspections[project["name"]]
+        target = classifications.get(record["canonical_project"])
+        target_inspection = inspections.get(record["canonical_project"])
+        target_is_final_protected = (
+            target is not None
+            and target["collection"] == "protected"
+            and target["record"].get("reason") == "canonical_root"
         )
+        if not target_is_final_protected or target_inspection is None:
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
+                    **inspection["base"],
+                    "reason": "missing_canonical_graph",
+                    "canonical_root": record["canonical_root"],
+                    "detail": (
+                        "mapped canonical graph is not a final protected "
+                        "project"
+                    ),
+                },
+            }
+            continue
+        if target_inspection["reserved_boundaries"]:
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
+                    **inspection["base"],
+                    "reason": "missing_canonical_graph",
+                    "canonical_root": record["canonical_root"],
+                    "detail": "reserved graphs cannot preserve another project",
+                },
+            }
+            continue
+        if not inspection["details"]["clone"]["full"]:
+            classifications[project["name"]] = {
+                "collection": "protected",
+                "record": {
+                    **inspection["base"],
+                    "reason": "canonical_clone_not_full",
+                    "canonical_root": record["canonical_root"],
+                    "canonical_project": record["canonical_project"],
+                },
+            }
+            continue
+        classifications[project["name"]]["collection"] = "candidates"
+
+    candidates = [
+        classifications[project["name"]]["record"]
+        for project in projects
+        if classifications[project["name"]]["collection"] == "candidates"
+    ]
+    protected = [
+        classifications[project["name"]]["record"]
+        for project in projects
+        if classifications[project["name"]]["collection"] == "protected"
+    ]
 
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "host": socket.gethostname(),
         "cache_dir": str(cache_dir),
+        "home": str(home),
+        "platform": platform,
         "ephemeral_prefixes": [str(prefix) for prefix in ephemeral_prefixes],
+        "operational_preconditions": (
+            [RESERVED_ROOT_OPERATIONAL_PRECONDITION]
+            if any(
+                item["reason"] == "reserved_live_root"
+                for item in candidates
+            )
+            else []
+        ),
         "snapshot": project_snapshot(projects),
         "project_bytes": sum(project["size_bytes"] for project in projects),
         "candidates": candidates,
@@ -615,6 +924,7 @@ def build_manifest(
         ],
     }
     payload["manifest_digest"] = manifest_digest(payload)
+    validate_manifest_relationships(payload)
     return payload
 
 
@@ -646,6 +956,53 @@ def load_manifest(path: pathlib.Path) -> dict[str, Any]:
 
 
 def validate_manifest_relationships(payload: dict[str, Any]) -> None:
+    expected_top_level = {
+        "schema_version",
+        "created_at",
+        "host",
+        "cache_dir",
+        "home",
+        "platform",
+        "ephemeral_prefixes",
+        "operational_preconditions",
+        "snapshot",
+        "project_bytes",
+        "candidates",
+        "protected",
+        "blockers",
+        "manifest_digest",
+    }
+    if set(payload) != expected_top_level:
+        raise SafetyError("manifest top-level fields are invalid")
+    if payload["schema_version"] != SCHEMA_VERSION:
+        raise SafetyError("unsupported manifest schema")
+    if not isinstance(payload["created_at"], str):
+        raise SafetyError("manifest created_at must be a string")
+    try:
+        created_at = dt.datetime.fromisoformat(payload["created_at"])
+    except ValueError as error:
+        raise SafetyError("manifest created_at is invalid") from error
+    if created_at.tzinfo is None:
+        raise SafetyError("manifest created_at must include a timezone")
+    for key in ("host", "cache_dir", "home", "platform", "manifest_digest"):
+        if not isinstance(payload[key], str) or not payload[key]:
+            raise SafetyError(f"manifest {key} must be a nonempty string")
+    if declared_root(payload["cache_dir"]) is None:
+        raise SafetyError("manifest cache_dir must be absolute")
+    manifest_home = declared_root(payload["home"])
+    if manifest_home is None or str(manifest_home) != payload["home"]:
+        raise SafetyError("manifest home must be a normalized absolute path")
+    if not isinstance(payload["operational_preconditions"], list) or any(
+        not isinstance(value, str)
+        for value in payload["operational_preconditions"]
+    ):
+        raise SafetyError("manifest operational preconditions are invalid")
+    if (
+        not isinstance(payload["project_bytes"], int)
+        or payload["project_bytes"] < 0
+    ):
+        raise SafetyError("manifest project_bytes must be a nonnegative integer")
+
     collections: dict[str, list[dict[str, Any]]] = {}
     for key in ("snapshot", "candidates", "protected", "blockers"):
         value = payload.get(key)
@@ -660,6 +1017,21 @@ def validate_manifest_relationships(payload: dict[str, Any]) -> None:
         not isinstance(value, str) for value in prefixes
     ):
         raise SafetyError("manifest ephemeral_prefixes must be an array of strings")
+
+    snapshot_fields = {"name", "root_path", "size_bytes"}
+    for item in collections["snapshot"]:
+        if set(item) != snapshot_fields:
+            raise SafetyError("manifest snapshot record fields are invalid")
+        if (
+            not isinstance(item["root_path"], str)
+            or not isinstance(item["size_bytes"], int)
+            or item["size_bytes"] < 0
+        ):
+            raise SafetyError("manifest snapshot record values are invalid")
+    if payload["project_bytes"] != sum(
+        item["size_bytes"] for item in collections["snapshot"]
+    ):
+        raise SafetyError("manifest project_bytes disagrees with snapshot")
 
     names: dict[str, list[str]] = {}
     for key, items in collections.items():
@@ -685,6 +1057,108 @@ def validate_manifest_relationships(payload: dict[str, Any]) -> None:
         raise SafetyError(
             "manifest candidates and protected projects do not partition the snapshot"
         )
+    expected_preconditions = (
+        [RESERVED_ROOT_OPERATIONAL_PRECONDITION]
+        if any(
+            item.get("reason") == "reserved_live_root"
+            for item in collections["candidates"]
+        )
+        else []
+    )
+    if payload["operational_preconditions"] != expected_preconditions:
+        raise SafetyError("manifest operational preconditions are invalid")
+
+    base_fields = {"name", "root_path", "size_bytes", "reason"}
+    candidate_fields = {
+        "ephemeral_missing_root": base_fields | {"ephemeral_prefix"},
+        "reserved_missing_root": base_fields
+        | {
+            "lexical_root",
+            "resolved_root",
+            "reserved_boundaries",
+        },
+        "reserved_live_root": base_fields
+        | {
+            "lexical_root",
+            "resolved_root",
+            "reserved_boundaries",
+            "canonical_root",
+            "common_dir",
+        },
+        "canonical_alias_duplicate": base_fields
+        | {
+            "lexical_root",
+            "resolved_root",
+            "reserved_boundaries",
+            "canonical_root",
+            "canonical_project",
+            "canonical_project_root_path",
+            "canonical_size_bytes",
+            "common_dir",
+        },
+        "linked_worktree_duplicate": base_fields
+        | {
+            "lexical_root",
+            "resolved_root",
+            "reserved_boundaries",
+            "canonical_root",
+            "canonical_project",
+            "canonical_project_root_path",
+            "canonical_size_bytes",
+            "common_dir",
+        },
+    }
+    protected_fields = {
+        "empty_root": base_fields,
+        "missing_root_outside_prefix": base_fields,
+        "live_root_unmapped": base_fields | {"detail"},
+        "missing_canonical_graph": base_fields | {"canonical_root", "detail"},
+        "canonical_root": base_fields,
+        "canonical_clone_not_full": base_fields
+        | {"canonical_root", "canonical_project"},
+    }
+    for collection, allowed in (
+        ("candidates", candidate_fields),
+        ("protected", protected_fields),
+    ):
+        for item in collections[collection]:
+            reason = item.get("reason")
+            if reason not in allowed:
+                raise SafetyError(
+                    f"manifest {collection} has unsupported reason: {reason}"
+                )
+            if set(item) != allowed[reason]:
+                raise SafetyError(
+                    f"manifest {collection} fields are invalid for {reason}: "
+                    f"{item['name']}"
+                )
+            if reason == "live_root_unmapped":
+                if not isinstance(item["detail"], str) or not item["detail"]:
+                    raise SafetyError(
+                        f"manifest protected detail is invalid: {item['name']}"
+                    )
+            if reason == "missing_canonical_graph":
+                if (
+                    not isinstance(item["detail"], str)
+                    or not item["detail"]
+                    or not isinstance(item["canonical_root"], str)
+                    or declared_root(item["canonical_root"]) is None
+                ):
+                    raise SafetyError(
+                        f"manifest missing canonical graph evidence is invalid: "
+                        f"{item['name']}"
+                    )
+            if reason == "canonical_clone_not_full":
+                if (
+                    not isinstance(item["canonical_project"], str)
+                    or not item["canonical_project"]
+                    or not isinstance(item["canonical_root"], str)
+                    or declared_root(item["canonical_root"]) is None
+                ):
+                    raise SafetyError(
+                        f"manifest clone-health evidence is invalid: "
+                        f"{item['name']}"
+                    )
 
     for key in ("candidates", "protected"):
         for item in collections[key]:
@@ -694,6 +1168,130 @@ def validate_manifest_relationships(payload: dict[str, Any]) -> None:
                     raise SafetyError(
                         f"manifest {key} record disagrees with snapshot: {item['name']}"
                     )
+
+    protected_by_name = {
+        item["name"]: item for item in collections["protected"]
+    }
+    for item in collections["candidates"]:
+        reason = item["reason"]
+        if reason == "ephemeral_missing_root":
+            if (
+                not isinstance(item["ephemeral_prefix"], str)
+                or item["ephemeral_prefix"] not in prefixes
+            ):
+                raise SafetyError(
+                    f"manifest candidate has an unknown ephemeral prefix: "
+                    f"{item['name']}"
+                )
+            continue
+
+        string_fields = {"lexical_root", "resolved_root"}
+        if reason != "reserved_missing_root":
+            string_fields.update({"canonical_root", "common_dir"})
+        for field in string_fields:
+            value = item[field]
+            normalized = declared_root(value) if isinstance(value, str) else None
+            if normalized is None or str(normalized) != value:
+                raise SafetyError(
+                    f"manifest candidate {field} is invalid: {item['name']}"
+                )
+        registered_root = declared_root(item["root_path"])
+        if (
+            registered_root is None
+            or str(registered_root) != item["lexical_root"]
+        ):
+            raise SafetyError(
+                f"manifest candidate lexical root disagrees with registration: "
+                f"{item['name']}"
+            )
+        evidence = item["reserved_boundaries"]
+        if not isinstance(evidence, list):
+            raise SafetyError(
+                f"manifest candidate reserved boundaries are invalid: "
+                f"{item['name']}"
+            )
+        evidence_paths = [
+            ("lexical_root", pathlib.Path(item["lexical_root"])),
+            ("resolved_root", pathlib.Path(item["resolved_root"])),
+        ]
+        if reason != "reserved_missing_root":
+            expected_evidence = repository_reserved_evidence(
+                lexical_root=pathlib.Path(item["lexical_root"]),
+                resolved_root=pathlib.Path(item["resolved_root"]),
+                canonical_root=pathlib.Path(item["canonical_root"]),
+                common_dir=pathlib.Path(item["common_dir"]),
+                home=manifest_home,
+                platform=payload["platform"],
+            )
+        else:
+            expected_evidence = reserved_path_evidence(
+                evidence_paths,
+                home=manifest_home,
+                platform=payload["platform"],
+            )
+        if evidence != expected_evidence:
+            raise SafetyError(
+                f"manifest reserved boundary evidence is invalid: {item['name']}"
+            )
+        if reason in {"reserved_missing_root", "reserved_live_root"} and not evidence:
+            raise SafetyError(
+                f"manifest reserved candidate lacks boundary evidence: "
+                f"{item['name']}"
+            )
+        if reason == "reserved_live_root":
+            kinds = {entry["path_kind"] for entry in evidence}
+            if not {"canonical_root", "common_dir"} <= kinds:
+                raise SafetyError(
+                    f"manifest reserved live candidate lacks physical evidence: "
+                    f"{item['name']}"
+                )
+            continue
+        if reason == "reserved_missing_root":
+            continue
+
+        canonical_name = item["canonical_project"]
+        if (
+            not isinstance(canonical_name, str)
+            or not canonical_name
+            or not isinstance(item["canonical_project_root_path"], str)
+            or not isinstance(item["canonical_size_bytes"], int)
+            or item["canonical_size_bytes"] < 0
+        ):
+            raise SafetyError(
+                f"manifest canonical graph evidence is invalid: {item['name']}"
+            )
+        canonical = protected_by_name.get(canonical_name)
+        if canonical is None or canonical.get("reason") != "canonical_root":
+            raise SafetyError(
+                "manifest preservation target must be a final protected "
+                f"canonical graph: {item['name']}"
+            )
+        snapshot = snapshot_by_name[canonical_name]
+        if (
+            item["canonical_project_root_path"] != snapshot["root_path"]
+            or item["canonical_size_bytes"] != snapshot["size_bytes"]
+        ):
+            raise SafetyError(
+                f"manifest canonical graph evidence is invalid: {item['name']}"
+            )
+        canonical_registered = declared_root(snapshot["root_path"])
+        if canonical_registered is None:
+            raise SafetyError(
+                f"manifest canonical graph root is invalid: {item['name']}"
+            )
+        canonical_target_evidence = repository_reserved_evidence(
+            lexical_root=canonical_registered,
+            resolved_root=canonical_registered.resolve(strict=False),
+            canonical_root=pathlib.Path(item["canonical_root"]),
+            common_dir=pathlib.Path(item["common_dir"]),
+            home=manifest_home,
+            platform=payload["platform"],
+        )
+        if canonical_target_evidence:
+            raise SafetyError(
+                f"manifest reserved graph cannot preserve a candidate: "
+                f"{item['name']}"
+            )
 
     expected_blockers = [
         item
@@ -1043,7 +1641,18 @@ def revalidate_candidate(
     candidate: dict[str, Any],
     projects: list[dict[str, Any]],
     prefixes: list[pathlib.Path],
+    *,
+    protected_projects: dict[str, dict[str, Any]] | None = None,
+    home: pathlib.Path | None = None,
+    platform: str | None = None,
 ) -> None:
+    protected_projects = (
+        {} if protected_projects is None else protected_projects
+    )
+    home = lexical_absolute_path(
+        pathlib.Path.home() if home is None else home
+    )
+    platform = sys.platform if platform is None else platform
     current = next(
         (project for project in projects if project["name"] == candidate["name"]),
         None,
@@ -1054,37 +1663,105 @@ def revalidate_candidate(
         if current[field] != candidate[field]:
             raise SafetyError(f"candidate {field} changed: {candidate['name']}")
 
-    root = pathlib.Path(candidate["root_path"]).expanduser()
+    root = declared_root(candidate["root_path"])
+    if root is None:
+        raise SafetyError(f"candidate root is not absolute: {candidate['name']}")
     reason = candidate["reason"]
     if reason == "ephemeral_missing_root":
-        if root.exists():
+        dangling = dangling_symlink_component(root)
+        if root.exists() or dangling is not None:
             raise SafetyError(f"ephemeral root became live: {root}")
         expected_prefix = pathlib.Path(candidate["ephemeral_prefix"])
         if expected_prefix not in prefixes or not path_is_under(root, expected_prefix):
             raise SafetyError(f"ephemeral prefix guard failed: {root}")
         return
-    if reason not in {"canonical_alias_duplicate", "linked_worktree_duplicate"}:
+
+    if reason == "reserved_missing_root":
+        dangling = dangling_symlink_component(root)
+        if root.exists() or dangling is not None:
+            raise SafetyError(f"reserved missing root became live: {root}")
+        resolved_root = root.resolve(strict=False)
+        evidence = reserved_path_evidence(
+            [
+                ("lexical_root", root),
+                ("resolved_root", resolved_root),
+            ],
+            home=home,
+            platform=platform,
+        )
+        if (
+            str(root) != candidate["lexical_root"]
+            or str(resolved_root) != candidate["resolved_root"]
+            or evidence != candidate["reserved_boundaries"]
+        ):
+            raise SafetyError(
+                f"reserved missing root relationship changed: {root}"
+            )
+        return
+
+    if reason not in {
+        "reserved_live_root",
+        "canonical_alias_duplicate",
+        "linked_worktree_duplicate",
+    }:
         raise SafetyError(f"unsupported candidate reason: {reason}")
 
-    resolved = resolve_repository(root)
-    if resolved["root"] != str(root.resolve()):
+    details = resolve_repository_details(root)
+    resolved_root = root.resolve(strict=True)
+    evidence = repository_reserved_evidence(
+        lexical_root=root,
+        resolved_root=resolved_root,
+        canonical_root=details["canonical_root"],
+        common_dir=details["common_dir"],
+        home=home,
+        platform=platform,
+    )
+    if (
+        str(root) != candidate["lexical_root"]
+        or str(resolved_root) != candidate["resolved_root"]
+        or evidence != candidate["reserved_boundaries"]
+    ):
         raise SafetyError(f"candidate root changed: {root}")
-    if resolved["canonical_root"] != candidate["canonical_root"]:
+    if str(details["canonical_root"]) != candidate["canonical_root"]:
         raise SafetyError(f"candidate canonical root changed: {root}")
-    if resolved["common_dir"] != candidate["common_dir"]:
+    if str(details["common_dir"]) != candidate["common_dir"]:
         raise SafetyError(f"candidate Git common dir changed: {root}")
+    if reason == "reserved_live_root":
+        if not (
+            reserved_index_path(
+                details["canonical_root"],
+                home=home,
+                platform=platform,
+            )
+            and reserved_index_path(
+                details["common_dir"],
+                home=home,
+                platform=platform,
+            )
+        ):
+            raise SafetyError(
+                f"reserved live root left its reserved boundary: {root}"
+            )
+        return
+
     if reason == "linked_worktree_duplicate":
-        if not resolved["linked_worktree"]:
+        if not details["linked_worktree"]:
             raise SafetyError(f"candidate is no longer a linked worktree: {root}")
     else:
-        if resolved["linked_worktree"]:
+        if details["linked_worktree"]:
             raise SafetyError(f"canonical alias became a linked worktree: {root}")
         if declared_root(candidate["root_path"]) == pathlib.Path(
             candidate["canonical_root"]
         ):
             raise SafetyError(f"canonical alias became the canonical path: {root}")
-    if not resolved["clone"]["full"]:
+    if not details["clone"]["full"]:
         raise SafetyError(f"candidate canonical clone is not full: {root}")
+    protected = protected_projects.get(candidate["canonical_project"])
+    if protected is None or protected.get("reason") != "canonical_root":
+        raise SafetyError(
+            "candidate canonical graph is not final protected: "
+            f"{candidate['canonical_project']}"
+        )
     canonical = next(
         (
             project
@@ -1097,13 +1774,40 @@ def revalidate_candidate(
         raise SafetyError(f"canonical graph disappeared: {candidate['canonical_project']}")
     if canonical["root_path"] != candidate["canonical_project_root_path"]:
         raise SafetyError(f"canonical graph registration changed: {candidate['canonical_project']}")
-    if (
-        pathlib.Path(canonical["root_path"]).expanduser().resolve()
-        != pathlib.Path(candidate["canonical_root"])
+    canonical_root = declared_root(canonical["root_path"])
+    if canonical_root is None:
+        raise SafetyError(
+            f"canonical graph root is not absolute: {candidate['canonical_project']}"
+        )
+    canonical_details = resolve_repository_details(canonical_root)
+    if canonical_root.resolve(strict=True) != pathlib.Path(
+        candidate["canonical_root"]
     ):
         raise SafetyError(f"canonical graph root changed: {candidate['canonical_project']}")
     if canonical["size_bytes"] != candidate["canonical_size_bytes"]:
         raise SafetyError(f"canonical graph size changed: {candidate['canonical_project']}")
+    if (
+        str(canonical_details["canonical_root"]) != candidate["canonical_root"]
+        or str(canonical_details["common_dir"]) != candidate["common_dir"]
+    ):
+        raise SafetyError(
+            f"canonical graph relationship changed: "
+            f"{candidate['canonical_project']}"
+        )
+    if not canonical_details["clone"]["full"]:
+        raise SafetyError(f"candidate canonical clone is not full: {root}")
+    canonical_evidence = repository_reserved_evidence(
+        lexical_root=canonical_root,
+        resolved_root=canonical_root.resolve(strict=True),
+        canonical_root=canonical_details["canonical_root"],
+        common_dir=canonical_details["common_dir"],
+        home=home,
+        platform=platform,
+    )
+    if canonical_evidence:
+        raise SafetyError(
+            f"reserved canonical graph cannot preserve candidate: {root}"
+        )
 
 
 def delete_project_command(binary: str, project_name: str) -> list[str]:
@@ -1288,16 +1992,35 @@ def execute_delete_batch(
     fingerprints: dict[str, dict[str, dict[str, int] | None]],
     expected_snapshot: list[dict[str, Any]],
     prefixes: list[pathlib.Path],
+    relationship_candidates: list[dict[str, Any]] | None = None,
+    protected_projects: dict[str, dict[str, Any]] | None = None,
+    home: pathlib.Path | None = None,
+    platform: str | None = None,
 ) -> tuple[
     list[dict[str, Any]],
     list[dict[str, Any]],
     dict[str, Any],
 ]:
+    relationship_candidates = (
+        candidates
+        if relationship_candidates is None
+        else relationship_candidates
+    )
+    protected_projects = (
+        {} if protected_projects is None else protected_projects
+    )
     deadline = time.monotonic() + DELETE_BATCH_TIMEOUT_SECONDS
     projects = list_projects(binary)
     validate_snapshot(expected_snapshot, projects)
     for candidate in candidates:
-        revalidate_candidate(candidate, projects, prefixes)
+        revalidate_candidate(
+            candidate,
+            projects,
+            prefixes,
+            protected_projects=protected_projects,
+            home=home,
+            platform=platform,
+        )
     live_fingerprints = {
         candidate["name"]: cache_fingerprint(
             db_path(cache_dir, candidate["name"])
@@ -1348,6 +2071,21 @@ def execute_delete_batch(
                 f"project cache fingerprint changed during final holder sweep: "
                 f"{candidate['name']}"
             )
+
+    projects = list_projects(binary)
+    validate_snapshot(expected_snapshot, projects)
+    registered = {project["name"] for project in projects}
+    for candidate in relationship_candidates:
+        if candidate["name"] not in registered:
+            continue
+        revalidate_candidate(
+            candidate,
+            projects,
+            prefixes,
+            protected_projects=protected_projects,
+            home=home,
+            platform=platform,
+        )
 
     children: list[dict[str, Any]] = []
     launched: set[str] = set()
@@ -1519,15 +2257,28 @@ def preflight_candidates(
     expected_snapshot: list[dict[str, Any]],
     prefixes: list[pathlib.Path],
     lsof_timeout_seconds: int,
+    protected_projects: dict[str, dict[str, Any]] | None = None,
+    home: pathlib.Path | None = None,
+    platform: str | None = None,
 ) -> tuple[
     dict[str, dict[str, dict[str, int] | None]],
     str | None,
 ]:
     fingerprints: dict[str, dict[str, dict[str, int] | None]] = {}
+    protected_projects = (
+        {} if protected_projects is None else protected_projects
+    )
     for candidate in candidates:
         projects = list_projects(binary)
         validate_snapshot(expected_snapshot, projects)
-        revalidate_candidate(candidate, projects, prefixes)
+        revalidate_candidate(
+            candidate,
+            projects,
+            prefixes,
+            protected_projects=protected_projects,
+            home=home,
+            platform=platform,
+        )
         path = db_path(cache_dir, candidate["name"])
         fingerprints[candidate["name"]] = capture_cache_baseline(
             path, candidate["size_bytes"]
@@ -1638,7 +2389,7 @@ def candidate_execution_summary(
 def audit(args: argparse.Namespace) -> int:
     binary = cbm_binary(args.cbm_bin)
     cache_dir = cbm_cache_dir(args.cache_dir)
-    home = pathlib.Path.home().resolve()
+    home = lexical_absolute_path(pathlib.Path.home())
     prefixes = sorted(
         {
             normalize_prefix(value, cache_dir=cache_dir, home=home)
@@ -1650,6 +2401,8 @@ def audit(args: argparse.Namespace) -> int:
         projects=projects,
         cache_dir=cache_dir,
         ephemeral_prefixes=prefixes,
+        home=home,
+        platform=sys.platform,
     )
     manifest_path = pathlib.Path(args.manifest).expanduser().resolve()
     write_manifest(manifest_path, payload)
@@ -1666,6 +2419,9 @@ def audit(args: argparse.Namespace) -> int:
                 "candidate_bytes": sum(
                     item["size_bytes"] for item in payload["candidates"]
                 ),
+                "operational_preconditions": payload[
+                    "operational_preconditions"
+                ],
                 "applied": False,
             },
             sort_keys=True,
@@ -1692,7 +2448,15 @@ def prune(args: argparse.Namespace) -> int:
         raise SafetyError(
             f"cache root mismatch: {cache_dir} != {payload.get('cache_dir')}"
         )
-    home = pathlib.Path.home().resolve()
+    home = lexical_absolute_path(pathlib.Path.home())
+    if payload["home"] != str(home):
+        raise SafetyError(
+            f"manifest home mismatch: {payload['home']} != {home}"
+        )
+    if payload["platform"] != sys.platform:
+        raise SafetyError(
+            f"manifest platform mismatch: {payload['platform']} != {sys.platform}"
+        )
     prefixes = []
     for value in payload["ephemeral_prefixes"]:
         normalized = normalize_prefix(value, cache_dir=cache_dir, home=home)
@@ -1710,8 +2474,18 @@ def prune(args: argparse.Namespace) -> int:
         )
 
     expected_snapshot = list(payload["snapshot"])
+    protected_projects = {
+        item["name"]: item for item in payload["protected"]
+    }
     for candidate in runtime_protected:
-        revalidate_candidate(candidate, projects, prefixes)
+        revalidate_candidate(
+            candidate,
+            projects,
+            prefixes,
+            protected_projects=protected_projects,
+            home=home,
+            platform=sys.platform,
+        )
     fingerprints, lsof = preflight_candidates(
         binary=binary,
         cache_dir=cache_dir,
@@ -1719,6 +2493,9 @@ def prune(args: argparse.Namespace) -> int:
         expected_snapshot=expected_snapshot,
         prefixes=prefixes,
         lsof_timeout_seconds=args.lsof_timeout_seconds,
+        protected_projects=protected_projects,
+        home=home,
+        platform=sys.platform,
     )
     execution_summary = candidate_execution_summary(
         manifest_candidates=payload["candidates"],
@@ -1740,6 +2517,9 @@ def prune(args: argparse.Namespace) -> int:
                     ),
                     "blocked_manifest_allowed": args.allow_blocked_manifest,
                     "lsof_timeout_seconds": args.lsof_timeout_seconds,
+                    "operational_preconditions": payload[
+                        "operational_preconditions"
+                    ],
                     "applied": False,
                 },
                 sort_keys=True,
@@ -1770,6 +2550,10 @@ def prune(args: argparse.Namespace) -> int:
                     fingerprints=fingerprints,
                     expected_snapshot=expected_snapshot,
                     prefixes=prefixes,
+                    relationship_candidates=payload["candidates"],
+                    protected_projects=protected_projects,
+                    home=home,
+                    platform=sys.platform,
                 )
             except DeleteBatchError as error:
                 outcomes = merge_outcome_reports(outcomes, error.report)
@@ -1808,6 +2592,9 @@ def prune(args: argparse.Namespace) -> int:
                 "skipped": [],
                 "blocked_manifest_allowed": args.allow_blocked_manifest,
                 "lsof_timeout_seconds": args.lsof_timeout_seconds,
+                "operational_preconditions": payload[
+                    "operational_preconditions"
+                ],
                 "before_projects": before_projects,
                 "before_bytes": before_bytes,
                 "after_projects": len(projects),

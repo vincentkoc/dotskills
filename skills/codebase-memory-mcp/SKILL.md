@@ -52,8 +52,10 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
 7. Audit cache cleanup before applying it.
    - Freeze a host-specific manifest:
      `scripts/codebase-memory-graph.sh cache-audit --manifest /secure/path/cbm-cache.json`
-   - Missing roots are protected unless the audit names an explicit narrow `--ephemeral-prefix`.
-   - Linked-worktree candidates require a mapped, indexed, healthy full canonical clone. Shallow, promisor, partial, missing, or ambiguous canonical graphs stay protected.
+   - Built-in reserved roots are `~/.codex/worktrees`, `~/GIT/_Worktrees`, `/tmp`, `/private/tmp`, and any exact `.worktrees` path component. The audit records normalized lexical and resolved boundary evidence; `.worktrees` component matching is case-insensitive on Darwin.
+   - Missing roots under a reserved boundary are `reserved_missing_root` candidates. Live valid graphs whose physical canonical root and Git common directory remain reserved are `reserved_live_root` candidates, including shallow, promisor, and partial clones. Dangling symlinks, bare repositories, non-Git roots, and invalid reserved mappings block as `live_root_unmapped`.
+   - Other missing roots are protected unless the audit names an explicit narrow `--ephemeral-prefix`.
+   - Reserved aliases or linked worktrees that resolve to a nonreserved owner retain duplicate cleanup rules. They require a mapped, registered, final-protected healthy full canonical graph; candidate graphs, reserved graphs, shallow/promisor/partial owners, missing alternate graphs, and ambiguous owners cannot preserve them.
    - When legacy home symlinks name the same physical checkout, preserve the exact canonical graph and treat only the symlink-named graph as a duplicate. Preserve a sole symlink-named graph.
    - Review the manifest, then dry-run it:
      `scripts/codebase-memory-graph.sh cache-prune --manifest /secure/path/cbm-cache.json`
@@ -63,13 +65,14 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Apply only the unchanged manifest:
      `scripts/codebase-memory-graph.sh cache-prune --manifest /secure/path/cbm-cache.json --apply`
    - Dry-run and apply freeze regular DB/WAL/SHM fingerprints for every eligible candidate in manifest order, rejecting a missing or size-mismatched DB, nonregular files, and nonzero WAL. Existing absolute paths are swept with `/usr/sbin/lsof -nP -F0pfn -f --` in deterministic, NUL-parsed batches before any SQLite open and again after every exact `mode=ro&immutable=1` `quick_check`; global fingerprint equality is required between phases. An absent or zero-byte WAL and a stable regular SHM are allowed. Use prune-only `--lsof-timeout-seconds SECONDS` to override the 300-second holder timeout within the guarded 30-900 range.
-   - Batch holder sweeps are point-in-time checks: a transient read-only holder between sweeps is harmless and stable fingerprints detect normal writers. Unprivileged `lsof` may not see root-owned or other-user holders, so pruning trusts the point-in-time visibility available to the cache owner; running as root provides stronger holder visibility. Apply processes eligible candidates in manifest order, at most eight per deletion batch and within the same 128 KiB path budget. Each batch revalidates the snapshot, candidate relationships, and live fingerprints, performs one holder sweep, immediately proves post-sweep equality to both live and frozen fingerprints, then launches only `codebase-memory-mcp cli delete_project` children before draining them. The batch verifies registrations and DB/WAL/SHM absence once before continuing; spawn errors, timeouts, nonzero exits, retained registrations, residue, drift, or ambiguous state stop future batches and report launched, verified-deleted, failed, and ambiguous names and bytes.
+   - Batch holder sweeps are point-in-time checks: they do not prevent a legacy index or server surface from reopening a graph after the check. Unprivileged `lsof` may not see root-owned or other-user holders, so pruning trusts the point-in-time visibility available to the cache owner; running as root provides stronger holder visibility. Apply processes eligible candidates in manifest order, at most eight per deletion batch and within the same 128 KiB path budget. Each batch revalidates the snapshot and live fingerprints, performs one holder sweep, proves post-sweep fingerprint equality, then revalidates every remaining candidate relationship immediately before the first delete child. The batch launches only `codebase-memory-mcp cli delete_project` children and verifies registrations plus DB/WAL/SHM absence before continuing; spawn errors, timeouts, nonzero exits, retained registrations, residue, drift, or ambiguous state stop future batches and report launched, verified-deleted, failed, and ambiguous names and bytes.
+   - Before applying any manifest containing `reserved_live_root`, deploy the reserved-root indexing prevention and quiesce every legacy index/server surface outside this helper. The helper reports this operational precondition but does not probe or kill processes.
    - Deletion uses `codebase-memory-mcp cli delete_project` only. Never remove project databases directly.
 8. Report exact proof.
    - Indexed project name.
    - Node and edge counts when available.
    - Any grandfathered UI listener reported by `status`.
-   - For cleanup: manifest path and digest, manifest/eligible/preflighted candidate totals, runtime protected names/reasons/bytes, before/after project and byte totals, deleted project names, and any stop condition.
+   - For cleanup: manifest path and digest, manifest/eligible/preflighted candidate totals, runtime protected names/reasons/bytes, required operational preconditions, before/after project and byte totals, deleted project names, and any stop condition.
    - Missing binaries, unavailable MCP tools, or incomplete proof.
 
 ## Inputs
