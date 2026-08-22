@@ -2953,6 +2953,28 @@ raise SystemExit(module.main())
         self.assertIn("fingerprint changed", result.stderr)
         self.assertFalse(self.deleted.exists())
 
+    def test_fingerprint_change_during_final_relationship_scan_stops_batch(
+        self,
+    ) -> None:
+        self.audit()
+        list_calls = pathlib.Path(self.environment["FAKE_CBM_LIST_CALLS"])
+        list_calls.write_text("0")
+        environment = {
+            **self.environment,
+            "FAKE_CBM_MUTATE_ON_LIST_CALL": "4",
+            "FAKE_CBM_MUTATE_PATH": str(
+                self.cache / f"{self.worktree_name}.db"
+            ),
+        }
+        result = self.apply(check=False, env=environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "fingerprint changed during final relationship revalidation",
+            result.stderr,
+        )
+        self.assertIn("already_deleted=[]", result.stderr)
+        self.assertFalse(self.deleted.exists())
+
     def test_sidecar_change_after_preflight_stops_before_delete(self) -> None:
         database = self.cache / f"{self.worktree_name}.db"
         sidecar = pathlib.Path(f"{database}-shm")

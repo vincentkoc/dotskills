@@ -2087,6 +2087,13 @@ def execute_delete_batch(
             platform=platform,
         )
 
+    require_fingerprints(
+        cache_dir=cache_dir,
+        candidates=candidates,
+        fingerprints=post_lsof_fingerprints,
+        phase="during final relationship revalidation",
+    )
+
     children: list[dict[str, Any]] = []
     launched: set[str] = set()
     failed: set[str] = set()
