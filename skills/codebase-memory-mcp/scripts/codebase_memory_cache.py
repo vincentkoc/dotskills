@@ -22,6 +22,7 @@ from typing import Any
 
 
 SCHEMA_VERSION = 1
+GIT_TIMEOUT_SECONDS = 30
 LSOF_ARGV_BUDGET = 128 * 1024
 LSOF_PATH = "/usr/sbin/lsof"
 LSOF_TIMEOUT_SECONDS = 300
@@ -61,14 +62,21 @@ def run(
     *,
     check: bool = True,
     env: dict[str, str] | None = None,
+    timeout: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SafetyError(
+            f"{' '.join(command[:3])}: timed out after {timeout} seconds"
+        ) from error
     if check and result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
         raise SafetyError(f"{' '.join(command[:3])}: {detail}")
@@ -89,7 +97,11 @@ def git_env() -> dict[str, str]:
 
 
 def git(path: pathlib.Path, *args: str) -> str:
-    return run(["git", "-C", str(path), *args], env=git_env()).stdout.strip()
+    return run(
+        ["git", "-C", str(path), *args],
+        env=git_env(),
+        timeout=GIT_TIMEOUT_SECONDS,
+    ).stdout.strip()
 
 
 def absolute_git_path(root: pathlib.Path, option: str) -> pathlib.Path:
@@ -97,6 +109,7 @@ def absolute_git_path(root: pathlib.Path, option: str) -> pathlib.Path:
         ["git", "-C", str(root), "rev-parse", "--path-format=absolute", option],
         check=False,
         env=git_env(),
+        timeout=GIT_TIMEOUT_SECONDS,
     )
     if result.returncode == 0:
         return pathlib.Path(result.stdout.strip()).resolve()
@@ -107,16 +120,30 @@ def absolute_git_path(root: pathlib.Path, option: str) -> pathlib.Path:
     return path.resolve()
 
 
-def worktree_paths(root: pathlib.Path) -> list[pathlib.Path]:
+def lexical_absolute_path(path: str | os.PathLike[str]) -> pathlib.Path:
+    raw = os.fspath(path)
+    if "\0" in raw:
+        raise SafetyError("repository path contains NUL")
+    return pathlib.Path(os.path.abspath(os.path.expanduser(raw)))
+
+
+def worktree_entries(root: pathlib.Path) -> list[dict[str, pathlib.Path]]:
     result = run(
         ["git", "-C", str(root), "worktree", "list", "--porcelain", "-z"],
         env=git_env(),
+        timeout=GIT_TIMEOUT_SECONDS,
     )
-    paths: list[pathlib.Path] = []
+    entries: list[dict[str, pathlib.Path]] = []
     for field in result.stdout.split("\0"):
         if field.startswith("worktree "):
-            paths.append(pathlib.Path(field.removeprefix("worktree ")).resolve())
-    return paths
+            lexical = lexical_absolute_path(field.removeprefix("worktree "))
+            try:
+                resolved = lexical.resolve(strict=True)
+            except (OSError, RuntimeError):
+                continue
+            if resolved.is_dir():
+                entries.append({"lexical": lexical, "resolved": resolved})
+    return entries
 
 
 def clone_health(root: pathlib.Path) -> dict[str, Any]:
@@ -126,6 +153,7 @@ def clone_health(root: pathlib.Path) -> dict[str, Any]:
             ["git", "-C", str(root), "config", "--bool", "--get", "remote.origin.promisor"],
             check=False,
             env=git_env(),
+            timeout=GIT_TIMEOUT_SECONDS,
         ).stdout.strip()
         == "true"
     )
@@ -133,6 +161,7 @@ def clone_health(root: pathlib.Path) -> dict[str, Any]:
         ["git", "-C", str(root), "config", "--get", "remote.origin.partialclonefilter"],
         check=False,
         env=git_env(),
+        timeout=GIT_TIMEOUT_SECONDS,
     ).stdout.strip()
     return {
         "shallow": shallow,
@@ -142,44 +171,71 @@ def clone_health(root: pathlib.Path) -> dict[str, Any]:
     }
 
 
-def resolve_repository(path: str | os.PathLike[str]) -> dict[str, Any]:
-    requested = pathlib.Path(path).expanduser()
-    if not requested.exists() or not requested.is_dir():
-        raise SafetyError(f"repository path is missing or not a directory: {requested}")
-    requested = requested.resolve()
+def resolve_repository_details(
+    path: str | os.PathLike[str],
+) -> dict[str, Any]:
+    requested_lexical = lexical_absolute_path(path)
+    if not requested_lexical.exists() or not requested_lexical.is_dir():
+        raise SafetyError(
+            f"repository path is missing or not a directory: {requested_lexical}"
+        )
+    try:
+        requested = requested_lexical.resolve(strict=True)
+    except (OSError, RuntimeError) as error:
+        raise SafetyError(
+            f"cannot resolve repository path: {requested_lexical}: {error}"
+        ) from error
     if git(requested, "rev-parse", "--is-inside-work-tree") != "true":
         raise SafetyError(f"not a Git worktree: {requested}")
     if git(requested, "rev-parse", "--is-bare-repository") == "true":
         raise SafetyError(f"bare repositories are not indexable: {requested}")
 
-    root = pathlib.Path(git(requested, "rev-parse", "--show-toplevel")).resolve()
+    root_lexical = lexical_absolute_path(
+        git(requested, "rev-parse", "--show-toplevel")
+    )
+    root = root_lexical.resolve(strict=True)
     common_dir = absolute_git_path(root, "--git-common-dir")
     git_dir = absolute_git_path(root, "--git-dir")
     canonical = root
+    canonical_lexical = root_lexical
 
     if git_dir != common_dir:
-        owners: list[pathlib.Path] = []
-        for candidate in worktree_paths(root):
-            if not candidate.is_dir():
-                continue
+        owners: list[dict[str, pathlib.Path]] = []
+        for entry in worktree_entries(root):
+            candidate = entry["resolved"]
             try:
-                candidate_root = pathlib.Path(
+                candidate_root_lexical = lexical_absolute_path(
                     git(candidate, "rev-parse", "--show-toplevel")
-                ).resolve()
+                )
+                candidate_root = candidate_root_lexical.resolve(strict=True)
                 candidate_git_dir = absolute_git_path(candidate_root, "--git-dir")
                 candidate_common_dir = absolute_git_path(
                     candidate_root, "--git-common-dir"
                 )
             except SafetyError:
                 continue
-            if candidate_git_dir == common_dir and candidate_common_dir == common_dir:
-                owners.append(candidate_root)
-        owners = sorted(set(owners))
+            if (
+                candidate_root == candidate
+                and candidate_git_dir == common_dir
+                and candidate_common_dir == common_dir
+            ):
+                owners.append(
+                    {
+                        "lexical": entry["lexical"],
+                        "resolved": candidate_root,
+                    }
+                )
+        unique_owners = {
+            (str(owner["lexical"]), str(owner["resolved"])): owner
+            for owner in owners
+        }
+        owners = [unique_owners[key] for key in sorted(unique_owners)]
         if len(owners) != 1:
             raise SafetyError(
                 f"cannot identify one owning checkout for Git common dir {common_dir}"
             )
-        canonical = owners[0]
+        canonical_lexical = owners[0]["lexical"]
+        canonical = owners[0]["resolved"]
 
     if not canonical.is_dir():
         raise SafetyError(f"owning checkout is missing: {canonical}")
@@ -191,14 +247,96 @@ def resolve_repository(path: str | os.PathLike[str]) -> dict[str, Any]:
         raise SafetyError(f"owning checkout does not own Git common dir: {canonical}")
 
     return {
-        "requested": str(requested),
-        "root": str(root),
-        "canonical_root": str(canonical),
-        "common_dir": str(common_dir),
-        "git_dir": str(git_dir),
+        "requested_lexical": requested_lexical,
+        "requested": requested,
+        "root_lexical": root_lexical,
+        "root": root,
+        "canonical_lexical": canonical_lexical,
+        "canonical_root": canonical,
+        "common_dir": common_dir,
+        "git_dir": git_dir,
         "linked_worktree": root != canonical,
         "clone": clone_health(canonical),
     }
+
+
+def public_repository_resolution(details: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "requested": str(details["requested"]),
+        "root": str(details["root"]),
+        "canonical_root": str(details["canonical_root"]),
+        "common_dir": str(details["common_dir"]),
+        "git_dir": str(details["git_dir"]),
+        "linked_worktree": details["linked_worktree"],
+        "clone": details["clone"],
+    }
+
+
+def resolve_repository(path: str | os.PathLike[str]) -> dict[str, Any]:
+    return public_repository_resolution(resolve_repository_details(path))
+
+
+def path_is_within_lexical(path: pathlib.Path, prefix: pathlib.Path) -> bool:
+    try:
+        path.relative_to(prefix)
+        return True
+    except ValueError:
+        return False
+
+
+def reserved_index_path(
+    path: pathlib.Path,
+    *,
+    home: pathlib.Path,
+    platform: str,
+) -> bool:
+    home_lexical = lexical_absolute_path(home)
+    home_resolved = home_lexical.resolve(strict=False)
+    prefixes = (
+        home_lexical / ".codex" / "worktrees",
+        home_lexical / "GIT" / "_Worktrees",
+        home_resolved / ".codex" / "worktrees",
+        home_resolved / "GIT" / "_Worktrees",
+        pathlib.Path("/tmp"),
+        pathlib.Path("/private/tmp"),
+    )
+    if any(path_is_within_lexical(path, prefix) for prefix in prefixes):
+        return True
+    for part in path.parts[1:]:
+        if platform == "darwin":
+            if part.casefold() == ".worktrees":
+                return True
+        elif part == ".worktrees":
+            return True
+    return False
+
+
+def resolve_index_repository(
+    path: str | os.PathLike[str],
+    *,
+    home: pathlib.Path | None = None,
+    platform: str | None = None,
+) -> dict[str, Any]:
+    details = resolve_repository_details(path)
+    home = pathlib.Path.home() if home is None else home
+    platform = sys.platform if platform is None else platform
+    guarded = [
+        ("owning checkout lexical path", details["canonical_lexical"]),
+        ("owning checkout resolved path", details["canonical_root"]),
+    ]
+    if not details["linked_worktree"]:
+        guarded.extend(
+            [
+                ("requested lexical path", details["requested_lexical"]),
+                ("requested resolved path", details["requested"]),
+                ("repository lexical root", details["root_lexical"]),
+                ("repository resolved root", details["root"]),
+            ]
+        )
+    for label, candidate in guarded:
+        if reserved_index_path(candidate, home=home, platform=platform):
+            raise SafetyError(f"{label} is reserved for indexing: {candidate}")
+    return public_repository_resolution(details)
 
 
 def cbm_cache_dir(value: str | None) -> pathlib.Path:
@@ -1705,6 +1843,9 @@ def parser() -> argparse.ArgumentParser:
     resolve = subparsers.add_parser("resolve")
     resolve.add_argument("repo")
 
+    resolve_index = subparsers.add_parser("resolve-index")
+    resolve_index.add_argument("repo")
+
     audit_parser = subparsers.add_parser("audit")
     audit_parser.add_argument("--manifest", required=True)
     audit_parser.add_argument("--ephemeral-prefix", action="append", default=[])
@@ -1732,13 +1873,16 @@ def main() -> int:
         if args.command == "resolve":
             print(json.dumps(resolve_repository(args.repo), sort_keys=True))
             return 0
+        if args.command == "resolve-index":
+            print(json.dumps(resolve_index_repository(args.repo), sort_keys=True))
+            return 0
         if args.command == "audit":
             return audit(args)
         if args.command == "prune":
             return prune(args)
     except SafetyError as error:
         print(f"error: {error}", file=sys.stderr)
-        return 1
+        return 2 if args.command == "resolve-index" else 1
     raise AssertionError(args.command)
 
 

@@ -1,0 +1,179 @@
+#!@@PYTHON_PATH_SHEBANG@@
+from __future__ import annotations
+
+import json
+import os
+import pathlib
+import subprocess
+import sys
+from typing import Any
+
+
+PYTHON_PATH = @@PYTHON_PATH_JSON@@
+BACKEND_PATH = @@BACKEND_PATH_JSON@@
+RESOLVER_PATH = @@RESOLVER_PATH_JSON@@
+RESOLVER_TIMEOUT_SECONDS = 60
+SAFE_CONFIG_SET = {
+    ("config", "set", "auto_index", "false"),
+    ("config", "set", "ui", "false"),
+}
+
+
+class GatewayError(RuntimeError):
+    pass
+
+
+def rendered_path(value: Any, label: str, *, executable: bool) -> str:
+    if not isinstance(value, str) or not value or "\0" in value:
+        raise GatewayError(f"invalid rendered {label} path")
+    path = pathlib.Path(value)
+    if not path.is_absolute():
+        raise GatewayError(f"rendered {label} path is not absolute: {value}")
+    if not path.is_file():
+        raise GatewayError(f"rendered {label} path is missing: {value}")
+    if executable and not os.access(path, os.X_OK):
+        raise GatewayError(f"rendered {label} path is not executable: {value}")
+    return value
+
+
+def reject_constant(value: str) -> None:
+    raise GatewayError(f"JSON constant is not allowed: {value}")
+
+
+def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in payload:
+            raise GatewayError(f"duplicate JSON key: {key}")
+        payload[key] = value
+    return payload
+
+
+def strict_json_object(raw: str, label: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(
+            raw,
+            object_pairs_hook=reject_duplicate_keys,
+            parse_constant=reject_constant,
+        )
+    except (json.JSONDecodeError, UnicodeError) as error:
+        raise GatewayError(f"invalid {label} JSON: {error}") from error
+    if not isinstance(payload, dict):
+        raise GatewayError(f"{label} JSON must be one object")
+    return payload
+
+
+def denied_command(args: list[str]) -> str | None:
+    if args and args[0] in {"install", "update", "uninstall"}:
+        return f"top-level {args[0]} is disabled"
+    if args[:2] == ["config", "reset"]:
+        return "config reset is disabled"
+    if args[:2] == ["config", "set"]:
+        if tuple(args) in SAFE_CONFIG_SET:
+            return None
+        return "config set is not in the safe allowlist"
+    for argument in args:
+        if argument == "--ui" or argument.startswith("--ui="):
+            return "UI enablement is disabled"
+    return None
+
+
+def resolve_index_path(
+    python_path: str,
+    resolver_path: str,
+    repo_path: str,
+) -> str:
+    try:
+        result = subprocess.run(
+            [python_path, resolver_path, "resolve-index", repo_path],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=RESOLVER_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise GatewayError("canonical resolver timed out") from error
+    except OSError as error:
+        raise GatewayError(
+            f"canonical resolver failed to start: {error}"
+        ) from error
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or (
+            f"exit {result.returncode}"
+        )
+        raise GatewayError(f"canonical resolver denied repository: {detail}")
+    resolved = strict_json_object(result.stdout, "resolver response")
+    canonical = resolved.get("canonical_root")
+    if (
+        not isinstance(canonical, str)
+        or not canonical
+        or "\0" in canonical
+        or not pathlib.Path(canonical).is_absolute()
+    ):
+        raise GatewayError("resolver returned an invalid canonical_root")
+    return canonical
+
+
+def exec_backend(backend_path: str, args: list[str]) -> None:
+    try:
+        os.execve(
+            backend_path,
+            [backend_path, *args],
+            os.environ.copy(),
+        )
+    except OSError as error:
+        raise GatewayError(f"backend exec failed: {error}") from error
+
+
+def main() -> int:
+    python_path = rendered_path(PYTHON_PATH, "Python", executable=True)
+    backend_path = rendered_path(BACKEND_PATH, "backend", executable=True)
+    resolver_path = rendered_path(RESOLVER_PATH, "resolver", executable=False)
+    args = sys.argv[1:]
+
+    if args[:2] == ["cli", "index_repository"]:
+        if len(args) != 3:
+            raise GatewayError(
+                "index_repository requires exactly one JSON object argument"
+            )
+        payload = strict_json_object(args[2], "index_repository payload")
+        repo_path = payload.get("repo_path")
+        if not isinstance(repo_path, str) or not repo_path or "\0" in repo_path:
+            raise GatewayError(
+                "index_repository repo_path must be a non-empty NUL-free string"
+            )
+        payload["repo_path"] = resolve_index_path(
+            python_path,
+            resolver_path,
+            repo_path,
+        )
+        try:
+            encoded = json.dumps(
+                payload,
+                ensure_ascii=True,
+                allow_nan=False,
+                separators=(",", ":"),
+            )
+        except (TypeError, ValueError) as error:
+            raise GatewayError(
+                f"index_repository payload cannot be encoded: {error}"
+            ) from error
+        exec_backend(
+            backend_path,
+            ["cli", "index_repository", encoded],
+        )
+        raise AssertionError("backend exec returned")
+
+    reason = denied_command(args)
+    if reason is not None:
+        raise GatewayError(reason)
+    exec_backend(backend_path, args)
+    raise AssertionError("backend exec returned")
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except GatewayError as error:
+        print(f"error: {error}", file=sys.stderr)
+        raise SystemExit(2)

@@ -126,6 +126,278 @@ class ResolverTests(unittest.TestCase):
                     with self.assertRaises(CBM.SafetyError):
                         CBM.resolve_repository(path)
 
+    def test_resolve_index_rewrites_reserved_linked_worktree_and_subdir(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            temp = pathlib.Path(directory)
+            home = temp / "home"
+            home.mkdir()
+            owner = temp / "owner"
+            linked = home / ".codex" / "worktrees" / "feature"
+            linked.parent.mkdir(parents=True)
+            init_repo(owner)
+            command(
+                "git",
+                "-C",
+                str(owner),
+                "worktree",
+                "add",
+                "-q",
+                "-b",
+                "feature",
+                str(linked),
+            )
+            subdir = linked / "nested"
+            subdir.mkdir()
+
+            for requested in (linked, subdir):
+                with self.subTest(requested=requested):
+                    result = CBM.resolve_index_repository(
+                        requested,
+                        home=home,
+                        platform="darwin",
+                    )
+                    self.assertEqual(
+                        result["canonical_root"],
+                        str(owner.resolve()),
+                    )
+                    self.assertTrue(result["linked_worktree"])
+
+    def test_resolve_index_rejects_reserved_independent_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            temp = pathlib.Path(directory)
+            home = temp / "home"
+            home.mkdir()
+            cases = (
+                home / ".codex" / "worktrees" / "repo",
+                home / "GIT" / "_Worktrees" / "repo",
+                temp / "project-lower" / ".worktrees" / "repo",
+                temp / "project-mixed" / ".WorkTrees" / "repo",
+            )
+            for repo in cases:
+                repo.parent.mkdir(parents=True, exist_ok=True)
+                init_repo(repo)
+                with self.subTest(repo=repo):
+                    with self.assertRaisesRegex(
+                        CBM.SafetyError,
+                        "reserved for indexing",
+                    ):
+                        CBM.resolve_index_repository(
+                            repo,
+                            home=home,
+                            platform="darwin",
+                        )
+
+            for reserved in (
+                pathlib.Path("/tmp/repo"),
+                pathlib.Path("/private/tmp/repo"),
+            ):
+                with self.subTest(reserved=reserved):
+                    self.assertTrue(
+                        CBM.reserved_index_path(
+                            reserved,
+                            home=home,
+                            platform="darwin",
+                        )
+                    )
+
+            with tempfile.TemporaryDirectory(
+                prefix="cbm-index-",
+                dir="/tmp",
+            ) as tmp_directory:
+                tmp_repo = pathlib.Path(tmp_directory) / "repo"
+                init_repo(tmp_repo)
+                with self.assertRaisesRegex(
+                    CBM.SafetyError,
+                    "reserved for indexing",
+                ):
+                    CBM.resolve_index_repository(
+                        tmp_repo,
+                        home=home,
+                        platform="darwin",
+                    )
+
+    def test_worktrees_component_is_case_insensitive_only_on_darwin(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            temp = pathlib.Path(directory)
+            home = temp / "home"
+            candidate = temp / ".WorkTrees" / "repo"
+            self.assertTrue(
+                CBM.reserved_index_path(
+                    candidate,
+                    home=home,
+                    platform="darwin",
+                )
+            )
+            self.assertFalse(
+                CBM.reserved_index_path(
+                    candidate,
+                    home=home,
+                    platform="linux",
+                )
+            )
+
+    def test_resolve_index_rejects_reserved_owner_and_symlink_bypasses(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            temp = pathlib.Path(directory)
+            home = temp / "home"
+            home.mkdir()
+
+            reserved_owner = home / ".codex" / "worktrees" / "owner"
+            reserved_owner.parent.mkdir(parents=True)
+            init_repo(reserved_owner)
+            linked = temp / "linked"
+            command(
+                "git",
+                "-C",
+                str(reserved_owner),
+                "worktree",
+                "add",
+                "-q",
+                "-b",
+                "linked",
+                str(linked),
+            )
+            with self.assertRaisesRegex(
+                CBM.SafetyError,
+                "owning checkout.*reserved",
+            ):
+                CBM.resolve_index_repository(
+                    linked,
+                    home=home,
+                    platform="darwin",
+                )
+
+            safe_repo = temp / "safe-repo"
+            init_repo(safe_repo)
+            reserved_alias = home / "GIT" / "_Worktrees" / "alias"
+            reserved_alias.parent.mkdir(parents=True)
+            reserved_alias.symlink_to(safe_repo, target_is_directory=True)
+            with self.assertRaisesRegex(
+                CBM.SafetyError,
+                "requested lexical path.*reserved",
+            ):
+                CBM.resolve_index_repository(
+                    reserved_alias,
+                    home=home,
+                    platform="darwin",
+                )
+
+            independent_reserved = home / ".codex" / "worktrees" / "clone"
+            init_repo(independent_reserved)
+            safe_alias = temp / "safe-alias"
+            safe_alias.symlink_to(
+                independent_reserved,
+                target_is_directory=True,
+            )
+            with self.assertRaisesRegex(
+                CBM.SafetyError,
+                "reserved for indexing",
+            ):
+                CBM.resolve_index_repository(
+                    safe_alias,
+                    home=home,
+                    platform="darwin",
+                )
+
+    def test_resolve_index_keeps_separate_safe_clones_distinct(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            temp = pathlib.Path(directory)
+            home = temp / "home"
+            first = temp / "first"
+            second = temp / "second"
+            init_repo(first)
+            command("git", "clone", "-q", str(first), str(second))
+            first_result = CBM.resolve_index_repository(first, home=home)
+            second_result = CBM.resolve_index_repository(second, home=home)
+            self.assertEqual(first_result["canonical_root"], str(first.resolve()))
+            self.assertEqual(
+                second_result["canonical_root"],
+                str(second.resolve()),
+            )
+
+    def test_resolve_index_missing_bare_invalid_ambiguous_and_nul_fail(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            temp = pathlib.Path(directory)
+            home = temp / "home"
+            bare = temp / "bare.git"
+            invalid = temp / "invalid"
+            invalid.mkdir()
+            command("git", "init", "-q", "--bare", str(bare))
+            for path in (temp / "missing", bare, invalid, "bad\0path"):
+                with self.subTest(path=path):
+                    with self.assertRaises(CBM.SafetyError):
+                        CBM.resolve_index_repository(path, home=home)
+
+            owner = temp / "owner"
+            linked = temp / "linked"
+            alias = temp / "owner-alias"
+            init_repo(owner)
+            command(
+                "git",
+                "-C",
+                str(owner),
+                "worktree",
+                "add",
+                "-q",
+                "-b",
+                "linked",
+                str(linked),
+            )
+            alias.symlink_to(owner, target_is_directory=True)
+            ambiguous = [
+                {"lexical": owner, "resolved": owner.resolve()},
+                {"lexical": alias, "resolved": owner.resolve()},
+            ]
+            with (
+                mock.patch.object(
+                    CBM,
+                    "worktree_entries",
+                    return_value=ambiguous,
+                ),
+                self.assertRaisesRegex(
+                    CBM.SafetyError,
+                    "cannot identify one owning checkout",
+                ),
+            ):
+                CBM.resolve_index_repository(linked, home=home)
+
+    def test_git_timeout_fails_closed(self) -> None:
+        with (
+            mock.patch.object(
+                CBM.subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired("git", 30),
+            ),
+            self.assertRaisesRegex(
+                CBM.SafetyError,
+                "timed out after 30 seconds",
+            ),
+        ):
+            CBM.git(pathlib.Path("/repo"), "status")
+
+    def test_resolve_index_cli_denial_exits_two(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(MODULE_PATH),
+                "resolve-index",
+                "/missing/repository",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("missing or not a directory", result.stderr)
+
 
 class DatabaseValidationTests(unittest.TestCase):
     def test_uses_exact_immutable_read_only_uri(self) -> None:
