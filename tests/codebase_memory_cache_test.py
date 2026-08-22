@@ -303,6 +303,64 @@ class HolderSweepTests(unittest.TestCase):
                 [("fixture-z", "db"), ("fixture-z", "wal")],
             )
 
+    def test_cache_path_count_mismatch_fails_before_external_operations(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache = pathlib.Path(directory)
+            database = cache / "fixture.db"
+            candidate = {"name": "fixture", "size_bytes": 1}
+            baseline = {
+                database.name: {"size": 1},
+                f"{database.name}-wal": None,
+                f"{database.name}-shm": None,
+            }
+            path_counts = {
+                "shorter": [database, pathlib.Path(f"{database}-wal")],
+                "longer": [
+                    database,
+                    pathlib.Path(f"{database}-wal"),
+                    pathlib.Path(f"{database}-shm"),
+                    pathlib.Path(f"{database}-extra"),
+                ],
+            }
+            for name, paths in path_counts.items():
+                with (
+                    self.subTest(name=name),
+                    mock.patch.object(CBM, "list_projects", return_value=[]),
+                    mock.patch.object(CBM, "validate_snapshot"),
+                    mock.patch.object(CBM, "revalidate_candidate"),
+                    mock.patch.object(
+                        CBM,
+                        "capture_cache_baseline",
+                        return_value=baseline,
+                    ),
+                    mock.patch.object(CBM, "cache_paths", return_value=paths),
+                    mock.patch.object(
+                        CBM,
+                        "lsof_binary",
+                        return_value="/usr/sbin/lsof",
+                    ),
+                    mock.patch.object(CBM, "run_holder_sweep") as holder_sweep,
+                    mock.patch.object(CBM, "validate_database") as sqlite_check,
+                    mock.patch.object(CBM.subprocess, "Popen") as delete_process,
+                    self.assertRaisesRegex(
+                        CBM.SafetyError,
+                        f"expected 3 paths, got {len(paths)}",
+                    ),
+                ):
+                    CBM.preflight_candidates(
+                        binary="codebase-memory-mcp",
+                        cache_dir=cache,
+                        candidates=[candidate],
+                        expected_snapshot=[],
+                        prefixes=[],
+                        lsof_timeout_seconds=300,
+                    )
+                holder_sweep.assert_not_called()
+                sqlite_check.assert_not_called()
+                delete_process.assert_not_called()
+
     def test_nul_lsof_output_attributes_multiple_paths_and_pids(self) -> None:
         inventory = [
             {"candidate": "first", "kind": "db", "path": "/cache/first.db"},

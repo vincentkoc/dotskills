@@ -709,7 +709,13 @@ def holder_inventory(
     for candidate in candidates:
         database = db_path(cache_dir, candidate["name"])
         baseline = fingerprints[candidate["name"]]
-        for kind, path in zip(kinds, cache_paths(database), strict=True):
+        paths = cache_paths(database)
+        if len(paths) != len(kinds):
+            raise SafetyError(
+                f"project cache path invariant failed for {candidate['name']}: "
+                f"expected {len(kinds)} paths, got {len(paths)}"
+            )
+        for kind, path in zip(kinds, paths):
             if baseline[path.name] is not None:
                 inventory.append(
                     {
