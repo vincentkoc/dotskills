@@ -6,18 +6,18 @@ usage() {
 Usage: codebase-memory-graph.sh <command> [options]
 
 Commands:
-  init       Configure UI, index the repo, start UI, and run a schema smoke check
+  init       Index the canonical repo and run a schema smoke check
   index      Index the repo
   canonical  Print the canonical owning checkout used for indexing
-  start-ui   Start the tmux keepalive that exposes the HTTP graph UI
+  start-ui   Fail closed while upstream UI indexing is unsafe
   stop-ui    Stop the tmux keepalive session for the repo
-  status     Show config, projects, and UI listener state
+  status     Show config, projects, and any grandfathered UI listener state
   schema     Print graph schema for the repo's indexed project
   cache-audit
              Write a guarded duplicate/dead-root cache manifest without deleting
   cache-prune
              Validate a cache manifest; add --apply to delete through the CLI
-  keepalive  Internal command used inside tmux
+  keepalive  Disabled internal UI command
 
 Options:
   --repo PATH     Repository root. Defaults to git root or current directory.
@@ -144,7 +144,7 @@ resolve_repo() {
   if [[ -z "$requested" ]]; then
     requested="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
   fi
-  resolved="$(python3 "$(cache_helper)" resolve "$requested")"
+  resolved="$(python3 "$(cache_helper)" resolve-index "$requested")"
   RESOLVED_JSON="$resolved" python3 - <<'PY'
 import json
 import os
@@ -198,63 +198,13 @@ session_for_repo() {
   printf 'cbm-%s-ui\n' "${safe:-repo}"
 }
 
-configure_ui() {
-  codebase-memory-mcp config set ui true
-  codebase-memory-mcp config set port "$port"
-}
-
-wait_for_ui() {
-  local url="http://127.0.0.1:${port}/"
-  for _ in $(seq 1 20); do
-    if curl -fsS -I "$url" >/dev/null 2>&1; then
-      printf 'ui_url=%s\n' "$url"
-      return 0
-    fi
-    sleep 0.5
-  done
-  printf 'UI did not answer at %s\n' "$url" >&2
-  return 1
+ui_unavailable() {
+  printf 'codebase-memory-mcp UI startup is disabled until upstream /api/index canonicalization is available\n' >&2
+  exit 2
 }
 
 cmd_keepalive() {
-  need node
-  CBM_UI_PORT="$port" exec node <<'NODE'
-const { spawn } = require("child_process");
-
-const port = process.env.CBM_UI_PORT || "9749";
-const child = spawn("codebase-memory-mcp", ["--ui=true", `--port=${port}`], {
-  stdio: ["pipe", "pipe", "pipe"],
-});
-
-child.stdout.on("data", () => {});
-child.stderr.on("data", (chunk) => process.stderr.write(chunk));
-
-child.stdin.write(JSON.stringify({
-  jsonrpc: "2.0",
-  id: 1,
-  method: "initialize",
-  params: {
-    protocolVersion: "2024-11-05",
-    capabilities: {},
-    clientInfo: {
-      name: "codebase-memory-graph-ui-keepalive",
-      version: "1",
-    },
-  },
-}) + "\n");
-child.stdin.write(JSON.stringify({
-  jsonrpc: "2.0",
-  method: "notifications/initialized",
-  params: {},
-}) + "\n");
-
-child.on("exit", (code, signal) => {
-  process.exit(code ?? (signal ? 1 : 0));
-});
-process.on("SIGTERM", () => child.kill("SIGTERM"));
-process.on("SIGINT", () => child.kill("SIGINT"));
-setInterval(() => {}, 2147483647);
-NODE
+  ui_unavailable
 }
 
 cmd_index() {
@@ -320,20 +270,7 @@ cmd_cache_prune() {
 }
 
 cmd_start_ui() {
-  local root session script keepalive_cmd
-  need codebase-memory-mcp
-  need tmux
-  need curl
-  configure_ui
-  root="$(resolve_repo)"
-  session="$(session_for_repo "$root")"
-  script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
-  if ! tmux has-session -t "$session" 2>/dev/null; then
-    printf -v keepalive_cmd '%q ' "$script" keepalive --port "$port"
-    tmux new-session -d -s "$session" "$keepalive_cmd"
-  fi
-  printf 'tmux_session=%s\n' "$session"
-  wait_for_ui
+  ui_unavailable
 }
 
 cmd_stop_ui() {
@@ -380,9 +317,7 @@ cmd_status() {
 cmd_init() {
   need codebase-memory-mcp
   need python3
-  configure_ui
   cmd_index
-  cmd_start_ui
   cmd_schema >/dev/null
   cmd_status
 }

@@ -1,6 +1,6 @@
 ---
 name: codebase-memory-mcp
-description: Resolve canonical Git checkouts, index and verify codebase-memory-mcp graphs, operate the local graph UI, and safely audit duplicate worktree caches. Use when a user mentions codebase memory MCP, search_graph, trace_path, graph UI, index_repository, worktree indexes, or oversized graph caches.
+description: Resolve canonical Git checkouts, index and verify codebase-memory-mcp graphs through the guarded CLI, and safely audit duplicate worktree caches. Use when a user mentions codebase memory MCP, search_graph, trace_path, index_repository, worktree indexes, or oversized graph caches.
 license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
@@ -15,7 +15,6 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
 ## When to use
 
 - Initialize, re-index, refresh, or troubleshoot a repository graph.
-- Start or inspect the local graph UI.
 - Use `search_graph`, `trace_path`, `get_code_snippet`, or `query_graph`.
 - Verify that a repository is indexed before graph-backed exploration.
 - Audit or prune duplicate linked-worktree indexes without deleting cache files directly.
@@ -31,21 +30,25 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - `scripts/codebase-memory-graph.sh canonical --repo "$(git rev-parse --show-toplevel)"`
    - Linked worktrees resolve through their absolute Git common directory to the one checkout that owns it.
    - Separate clones remain separate projects.
-   - Missing, invalid, bare, or ownerless repositories fail closed.
+   - Independent roots under `~/.codex/worktrees`, `~/GIT/_Worktrees`, any `.worktrees` component, `/tmp`, or `/private/tmp` are never indexed. Linked worktrees under those paths may only rewrite to one existing nonreserved owner.
+   - Missing, invalid, bare, ambiguous, ownerless, reserved-owner, or NUL-containing repositories fail closed.
 3. Prefer exposed MCP graph tools for discovery.
-   - Run `index_repository` before searching when the repository is not indexed.
+   - Installer or client configuration must separately disable the MCP `index_repository` tool because it cannot enforce the canonical indexing boundary. For Codex installs, render the private `disabled_tools` configuration accordingly.
+   - When a graph is missing, run `scripts/codebase-memory-graph.sh index --repo "$(git rev-parse --show-toplevel)" --mode full`.
    - Use `search_graph`, `trace_path`, and `get_code_snippet` before broad text scans.
-4. Use the helper when CLI or UI orchestration is needed.
+4. Use the helper for CLI indexing.
    - `scripts/codebase-memory-graph.sh init --repo "$(git rev-parse --show-toplevel)" --mode full`
    - The helper always sends the canonical owning checkout to `index_repository`.
    - Use `--mode fast` for a smoke index.
+   - Installer integrations render `scripts/codebase-memory-gateway.py.tmpl` with an approved pinned backend path. Replace `@@PYTHON_PATH_SHEBANG@@` with the raw absolute interpreter path and replace `@@PYTHON_PATH_JSON@@`, `@@BACKEND_PATH_JSON@@`, and `@@RESOLVER_PATH_JSON@@` with JSON string literals containing the exact absolute interpreter, backend, and `codebase_memory_cache.py` paths. The rendered gateway has no upgrade logic and uses `execve` for pass-through.
+   - The gateway guards raw CLI calls only. Zero-argument MCP stdio startup intentionally passes through to the approved backend, so the gateway is not an MCP tool-filtering proxy and does not replace the separate `disabled_tools` control.
 5. Verify the graph.
    - `codebase-memory-mcp cli list_projects`
    - `scripts/codebase-memory-graph.sh schema --repo "$(git rev-parse --show-toplevel)"`
    - Run one focused graph query before declaring success.
-6. Verify the UI when requested.
-   - Default URL: `http://127.0.0.1:9749/`.
-   - The helper creates a repository-scoped tmux keepalive session.
+6. Treat the UI as unavailable.
+   - `start-ui` and `keepalive` fail closed before configuration or process mutation.
+   - UI startup remains disabled until upstream `/api/index` canonicalization can enforce the same boundary. `status` may report an already-running grandfathered listener.
 7. Audit cache cleanup before applying it.
    - Freeze a host-specific manifest:
      `scripts/codebase-memory-graph.sh cache-audit --manifest /secure/path/cbm-cache.json`
@@ -65,7 +68,7 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
 8. Report exact proof.
    - Indexed project name.
    - Node and edge counts when available.
-   - UI URL and tmux session name.
+   - Any grandfathered UI listener reported by `status`.
    - For cleanup: manifest path and digest, manifest/eligible/preflighted candidate totals, runtime protected names/reasons/bytes, before/after project and byte totals, deleted project names, and any stop condition.
    - Missing binaries, unavailable MCP tools, or incomplete proof.
 
@@ -73,12 +76,11 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
 
 - Repository path.
 - Index mode: `fast`, `moderate`, `full`, or `cross-repo-intelligence`.
-- Optional UI port; default `9749`.
+- Optional status listener port; default `9749`.
 - For cache maintenance: a host-local manifest path, optional explicit ephemeral prefixes, and optional exact runtime protected candidate names.
 
 ## Outputs
 
 - Indexed and queryable repository graph.
-- Verified local graph UI when requested.
 - A dry-run cache manifest or guarded CLI-only deletion report.
 - Exact status, schema, and proof summary.

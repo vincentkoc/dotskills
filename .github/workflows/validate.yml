@@ -19,8 +19,11 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Codebase memory cache tests
-        run: python -m unittest -v tests/codebase_memory_cache_test.py
+      - name: Codebase memory boundary tests
+        run: >-
+          python -m unittest -v
+          tests/codebase_memory_cache_test.py
+          tests/codebase_memory_gateway_test.py
 
   validate-and-publish-readiness:
     runs-on: ubuntu-latest
