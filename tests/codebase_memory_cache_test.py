@@ -401,7 +401,7 @@ class ResolverTests(unittest.TestCase):
 
 class ReservedCacheClassificationTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.temporary = tempfile.TemporaryDirectory()
+        self.temporary = tempfile.TemporaryDirectory(dir=pathlib.Path.home())
         self.temp = pathlib.Path(self.temporary.name)
         self.home = self.temp / "home"
         self.cache = self.temp / "cache"
@@ -1683,7 +1683,7 @@ class DeletionBatchTests(unittest.TestCase):
 
 class CacheManifestTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.temporary = tempfile.TemporaryDirectory()
+        self.temporary = tempfile.TemporaryDirectory(dir=pathlib.Path.home())
         self.temp = pathlib.Path(self.temporary.name)
         self.main = self.temp / "main"
         self.worktree = self.temp / "worktree"
