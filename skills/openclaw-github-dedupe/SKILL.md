@@ -227,6 +227,10 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
    - Check `AGENTS.md` and `CONTRIBUTING.md` for scope changes or repo policy changes.
    - Validate that output keeps explicit credit references and concise issue/PR references.
 
+## Flow
+
+See `references/flow.md` for the state chart covering mode selection, the autonomous viability gate, and the decision/closeout states.
+
 ## Governance and anti-drift checks
 
 - If the repo has a higher-priority instruction source (project-specific AGENTS/CONTRIBUTING), that source wins over this skill's defaults.
