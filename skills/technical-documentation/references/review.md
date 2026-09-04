@@ -13,8 +13,9 @@ Read `principles.md` first, then apply this checklist.
 
 - Proactively find issues and risks without waiting for repeated prompts.
 - If there are signals of deeper problems, continue investigation beyond the first pass.
-- Long-running and extensive investigations are acceptable when needed for confidence and correctness.
-- When available, use sub-agents for bounded parallel discovery (for example file-inventory, command validation, or cross-doc consistency checks), then merge to one final issue set.
+- Long-running and extensive investigations are acceptable when needed for confidence and correctness. An audit ends when coverage is complete and two discovery passes add nothing new, not when the output gets long.
+- For trees with hundreds of pages, oversized pages, or many locales, switch to `references/large-docs-audit.md`: shard, ledger, verify, then remediate.
+- When available, use sub-agents for bounded parallel discovery (for example file-inventory, command validation, or cross-doc consistency checks), then merge to one final issue set. With user opt-in, run shards as a Claude Workflow per `references/workflows.md`.
 - When no issues are found, state that explicitly and call out residual risks or validation gaps.
 - Default to `apply-fixes` for high-confidence documentation defects unless the user explicitly requests `report-only`.
 - Do not stop at AGENTS/CONTRIBUTING checks when the task is documentation-wide; continue into docs-content and docs-framework surfaces.
@@ -73,12 +74,22 @@ For agent-platform awareness:
 - Flag critical content trapped in images or buried sections.
 - Check Diataxis alignment and split mixed-purpose sections.
 
-## 7. Writing quality review
+## 7. Writing quality review (Simplified Technical English)
 
-- Check for concise, scannable paragraphs.
-- Remove ambiguous pronouns and undefined terms.
+- Run `scripts/ste-lint.py --summary` over the scope first. Record the hard-violation rate per 100 words per file. Use `--mode flavored` for explanation pages and `--max-words 20` for procedures.
+- Apply the scan checklist in `references/simplified-technical-english.md`: synonym rotation, hedge stacking, nominalization, marketing adjectives, run-on sentences, phrasal verbs.
+- Check for concise, scannable paragraphs (6 sentences or fewer, one topic each).
+- Remove ambiguous pronouns and undefined terms. One term per concept per file.
 - Verify examples are executable and scoped correctly.
 - Verify tone is directive, technical, and non-hand-wavy.
+- When rewriting, preserve every hedge and scope qualifier. Flag any sentence kept long on purpose with `Kept as-is:`.
+- Note where prose is compliant but empty. STE fixes form, not substance.
+
+## 7a. Reader-experience review (large or messy pages)
+
+- Score each page against the rubric in `references/large-docs-audit.md` section 3: purpose in first screen, funnel, Diataxis purity, task path, heading hierarchy, density, table monsters, code accuracy, trapped facts, cross-links, terminology, staleness, duplicates, nav position.
+- Treat pages over 20k characters as split candidates and follow the oversized page protocol.
+- Report nav orphans and nav ghosts from the framework config.
 
 ## 8. Brownfield review mode
 
@@ -115,3 +126,5 @@ Read `tooling.md` if platform fit is uncertain.
 1. Blocking issues (file + required fix)
 2. Non-blocking improvements
 3. Validation notes (done vs pending)
+4. Coverage (pages read / pages in scope) and STE lint summary when the scope is a tree
+5. Ledger path and status counts when a ledger was used

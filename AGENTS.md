@@ -88,7 +88,12 @@ When adding or removing a private skill:
 
 ## Technical Documentation sub-agent prompt files
 
-- `skills/technical-documentation/agents/inventory-agent.md` (`fast`, Claude `haiku`)
-- `skills/technical-documentation/agents/governance-agent.md` (`thinking`, Claude `sonnet`)
-- `skills/technical-documentation/agents/docs-framework-agent.md` (`thinking`, Claude `sonnet`)
-- `skills/technical-documentation/agents/synthesis-agent.md` (`long`, Claude `opus`)
+- `skills/technical-documentation/agents/inventory-agent.md` (Claude `haiku`)
+- `skills/technical-documentation/agents/ste-lint-agent.md` (Claude `haiku`)
+- `skills/technical-documentation/agents/governance-agent.md` (Claude `sonnet`)
+- `skills/technical-documentation/agents/docs-framework-agent.md` (Claude `sonnet`)
+- `skills/technical-documentation/agents/verify-agent.md` (Claude `sonnet`)
+- `skills/technical-documentation/agents/docs-ux-audit-agent.md` (Claude `fable`)
+- `skills/technical-documentation/agents/ste-rewrite-agent.md` (Claude `fable`)
+- `skills/technical-documentation/agents/remediation-agent.md` (Claude `fable`)
+- `skills/technical-documentation/agents/synthesis-agent.md` (Claude `fable`)
