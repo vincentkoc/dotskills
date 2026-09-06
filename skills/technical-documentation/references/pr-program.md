@@ -60,7 +60,18 @@ Findings cite line numbers at one commit. A fast-moving repository invalidates t
    - Findings on changed files go through a cheap re-validation agent first. It reports still-applies, already-fixed, or needs-update per finding, reading only the cited region.
    - Findings on files that no longer exist are re-targeted or closed as `wontfix` with the reason.
 4. Set the re-validated statuses in the ledger before the remediation agent runs. Never let an editor work from a stale line number.
-5. Rebase the branch and re-run the check if a PR sits unmerged for more than a few days.
+5. Rebase the branch and re-run the drift comparison if a PR sits unmerged for more than a few days.
+
+## Green CI is not proof
+
+A repository can route checks by changed path. A docs-only PR may skip the lane that would have caught its defect. The break then lands on the default branch, where nobody is watching for it.
+
+1. After CI passes, read the skipped list, not just the failed list. A high skip count on a PR that changes structure is a warning.
+2. For any PR that adds pages, moves pages, or edits navigation, find the tests that read the navigation config or assert route shapes. Run them locally. Grep the test tree for the config filename.
+3. Treat repeated failures on an unrelated-looking check as a signal, not as flakiness. Read the failing test name on every run. A shard that fails four times is telling you something, and the test that fails may change between runs.
+4. When a merged PR breaks the default branch, fix forward immediately with a PR that names the invariant it violated and quotes the assertion.
+
+A worked example: a PR split an oversized release page into 23 child pages and added each to the navigation. A test asserted every page in that navigation group matched a version-route pattern, which the child routes did not. The docs-only classification skipped that lane, so the failure appeared first on the default branch. The test's own comment predicted exactly this. Every docs validator had passed.
 
 ## What every PR contains
 
