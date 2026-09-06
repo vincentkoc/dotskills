@@ -1,52 +1,79 @@
 # Running Audits and Remediation as Claude Workflows
 
-Claude Code's Workflow tool runs a JavaScript script that spawns many sub-agents with deterministic control flow. Use it for docs work that one context cannot hold: full-tree audits, mass STE passes, and parallel remediation. This file gives the execution ladder, the rules a script must follow, and two script templates.
+Claude Code's Workflow tool runs a JavaScript script that spawns many sub-agents with deterministic control flow. Use it for docs work that one context cannot hold: full-tree audits, mass STE passes, and parallel remediation. This file gives the execution ladder, the token rules, the resume rules, and three script templates.
 
 ## Execution ladder
 
 Pick the highest rung the session supports and the user has opted into.
 
 1. `workflow`: the Workflow tool is available and the user opted in. Opt-in phrases: "use a workflow", "ultracode", "fan out agents", or a skill that says to. Use the templates below.
-2. `sub-agent-assisted`: the Agent tool is available. Use the prompt files in `agents/` with the Agent tool, one agent per shard or finding, and merge by hand into the ledger.
+2. `sub-agent-assisted`: the Agent tool is available. Use the prompt files in `agents/` with the Agent tool, one agent per shard, and merge by hand into the ledger.
 3. `single-agent`: no delegation available. Work shard by shard in one context, write the ledger after each shard, and report coverage honestly.
 
 Do not launch a Workflow without the opt-in. Say in one line what a workflow would do and roughly how many agents it would spawn, and ask. If the user already opted in, do not ask again.
 
-## Script rules (from the workflow-authoring reference)
+## Token rules
 
-- Load the `workflow-authoring` skill before writing a script. The rules below are the ones this skill depends on.
-- Open the script with `export const meta = { name, description, phases }` as a pure literal.
-- Default to `pipeline()` so shards flow through stages independently. Use `parallel()` only where a stage needs every prior result at once (dedupe across shards, early exit).
-- Give every `agent()` a `schema` so results are validated objects, not prose to parse.
-- Omit `model` so agents inherit the session model. Set `effort` per stage: `low` for inventory and lint, `high` for audit and verification, `xhigh` for rewrites, remediation, and synthesis.
-- Use `isolation: 'worktree'` only for agents that edit files in parallel.
-- No `Date.now()`, `Math.random()`, or Node APIs. Pass timestamps and paths through `args`.
-- `log()` anything dropped, sampled, or capped. Silent truncation reads as full coverage.
-- Filter `null` results (`.filter(Boolean)`): a skipped or failed agent returns null.
-- Keep the agent count under the session's guideline unless the user asked for scale. A full-tree audit of 60 shards with verification is above the default guideline. Say so and get the go-ahead.
+A full-tree audit costs millions of subagent tokens. These rules decide whether it finishes in one session or four.
+
+- **Do the mechanical work in Python first.** Nav walks, size distributions, title collisions, heading counts, link resolution, and lint baselines are scripts. Agents get their output as context.
+- **Run the repo's native validators before the agents.** Findings a checker can decide never reach an agent.
+- **Batch verification per shard.** One verifier for a shard's findings, not one per finding. Per-finding fan-out multiplies agent count by ten and is the single largest waste.
+- **Scope verifier reads.** Cited line range plus context with `sed -n`, `grep` for a heading, `test -f` for a link target. Never a whole file.
+- **Tier the models.** `haiku` for inventory and lint, `sonnet` at `low` effort for verification, the session model at `high` for audit reads, `xhigh` only for synthesis, rewrites, and remediation.
+- **Keep arguments small.** Write shard file lists to `.audit/shards/<id>.txt` and pass ids. Large inline arrays bloat every resume and invalidate the cache when they change.
+- **Cap what returns.** Ask for structured findings, not prose. A schema keeps a chatty agent from returning an essay.
+- **Split giant pages across lens-scoped agents** rather than asking one agent for fourteen rubric items on 100k characters.
+- Budget roughly 6 to 8M subagent tokens per session window. Plan the round so a natural boundary falls near that.
+
+## Resume rules
+
+Interruption is normal. Design for it.
+
+- The journal at `<transcriptDir>/journal.jsonl` holds one result line per completed agent. It is the source of truth, not the tool result, which truncates.
+- Rebuild the ledger from the journal after every run: read result lines, take the newest per shard, write `ledger.jsonl`, re-render the report.
+- Resume with `Workflow({scriptPath, resumeFromRunId})`. Agents whose prompt and options are unchanged replay from cache instantly.
+- **Never edit an audit agent's prompt or the repository root path when resuming.** Both are part of the cache key. Edit only the stages that failed.
+- If the working clone disappears between sessions, re-create it at the same absolute path and at the same commit. The path is in the cache key.
+- Cross-check a re-created clone. Regenerate the shard lists and check that the ids and file lists match what the cached results read.
 
 ## Shared schemas
 
 ```js
+const FINDING_PROPS = {
+  file: { type: 'string' }, line: { type: 'integer' }, rubric: { type: 'integer' },
+  severity: { type: 'string', enum: ['blocking', 'major', 'minor'] },
+  kind: { type: 'string', enum: ['ux', 'ia', 'accuracy', 'ste', 'link', 'i18n', 'governance', 'generated', 'split'] },
+  summary: { type: 'string' }, evidence: { type: 'string' }, fix: { type: 'string' }, confidence: { type: 'number' },
+}
 const FINDINGS = {
   type: 'object',
   properties: {
     shard: { type: 'string' },
     pages_read: { type: 'array', items: { type: 'string' } },
     pages_skipped: { type: 'array', items: { type: 'string' } },
-    findings: { type: 'array', items: { type: 'object', properties: {
-      file: { type: 'string' }, line: { type: 'integer' }, rubric: { type: 'integer' },
-      severity: { type: 'string', enum: ['blocking', 'major', 'minor'] },
-      kind: { type: 'string' }, summary: { type: 'string' }, evidence: { type: 'string' },
-      fix: { type: 'string' }, confidence: { type: 'number' } },
-      required: ['file', 'rubric', 'severity', 'kind', 'summary', 'evidence', 'fix'] } },
+    page_scores: { type: 'array', items: { type: 'object', properties: {
+      file: { type: 'string' }, fails: { type: 'array', items: { type: 'integer' } },
+      weaks: { type: 'array', items: { type: 'integer' } }, note: { type: 'string' } },
+      required: ['file', 'fails', 'weaks'] } },
+    findings: { type: 'array', items: { type: 'object', properties: FINDING_PROPS,
+      required: ['file', 'rubric', 'severity', 'kind', 'summary', 'evidence', 'fix', 'confidence'] } },
+    split_plans: { type: 'array', items: { type: 'object', properties: {
+      file: { type: 'string' }, chars: { type: 'integer' },
+      proposed_pages: { type: 'array', items: { type: 'string' } }, rationale: { type: 'string' } },
+      required: ['file', 'proposed_pages', 'rationale'] } },
+    notes: { type: 'string' },
   },
   required: ['shard', 'pages_read', 'pages_skipped', 'findings'],
 }
-const VERDICT = {
+// One verdict object per shard, not per finding.
+const VERDICTS = {
   type: 'object',
-  properties: { refuted: { type: 'boolean' }, reason: { type: 'string' } },
-  required: ['refuted', 'reason'],
+  properties: { file: { type: 'string' }, verdicts: { type: 'array', items: { type: 'object', properties: {
+    index: { type: 'integer' }, refuted: { type: 'boolean' }, reason: { type: 'string' },
+    severity_adjustment: { type: 'string', enum: ['keep', 'raise', 'lower'] } },
+    required: ['index', 'refuted', 'reason', 'severity_adjustment'] } } },
+  required: ['file', 'verdicts'],
 }
 const EDIT_RESULT = {
   type: 'object',
@@ -59,61 +86,82 @@ const EDIT_RESULT = {
 }
 ```
 
-## Template 1: full-tree audit
+## Template 1: full-tree audit with batched verification
 
-Scout inline first: run the inventory from `references/large-docs-audit.md` section 2 and build the shard list. Pass it in as `args.shards` (array of `{id, files}`), together with `args.ledgerPath`, `args.rubricPath` (this skill's `references/large-docs-audit.md`), and `args.stePath` (this skill's `scripts/ste-lint.py`).
+Scout inline first: run round 0 from `references/large-docs-audit.md`, write the shard lists to disk, then pass only ids. `args` carries `root`, `commit`, `shardIds`, and the paths to the rubric, the STE policy, and the linter.
 
 ```js
 export const meta = {
   name: 'docs-tree-audit',
-  description: 'Audit every docs shard, verify blocking and major findings, synthesize a fix plan',
+  description: 'Audit every docs shard in full, verify blocking and major findings per shard, synthesize',
   phases: [{ title: 'Audit' }, { title: 'Verify' }, { title: 'Synthesize' }],
 }
-// FINDINGS and VERDICT schemas from references/workflows.md go here.
-const shards = args.shards
-log(`${shards.length} shards, ${shards.reduce((n, s) => n + s.files.length, 0)} pages in scope`)
+// FINDINGS and VERDICTS schemas from above go here.
+const COMMON = `Repository root: ${args.root} at commit ${args.commit}. Rubric: ${args.rubricPath} section 5. ` +
+  `STE policy: ${args.stePolicyPath}. Linter: ${args.stePath}. Round-0 scans already ran, so do not re-derive ` +
+  `nav, sizes, or lint totals. Cite evidence as line numbers or counts. Write summary and fix in Strict STE. Do not edit files.`
 
 const audited = await pipeline(
-  shards,
-  s => agent(
-    `You are the docs-ux-audit agent. Read the rubric at ${args.rubricPath} section 3 and apply it to EVERY file below in full. ` +
-    `Run python3 ${args.stePath} --summary on the files and include the hard-violation rate in evidence for rubric 11. ` +
-    `Do not sample. List any file you could not read under pages_skipped with the reason. ` +
-    `Write summary and fix in Strict Simplified Technical English. Files:\n${s.files.join('\n')}`,
-    { label: `audit:${s.id}`, phase: 'Audit', effort: 'high', schema: FINDINGS }),
-  r => r && r.findings.filter(f => f.severity !== 'minor').map(f => ({ ...f, shard: r.shard })),
-  fs => parallel((fs || []).map(f => () =>
-    parallel([0, 1, 2].map(i => () => agent(
-      `Verifier ${i}. Try to REFUTE this docs finding by reading ${f.file} around line ${f.line}. ` +
-      `Finding: ${f.summary}. Evidence claimed: ${f.evidence}. Default to refuted=true if the evidence does not hold.`,
-      { label: `verify:${f.shard}`, phase: 'Verify', effort: 'high', schema: VERDICT })))
-      .then(vs => ({ ...f, status: vs.filter(Boolean).filter(v => !v.refuted).length >= 2 ? 'verified' : 'refuted',
-                     verified_by: vs.filter(Boolean).map(v => v.reason) })))),
+  args.shardIds,
+  id => agent(`${COMMON}\n\nShard "${id}". Your file list is ${args.root}/.audit/shards/${id}.txt. ` +
+    `Read every listed file in full. Score all rubric items per page, add a split plan for pages over 20k chars, ` +
+    `and return page_scores for every page.`,
+    { label: `audit:${id}`, phase: 'Audit', effort: 'high', schema: FINDINGS }),
+  (r, id) => {
+    if (!r) { log(`shard ${id} returned nothing - re-run`); return null }
+    const items = r.findings.filter(f => f.severity !== 'minor')
+    if (!items.length) return { shard: id, result: r, verified: [] }
+    const listing = items.map((f, i) => `[${i}] ${f.file} line ${f.line || '?'} r${f.rubric} ${f.severity}: ${f.summary} | evidence: ${f.evidence}`).join('\n')
+    // ONE verifier per shard. Range-scoped reads only.
+    return agent(`${COMMON}\n\nAdversarial verifier for shard "${id}". You did not see the finder's reasoning. ` +
+      `Check each finding cheaply: print only the cited line range plus 20 lines with sed -n, grep for cited headings, ` +
+      `test -f for link targets. Do not read whole files. Refute when the evidence does not hold, when the cited location ` +
+      `does not match, when the fix would change a stated fact or hedge, or when ${args.root}/.audit/ledger.jsonl already ` +
+      `records the same defect. Set file to the shard id.\n\nFindings:\n${listing}`,
+      { label: `verify:${id}`, phase: 'Verify', model: 'sonnet', effort: 'low', schema: VERDICTS })
+      .then(v => ({ shard: id, result: r, verified: items.map((f, i) => {
+        const x = v && (v.verdicts || []).find(y => y.index === i)
+        return { ...f, shard: id, status: !x ? 'unverified' : (x.refuted ? 'refuted' : 'verified'),
+                 verified_by: x ? [`${x.refuted ? 'REFUTE' : 'HOLD'}(${x.severity_adjustment}): ${x.reason}`] : [] }
+      }) }))
+  },
 )
-
-const coverage = audited.filter(Boolean).length
-const results = audited.flat().filter(Boolean)
-const skipped = shards.length - coverage
-if (skipped) log(`${skipped} shard(s) returned nothing and must be re-run`)
+const done = audited.filter(Boolean)
+const missing = args.shardIds.filter(id => !done.some(s => s.shard === id))
+if (missing.length) log(`${missing.length} shard(s) missing: ${missing.join(', ')}`)
 
 phase('Synthesize')
-const plan = await agent(
-  `Merge these verified docs findings into one prioritized plan: blocking first, then major. ` +
-  `Group by file, dedupe overlapping line ranges, and list oversized-page split plans separately. ` +
-  `Write in Strict Simplified Technical English. Findings JSON:\n${JSON.stringify(results)}`,
+const live = done.flatMap(s => s.verified).filter(f => f.status !== 'refuted')
+const compact = live.map(f => ({ file: f.file, line: f.line, rubric: f.rubric, severity: f.severity, summary: f.summary, fix: f.fix }))
+const plan = await agent(`${COMMON}\n\nMerge these verified findings into one prioritized plan. Findings:\n${JSON.stringify(compact)}`,
   { label: 'synthesis', phase: 'Synthesize', effort: 'xhigh' })
-const critic = await agent(
-  `Completeness critic. Shards planned: ${shards.length}. Shards with results: ${coverage}. ` +
-  `Given this plan, name what is missing: unread directories, unverified claims, checks not run. Plan:\n${plan}`,
+const critic = await agent(`${COMMON}\n\nCompleteness critic. Shards planned ${args.shardIds.length}, with results ${done.length}. ` +
+  `Name concretely what is missing: unread directories, unverified claims, checks not run, rubric items no finding cites. Plan:\n${plan}`,
   { label: 'critic', phase: 'Synthesize', effort: 'xhigh' })
-return { results, plan, critic, coverage: `${coverage}/${shards.length} shards` }
+return { coverage: { shards: `${done.length}/${args.shardIds.length}`, missing },
+         findings: done.flatMap(s => s.verified.concat(s.result.findings.filter(f => f.severity === 'minor').map(f => ({ ...f, shard: s.shard, status: 'open' })))),
+         split_plans: done.flatMap(s => s.result.split_plans || []),
+         page_scores: done.flatMap(s => s.result.page_scores || []), plan, critic }
 ```
 
-After the run, append `results` to the ledger file, read the critic's answer, and run another round for whatever it names. Repeat until two rounds add nothing. Resume with `resumeFromRunId` if a run is interrupted.
+After the run: rebuild the ledger from the journal, re-render the report, read the critic, and run round 2 for what it names.
 
-## Template 2: parallel remediation
+## Template 2: round-2 targeted finder pass
 
-Input: `args.items`, one entry per file with its verified findings (`{file, findings:[...], mode: 'strict'|'flavored', validators: ['pnpm docs:check-mdx', ...]}`), plus `args.stePath` and `args.stePolicyPath` (this skill's `references/simplified-technical-english.md`).
+Same shape, different targets. Build the target lists with a script from the round-1 page scores:
+
+- pages that scored all-pass
+- the largest pages, one lens at a time
+- pages classified by sampling
+- accordion-heavy pages
+- uncovered reader journeys
+- locale parity
+
+Each finder gets the ledger path, greps it, and skips anything already recorded. Batch verification per finder, exactly as in template 1.
+
+## Template 3: parallel remediation
+
+Input: `args.items`, one entry per file with its verified findings (`{file, findings, mode, validators}`), plus the linter and policy paths.
 
 ```js
 export const meta = {
@@ -121,7 +169,7 @@ export const meta = {
   description: 'Apply verified docs fixes one file per agent, lint and validate each, then review',
   phases: [{ title: 'Fix' }, { title: 'Review' }],
 }
-// EDIT_RESULT and VERDICT schemas from references/workflows.md go here.
+// EDIT_RESULT and VERDICTS schemas from above go here.
 const fixed = await pipeline(
   args.items,
   it => agent(
@@ -134,7 +182,7 @@ const fixed = await pipeline(
   (r, it) => r && agent(
     `Review the diff for ${it.file}. Confirm every listed finding is addressed, no fact or hedge changed meaning, ` +
     `no anchor was lost, and the validators pass. Refute if any of those fail. Result: ${JSON.stringify(r)}`,
-    { label: `review:${it.file}`, phase: 'Review', effort: 'high', schema: VERDICT })
+    { label: `review:${it.file}`, phase: 'Review', model: 'sonnet', effort: 'low', schema: VERDICTS })
     .then(v => ({ ...r, review: v })),
 )
 const out = fixed.filter(Boolean)
@@ -142,8 +190,8 @@ log(`${out.length}/${args.items.length} files completed`)
 return out
 ```
 
-Worktree isolation means each agent's edits land in its own worktree. After the run, merge the worktrees the reviewer accepted, then run the native validators once more on the merged tree before opening a PR.
+Use `isolation: 'worktree'` only when agents in the same run edit the same tree. One PR's files usually go to one agent, so a shared branch is simpler and cheaper.
 
 ## Reporting after a workflow
 
-Report per `references/large-docs-audit.md` section 11. Name the run id so the user can inspect `/workflows` and the journal. State coverage as a fraction. If any shard returned null, say which ones and that they were re-queued, not silently dropped.
+Report per `references/large-docs-audit.md` section 12. Name the run id so the user can inspect `/workflows` and the journal. State coverage as a fraction and the finding count this round added. If any shard returned null, say which ones and that they were re-queued, not silently dropped.

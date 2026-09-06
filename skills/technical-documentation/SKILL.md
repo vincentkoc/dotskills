@@ -35,12 +35,13 @@ Produce, review, and audit technical documentation that is clear, unambiguous, a
 7. Pick the execution rung from `references/workflows.md`: `workflow` (user opted in and the Workflow tool exists), `sub-agent-assisted` (Agent tool exists), or `single-agent`.
 8. For build tasks, follow `references/build.md`.
 9. For review tasks, follow `references/review.md` and detect issues proactively.
-10. For audit tasks on large trees, follow `references/large-docs-audit.md`. Shard the tree, audit every page in full, and write findings to the ledger. Run adversarial checks on blocking and major findings, then remediate. Run until coverage is complete and two discovery passes add nothing new. Never cut an audit short to fit a message.
+10. For audit tasks on large trees, follow `references/large-docs-audit.md`. Run the round-0 mechanical scans and the repo's native validators first, then shard by character budget and audit every page in full. Batch adversarial checks per shard. Run further rounds until two add nothing new, and report the count each round added rather than claiming convergence. Never cut an audit short to fit a message.
 11. For rewrite tasks, run `scripts/ste-lint.py` first, rewrite per the STE process, and re-run the lint. Hard violations must not increase. Return the rewritten text alone unless the user asks for the rule table.
-12. Use `references/tooling.md` when platform/tooling choices affect recommendations.
-13. Run a proactive issue sweep across governance and docs-content surfaces, and fix high-confidence defects in the same pass unless asked for report-only mode.
-14. In brownfield mode, prioritize compatibility with current docs IA, tooling, and release state. In evergreen mode, prioritize timeless wording and durable structure.
-15. Return deliverables plus validation notes, coverage, parity status, and remaining gaps.
+12. For remediation at scale, group the ledger into PRs with `references/pr-program.md` before editing anything, then land them in phase order.
+13. Use `references/tooling.md` when platform/tooling choices affect recommendations.
+14. Run a proactive issue sweep across governance and docs-content surfaces, and fix high-confidence defects in the same pass unless asked for report-only mode.
+15. In brownfield mode, prioritize compatibility with current docs IA, tooling, and release state. In evergreen mode, prioritize timeless wording and durable structure.
+16. Return deliverables plus validation notes, coverage, parity status, and remaining gaps.
 
 ## Sub-agent orchestration guidance
 
@@ -56,7 +57,7 @@ Prefer delegation when the repo is large or the change set is broad. Use it by d
 - `remediation-agent` -> `agents/remediation-agent.md` (`fable`): apply verified findings to one file, re-run validators.
 - `synthesis-agent` -> `agents/synthesis-agent.md` (`fable`): merge outputs into one prioritized fix plan.
 
-With Claude Workflows (`references/workflows.md`), the audit template runs `docs-ux-audit-agent` per shard, `verify-agent` three times per blocking or major finding, then synthesis and a completeness critic. The remediation template runs `remediation-agent` per file in an isolated worktree with a reviewer behind it. Launch a Workflow only after the user opts in.
+With Claude Workflows (`references/workflows.md`), the audit template runs `docs-ux-audit-agent` per shard and one batched `verify-agent` per shard, then synthesis and a completeness critic. Per-finding verifier fan-out is the main way these runs exhaust a session, so keep verification batched and range-scoped. The remediation template runs `remediation-agent` per file with a reviewer behind it. Launch a Workflow only after the user opts in.
 
 ## Inputs
 
@@ -69,7 +70,7 @@ With Claude Workflows (`references/workflows.md`), the audit template runs `docs
 - Desired investigation depth (quick pass, exhaustive). Audits default to exhaustive.
 - Execution rung (`workflow`, `sub-agent-assisted`, `single-agent`) and Workflow opt-in.
 - Remediation mode (`apply-fixes` by default, or `report-only`).
-- Ledger path for audits (default `docs-audit-ledger.jsonl` at the audit root).
+- Ledger path for audits (default `.audit/ledger.jsonl` at the audit root), and the PR program path when remediating.
 - Multilingual scope: source-of-truth language, target locales, parity expectations.
 
 ## Outputs
@@ -83,4 +84,6 @@ With Claude Workflows (`references/workflows.md`), the audit template runs `docs
 - Agent instruction-surface map (primary file, alias files, Codex/Claude/Cursor handling plan).
 - Documentation-surface coverage map (`/docs`, README hierarchy, framework source trees).
 - Delegation notes: agents or workflow run id used, scope delegated, how findings merged.
+- Round-by-round finding counts and a convergence statement.
+- PR program when the task is remediation at scale.
 - Multilingual parity note (in-sync, partial with rationale, or intentionally divergent).
