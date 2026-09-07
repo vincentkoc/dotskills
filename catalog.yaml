@@ -68,6 +68,13 @@ skills:
     tags: [graincrawl, granola, crawler, sqlite, cli]
     version: 0.1.0
 
+  - id: github-airplane-mode
+    name: GitHub Airplane Mode
+    path: skills/github-airplane-mode
+    source: local
+    tags: [github, git, network, low-data, airplane-mode]
+    version: 0.1.0
+
   - id: ghcrawl-cluster-operator
     name: ghcrawl Cluster Operator
     path: skills/ghcrawl-cluster-operator
