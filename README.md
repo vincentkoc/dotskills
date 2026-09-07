@@ -37,6 +37,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 | `crabpot-perf-metrics` | Interpret Crabpot and OpenClaw performance artifacts without over-reading noise. | `npx skills add vincentkoc/dotskills --skill crabpot-perf-metrics -y` |
 | `crawlkit` | Maintain and release the shared crawl app Go library. | `npx skills add vincentkoc/dotskills --skill crawlkit -y` |
 | `graincrawl` | Maintain and release the local-first Granola archive CLI. | `npx skills add vincentkoc/dotskills --skill graincrawl -y` |
+| `github-airplane-mode` | Switch an already-installed compatible local Git/GitHub download guard. | `npx skills add vincentkoc/dotskills --skill github-airplane-mode -y` |
 | `ghcrawl-cluster-operator` | Operate ghcrawl local sync, clustering, and cluster inspection from the CLI. | `npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y` |
 | `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
 | `openclaw-pr-batch-sweep` | Select and land bounded batches of low-risk OpenClaw contributor pull requests. | `npx skills add vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y` |
@@ -76,6 +77,7 @@ npx skills add vincentkoc/dotskills --skill opik-optimizer -y
 npx skills add vincentkoc/dotskills --skill operations-worktree -y
 npx skills add vincentkoc/dotskills --skill crawlkit -y
 npx skills add vincentkoc/dotskills --skill graincrawl -y
+npx skills add vincentkoc/dotskills --skill github-airplane-mode -y
 npx skills add vincentkoc/dotskills --skill semantic-slicing -y
 npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y
 npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y
@@ -86,6 +88,9 @@ List available public skills:
 ```bash
 npx skills add vincentkoc/dotskills --list
 ```
+
+`github-airplane-mode` requires an already-installed compatible `low-data`
+command. Installing the skill does not install a network guard or change its mode.
 
 Default sync targets are managed automatically by vercel skills.
 
