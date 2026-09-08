@@ -342,7 +342,7 @@ def payload_text(payload: Any) -> str:
 def summarize_records(records: list[dict[str, Any]], previous: dict[str, Any] | None = None) -> dict[str, Any]:
     if not records and previous:
         return {**previous, "changed": False}
-    summary: dict[str, Any] = {
+    defaults: dict[str, Any] = {
         "state": "unknown",
         "turn_id": None,
         "latest_timestamp": None,
@@ -351,8 +351,9 @@ def summarize_records(records: list[dict[str, Any]], previous: dict[str, Any] | 
         "tool_calls": 0,
         "tool_outputs": 0,
         "token_updates": 0,
-        "changed": bool(records),
+        "changed": False,
     }
+    summary = {**defaults, **(previous or {}), "changed": bool(records)}
     for item in records:
         kind = str(item.get("type") or "")
         payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
@@ -361,7 +362,7 @@ def summarize_records(records: list[dict[str, Any]], previous: dict[str, Any] | 
         payload_kind = str(payload.get("type") or "")
         turn_id = payload.get("turn_id") or payload.get("turnId") or payload.get("id")
         is_boundary = kind == "turn_context" or (kind == "event_msg" and payload_kind == "task_started")
-        if is_boundary and turn_id != summary.get("turn_id"):
+        if is_boundary and turn_id and turn_id != summary.get("turn_id"):
             summary.update(
                 {
                     "state": "active-progress",
@@ -398,6 +399,14 @@ def summarize_records(records: list[dict[str, Any]], previous: dict[str, Any] | 
         if text:
             summary["latest"] = compact(text)
     return summary
+
+
+def project_activity(summary: dict[str, Any], show_content: bool) -> dict[str, Any]:
+    projected = dict(summary)
+    latest = projected.get("latest")
+    if isinstance(latest, str) and not show_content:
+        projected["latest"] = redact(latest)
+    return projected
 
 
 def resolve_pane_identity(
@@ -523,7 +532,7 @@ def build_snapshot(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, 
             remaining -= io["bytes_read"]
             total_bytes += io["bytes_read"]
             summary = summarize_records(records, previous_entry.get("summary"))
-            io["summary"] = summary
+            io["summary"] = project_activity(summary, False)
             cursor["files"][str(path)] = io
             result["log"] = {
                 key: redact(value)
@@ -532,7 +541,7 @@ def build_snapshot(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, 
                 for key, value in io.items()
                 if key not in {"device", "inode", "offset", "summary", "last_seen"}
             }
-            result["activity"] = summary
+            result["activity"] = project_activity(summary, args.show_content)
             result["state"] = summary["state"]
         output_panes.append(result)
 

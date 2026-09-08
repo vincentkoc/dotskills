@@ -136,10 +136,8 @@ def in_window(
     selected = updated_at if activity_overlap else created_at
     if since and (selected is None or selected < since):
         return False
-    if until:
-        boundary_value = created_at if activity_overlap else selected
-        if boundary_value is None or boundary_value >= until:
-            return False
+    if until and (selected is None or selected >= until):
+        return False
     return True
 
 

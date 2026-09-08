@@ -145,6 +145,33 @@ class LaneSnapshotTest(unittest.TestCase):
         ]
         self.assertEqual(MODULE.summarize_records(records)["state"], "active-progress")
 
+    def test_incremental_token_event_preserves_previous_turn_summary(self):
+        previous = {
+            "state": "active-progress",
+            "turn_id": "turn-1",
+            "latest_timestamp": "2026-09-08T00:00:01Z",
+            "latest": "still working",
+            "events": 4,
+            "tool_calls": 1,
+            "tool_outputs": 1,
+            "token_updates": 1,
+            "changed": True,
+        }
+        records = [event("2026-09-08T00:00:02Z", "event_msg", "token_count")]
+        summary = MODULE.summarize_records(records, previous)
+        self.assertEqual(summary["state"], "active-progress")
+        self.assertEqual(summary["turn_id"], "turn-1")
+        self.assertEqual(summary["latest"], "still working")
+        self.assertEqual(summary["events"], 5)
+        self.assertEqual(summary["token_updates"], 2)
+
+    def test_default_activity_projection_redacts_latest_message(self):
+        latest = f"path={pathlib.Path.home()}/private token=secret-value"
+        projected = MODULE.project_activity({"state": "active-progress", "latest": latest}, False)
+        self.assertNotIn(str(pathlib.Path.home()), projected["latest"])
+        self.assertNotIn("secret-value", projected["latest"])
+        self.assertIn("<redacted-secret>", projected["latest"])
+
 
 if __name__ == "__main__":
     unittest.main()

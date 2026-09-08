@@ -135,6 +135,13 @@ class CodexGoalReportTest(unittest.TestCase):
         self.assertEqual([goal["objective"] for goal in report["goals"]], ["Old resumed goal"])
         self.assertEqual(report["selection_mode"], "activity")
 
+    def test_activity_window_excludes_goal_updated_at_upper_bound(self):
+        created = MODULE.parse_bound("2026-09-01T00:00:00Z")
+        updated = MODULE.parse_bound("2026-09-08T04:16:03Z")
+        since = MODULE.parse_bound("2026-09-08T04:00:00Z")
+        until = MODULE.parse_bound("2026-09-08T04:16:03Z")
+        self.assertFalse(MODULE.in_window(created, updated, since, until, True))
+
     def test_sqlite_reports_child_identity_without_changing_lifetime_counters(self):
         with tempfile.TemporaryDirectory() as directory:
             codex_home = pathlib.Path(directory)
