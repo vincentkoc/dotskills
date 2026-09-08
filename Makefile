@@ -12,6 +12,7 @@ validate-spec:
 test:
 	node --test skills/openclaw-pr-batch-sweep/scripts/*.test.mjs
 	python3 skills/codex-goal-mining/scripts/codex-goal-report-test.py
+	python3 skills/tmux-agent-lane-orchestrator/scripts/lane_snapshot_test.py
 	python3 skills/org-branch-cleanup/scripts/test_org_branch_cleanup.py
 	python3 -m unittest discover -s tests -p '*_test.py'
 
