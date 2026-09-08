@@ -72,6 +72,26 @@ def normalize_objective(value: str) -> str:
     return " ".join(value.lower().split())
 
 
+def thread_identity(thread: sqlite3.Row | None) -> tuple[str, str | None]:
+    if thread is None:
+        return "unknown", None
+    keys = set(thread.keys())
+    thread_source = str(thread["thread_source"] or "") if "thread_source" in keys else ""
+    source = thread["source"] if "source" in keys else None
+    parent_thread_id = None
+    if isinstance(source, str) and source.startswith("{"):
+        try:
+            source_value = json.loads(source)
+        except json.JSONDecodeError:
+            source_value = {}
+        subagent = source_value.get("subagent") if isinstance(source_value, dict) else None
+        if isinstance(subagent, dict):
+            spawn = subagent.get("thread_spawn")
+            if isinstance(spawn, dict) and spawn.get("parent_thread_id"):
+                parent_thread_id = str(spawn["parent_thread_id"])
+    return ("child", parent_thread_id) if thread_source == "subagent" else ("root", None)
+
+
 def candidate_goal_files(sessions_root: pathlib.Path) -> list[pathlib.Path]:
     if not sessions_root.exists():
         return []
@@ -106,7 +126,30 @@ def find_database(codex_home: pathlib.Path, name: str, required_table: str) -> p
     return max(valid, key=lambda path: path.stat().st_mtime) if valid else None
 
 
-def collect_sqlite_goals(machine: str, codex_home: pathlib.Path, since: datetime | None) -> dict[str, Any] | None:
+def in_window(
+    created_at: datetime | None,
+    updated_at: datetime | None,
+    since: datetime | None,
+    until: datetime | None,
+    activity_overlap: bool,
+) -> bool:
+    selected = updated_at if activity_overlap else created_at
+    if since and (selected is None or selected < since):
+        return False
+    if until:
+        boundary_value = created_at if activity_overlap else selected
+        if boundary_value is None or boundary_value >= until:
+            return False
+    return True
+
+
+def collect_sqlite_goals(
+    machine: str,
+    codex_home: pathlib.Path,
+    since: datetime | None,
+    until: datetime | None = None,
+    activity_overlap: bool = False,
+) -> dict[str, Any] | None:
     goals_db = find_database(codex_home, "goals_1.sqlite", "thread_goals")
     if goals_db is None:
         return None
@@ -114,13 +157,26 @@ def collect_sqlite_goals(machine: str, codex_home: pathlib.Path, since: datetime
     try:
         goals_connection = sqlite3.connect(f"file:{goals_db}?mode=ro", uri=True, timeout=4)
         goals_connection.row_factory = sqlite3.Row
+        goal_columns = {
+            row[1] for row in goals_connection.execute("PRAGMA table_info(thread_goals)")
+        }
+        selected_goal_columns = [
+            name
+            for name in (
+                "thread_id",
+                "goal_id",
+                "objective",
+                "status",
+                "tokens_used",
+                "time_used_seconds",
+                "created_at_ms",
+                "updated_at_ms",
+            )
+            if name in goal_columns
+        ]
         rows = goals_connection.execute(
-            """
-            SELECT thread_id, objective, status, tokens_used, time_used_seconds,
-                   created_at_ms, updated_at_ms
-            FROM thread_goals
-            ORDER BY created_at_ms DESC
-            """
+            f"SELECT {','.join(selected_goal_columns)} FROM thread_goals "
+            "ORDER BY created_at_ms DESC"
         ).fetchall()
         goals_connection.close()
     except sqlite3.Error:
@@ -131,6 +187,23 @@ def collect_sqlite_goals(machine: str, codex_home: pathlib.Path, since: datetime
         try:
             state_connection = sqlite3.connect(f"file:{state_db}?mode=ro", uri=True, timeout=4)
             state_connection.row_factory = sqlite3.Row
+            thread_columns = {
+                row[1] for row in state_connection.execute("PRAGMA table_info(threads)")
+            }
+            selected_columns = [
+                name
+                for name in (
+                    "id",
+                    "rollout_path",
+                    "created_at",
+                    "updated_at",
+                    "created_at_ms",
+                    "updated_at_ms",
+                    "source",
+                    "thread_source",
+                )
+                if name in thread_columns
+            ]
             thread_ids = [row["thread_id"] for row in rows]
             for offset in range(0, len(thread_ids), 400):
                 batch = thread_ids[offset : offset + 400]
@@ -138,10 +211,8 @@ def collect_sqlite_goals(machine: str, codex_home: pathlib.Path, since: datetime
                 if not placeholders:
                     continue
                 for row in state_connection.execute(
-                    f"""
-                    SELECT id, rollout_path, created_at, updated_at, created_at_ms, updated_at_ms
-                    FROM threads WHERE id IN ({placeholders})
-                    """,
+                    f"SELECT {','.join(selected_columns)} FROM threads "
+                    f"WHERE id IN ({placeholders})",
                     batch,
                 ):
                     threads[row["id"]] = row
@@ -152,10 +223,11 @@ def collect_sqlite_goals(machine: str, codex_home: pathlib.Path, since: datetime
     goals = []
     for row in rows:
         created_at = datetime.fromtimestamp(row["created_at_ms"] / 1000, timezone.utc)
-        if since and created_at < since:
-            continue
         updated_at = datetime.fromtimestamp(row["updated_at_ms"] / 1000, timezone.utc)
+        if not in_window(created_at, updated_at, since, until, activity_overlap):
+            continue
         thread = threads.get(row["thread_id"])
+        thread_role, parent_thread_id = thread_identity(thread)
         session_start = None
         session_end = None
         sources = []
@@ -170,6 +242,7 @@ def collect_sqlite_goals(machine: str, codex_home: pathlib.Path, since: datetime
             {
                 "machine": machine,
                 "thread_id": row["thread_id"],
+                "goal_id": row["goal_id"] if "goal_id" in row.keys() else None,
                 "objective": row["objective"],
                 "status": row["status"],
                 "tokens_used": int(row["tokens_used"] or 0),
@@ -180,6 +253,9 @@ def collect_sqlite_goals(machine: str, codex_home: pathlib.Path, since: datetime
                 "session_ended_at": format_timestamp(session_end),
                 "session_span_seconds": int((session_end - session_start).total_seconds()) if session_start and session_end else 0,
                 "source_files": sources,
+                "thread_role": thread_role,
+                "parent_thread_id": parent_thread_id,
+                "counter_scope": "lifetime_snapshot",
             }
         )
     return {
@@ -187,6 +263,7 @@ def collect_sqlite_goals(machine: str, codex_home: pathlib.Path, since: datetime
         "storage": "sqlite",
         "goals_database": str(goals_db),
         "state_database": str(state_db) if state_db else None,
+        "selection_mode": "activity" if activity_overlap else "created",
         "goals": goals,
     }
 
@@ -199,8 +276,14 @@ def event_key(goal: dict[str, Any], fallback_thread_id: str) -> tuple[str, int, 
     )
 
 
-def collect_local_goals(machine: str, sessions_root: pathlib.Path, since: datetime | None = None) -> dict[str, Any]:
-    database_report = collect_sqlite_goals(machine, sessions_root.parent, since)
+def collect_local_goals(
+    machine: str,
+    sessions_root: pathlib.Path,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    activity_overlap: bool = False,
+) -> dict[str, Any]:
+    database_report = collect_sqlite_goals(machine, sessions_root.parent, since, until, activity_overlap)
     if database_report is not None:
         return database_report
     goals: dict[tuple[str, int, str], dict[str, Any]] = {}
@@ -234,13 +317,20 @@ def collect_local_goals(machine: str, sessions_root: pathlib.Path, since: dateti
                         continue
                     key = event_key(goal, str(payload.get("threadId") or ""))
                     created_at = datetime.fromtimestamp(int(goal.get("createdAt") or 0), timezone.utc) if goal.get("createdAt") else timestamp
-                    if since and created_at and created_at < since:
+                    updated_at = int(goal.get("updatedAt") or 0)
+                    event_updated_at = datetime.fromtimestamp(updated_at, timezone.utc) if updated_at else timestamp
+                    if activity_overlap:
+                        if since and (event_updated_at is None or event_updated_at < since):
+                            continue
+                        if until and (event_updated_at is None or event_updated_at >= until):
+                            continue
+                    elif not in_window(created_at, event_updated_at, since, until, False):
                         continue
                     current = goals.get(key)
-                    updated_at = int(goal.get("updatedAt") or 0)
                     snapshot = {
                         "machine": machine,
                         "thread_id": key[0],
+                        "goal_id": str(goal.get("id") or f"{key[1]}:{key[2]}"),
                         "objective": objective,
                         "status": str(goal.get("status") or "unknown"),
                         "tokens_used": int(goal.get("tokensUsed") or 0),
@@ -253,6 +343,9 @@ def collect_local_goals(machine: str, sessions_root: pathlib.Path, since: dateti
                         "session_ended_at": format_timestamp(file_end),
                         "session_span_seconds": 0,
                         "source_files": [str(path)],
+                        "thread_role": "unknown",
+                        "parent_thread_id": None,
+                        "counter_scope": "lifetime_snapshot",
                         "_updated_epoch": updated_at,
                         "_session_start": file_start,
                         "_session_end": file_end,
@@ -301,6 +394,7 @@ def collect_local_goals(machine: str, sessions_root: pathlib.Path, since: dateti
         "sessions_root": str(sessions_root),
         "files_scanned": files_scanned,
         "parse_errors": parse_errors,
+        "selection_mode": "activity" if activity_overlap else "created",
         "goals": output,
     }
 
@@ -313,19 +407,48 @@ def fleet_targets(policy_path: pathlib.Path, selected: set[str] | None = None) -
         if selected and alias not in selected and wsl_alias not in selected:
             continue
         if not selected or alias in selected:
-            targets.append({"machine": alias, "ssh_target": system.get("ssh_target")})
+            targets.append(
+                {
+                    "machine": alias,
+                    "ssh_target": system.get("ssh_target"),
+                    "interpreter": system.get("python"),
+                }
+            )
         wsl_target = system.get("wsl_target")
         if wsl_target and (not selected or alias in selected or wsl_alias in selected):
-            targets.append({"machine": wsl_alias, "ssh_target": wsl_target})
+            targets.append(
+                {
+                    "machine": wsl_alias,
+                    "ssh_target": wsl_target,
+                    "interpreter": system.get("wsl_python"),
+                }
+            )
     return targets
 
 
-def collect_remote(script: bytes, machine: str, ssh_target: str, since: str | None, timeout: int) -> dict[str, Any]:
+def collect_remote(
+    script: bytes,
+    machine: str,
+    ssh_target: str,
+    since: str | None,
+    until: str | None,
+    activity_overlap: bool,
+    timeout: int,
+    interpreter: str | None = None,
+    one_attempt: bool = False,
+) -> dict[str, Any]:
     arguments = ["--collect-local", "--machine-name", machine, "--json"]
     if since:
         arguments.extend(["--since", since])
+    if until:
+        arguments.extend(["--until", until])
+    if activity_overlap:
+        arguments.append("--activity-overlap")
     failures = []
-    for interpreter in ("python3", "python", "py -3"):
+    interpreters = [interpreter] if interpreter else ["python3", "python", "py -3"]
+    if one_attempt:
+        interpreters = interpreters[:1]
+    for selected_interpreter in interpreters:
         command = [
             "ssh",
             "-o", "BatchMode=yes",
@@ -333,38 +456,149 @@ def collect_remote(script: bytes, machine: str, ssh_target: str, since: str | No
             "-o", "ServerAliveInterval=15",
             "-o", "ServerAliveCountMax=3",
             ssh_target,
-            shlex.join([*shlex.split(interpreter), "-", *arguments]),
+            shlex.join([*shlex.split(selected_interpreter), "-", *arguments]),
         ]
         try:
             result = subprocess.run(command, input=script, capture_output=True, timeout=timeout + 20)
         except subprocess.TimeoutExpired:
-            failures.append(f"{interpreter}: timed out")
+            failures.append(f"{selected_interpreter}: timed out")
             continue
         if result.returncode == 0:
             try:
                 return json.loads(result.stdout.decode())
             except json.JSONDecodeError as error:
-                failures.append(f"{interpreter}: invalid JSON ({error})")
+                failures.append(f"{selected_interpreter}: invalid JSON ({error})")
                 continue
         detail = result.stderr.decode(errors="replace").strip() or result.stdout.decode(errors="replace").strip()
         detail = detail.replace(ssh_target, machine)
-        failures.append(f"{interpreter}: {detail or f'exit {result.returncode}'}")
+        failures.append(f"{selected_interpreter}: {detail or f'exit {result.returncode}'}")
         if "timed out" in detail.lower() or "connection" in detail.lower():
             break
     return {"machine": machine, "error": "; ".join(failures), "goals": []}
 
 
-def collect_fleet(policy_path: pathlib.Path, selected: set[str] | None, since: datetime | None, timeout: int) -> dict[str, Any]:
+def collect_fleet(
+    policy_path: pathlib.Path,
+    selected: set[str] | None,
+    since: datetime | None,
+    until: datetime | None,
+    activity_overlap: bool,
+    timeout: int,
+    one_attempt: bool = False,
+) -> dict[str, Any]:
     script = pathlib.Path(__file__).read_bytes()
     machines = []
     for target in fleet_targets(policy_path, selected):
         machine = str(target["machine"])
         ssh_target = target["ssh_target"]
         if ssh_target:
-            machines.append(collect_remote(script, machine, str(ssh_target), since.date().isoformat() if since else None, timeout))
+            machines.append(
+                collect_remote(
+                    script,
+                    machine,
+                    str(ssh_target),
+                    format_timestamp(since),
+                    format_timestamp(until),
+                    activity_overlap,
+                    timeout,
+                    target.get("interpreter"),
+                    one_attempt,
+                )
+            )
         else:
-            machines.append(collect_local_goals(machine, pathlib.Path.home() / ".codex" / "sessions", since))
-    return {"generated_at": format_timestamp(datetime.now(timezone.utc)), "machines": machines}
+            machines.append(
+                collect_local_goals(
+                    machine,
+                    pathlib.Path.home() / ".codex" / "sessions",
+                    since,
+                    until,
+                    activity_overlap,
+                )
+            )
+    failed = [machine["machine"] for machine in machines if machine.get("error")]
+    reached = [machine["machine"] for machine in machines if not machine.get("error")]
+    return {
+        "generated_at": format_timestamp(datetime.now(timezone.utc)),
+        "window": {
+            "since": format_timestamp(since),
+            "until": format_timestamp(until),
+            "selection": "activity" if activity_overlap else "created",
+        },
+        "coverage": {
+            "expected": [machine["machine"] for machine in machines],
+            "reached": reached,
+            "failed": failed,
+            "complete": not failed,
+        },
+        "machines": machines,
+    }
+
+
+def apply_counter_cursor(
+    report: dict[str, Any],
+    cursor_path: pathlib.Path,
+    max_entries: int,
+) -> None:
+    try:
+        cursor = json.loads(cursor_path.read_text()) if cursor_path.exists() else {}
+    except (OSError, json.JSONDecodeError):
+        cursor = {}
+    previous_entries = cursor.get("entries") if isinstance(cursor.get("entries"), dict) else {}
+    captured_at = format_timestamp(datetime.now(timezone.utc))
+    next_entries: dict[str, Any] = {}
+    for goal in flatten_goals(report):
+        goal_identity = goal.get("goal_id") or normalize_objective(goal.get("objective") or "")
+        key = f"{goal['machine']}:{goal['thread_id']}:{goal_identity}"
+        previous = previous_entries.get(key)
+        current_tokens = int(goal.get("tokens_used") or 0)
+        current_seconds = int(goal.get("goal_time_seconds") or 0)
+        token_reset = bool(previous and current_tokens < int(previous.get("tokens_used") or 0))
+        time_reset = bool(previous and current_seconds < int(previous.get("goal_time_seconds") or 0))
+        goal["counter_delta"] = {
+            "from_capture": previous.get("captured_at") if previous else None,
+            "to_capture": captured_at,
+            "tokens": (
+                current_tokens - int(previous.get("tokens_used") or 0)
+                if previous and not token_reset
+                else None
+            ),
+            "goal_time_seconds": (
+                current_seconds - int(previous.get("goal_time_seconds") or 0)
+                if previous and not time_reset
+                else None
+            ),
+            "tokens_reset": token_reset,
+            "goal_time_reset": time_reset,
+        }
+        next_entries[key] = {
+            "machine": goal["machine"],
+            "thread_id": goal["thread_id"],
+            "goal_id": goal.get("goal_id"),
+            "captured_at": captured_at,
+            "tokens_used": current_tokens,
+            "goal_time_seconds": current_seconds,
+            "updated_at": goal.get("updated_at"),
+        }
+    combined = {**previous_entries, **next_entries}
+    retained = sorted(
+        combined.items(),
+        key=lambda item: (item[1].get("captured_at") or "", item[0]),
+        reverse=True,
+    )[:max_entries]
+    cursor_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = cursor_path.with_name(f".{cursor_path.name}.{os.getpid()}.tmp")
+    temporary.write_text(
+        json.dumps({"version": 1, "captured_at": captured_at, "entries": dict(retained)}, indent=2)
+        + "\n"
+    )
+    temporary.replace(cursor_path)
+    report["counter_cursor"] = {
+        "path": str(cursor_path),
+        "captured_at": captured_at,
+        "entry_count": len(retained),
+        "max_entries": max_entries,
+        "basis": "delta from the previous captured lifetime snapshot",
+    }
 
 
 def flatten_goals(report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -381,15 +615,34 @@ def markdown_report(report: dict[str, Any]) -> str:
         "# Codex Fleet Goal Report",
         "",
         f"Generated: {report.get('generated_at')}",
+        f"Window: {report.get('window', {}).get('since') or 'unbounded'} to "
+        f"{report.get('window', {}).get('until') or 'now'} "
+        f"({report.get('window', {}).get('selection', 'created')})",
         "",
         "## Summary",
         "",
         f"- Goals: {len(goals)}",
         f"- Machines reached: {len(reachable)}/{len(report.get('machines', []))}",
-        f"- Total Codex goal time: {format_duration(total_goal_time)}",
+        f"- Lifetime goal-time snapshots: {format_duration(total_goal_time)}",
         f"- Summed wall-clock thread spans: {format_duration(total_session_span)} (includes idle/resume gaps)",
-        f"- Total tokens recorded: {sum(goal.get('tokens_used', 0) for goal in goals):,}",
+        f"- Lifetime token snapshots: {sum(goal.get('tokens_used', 0) for goal in goals):,}",
     ]
+    deltas = [goal.get("counter_delta") for goal in goals if goal.get("counter_delta")]
+    token_deltas = [delta["tokens"] for delta in deltas if delta.get("tokens") is not None]
+    time_deltas = [
+        delta["goal_time_seconds"]
+        for delta in deltas
+        if delta.get("goal_time_seconds") is not None
+    ]
+    if deltas:
+        lines.extend(
+            [
+                f"- Incremental token delta: {sum(token_deltas):,} "
+                f"({len(token_deltas)}/{len(deltas)} goals had a prior baseline)",
+                f"- Incremental goal-time delta: {format_duration(sum(time_deltas))} "
+                f"({len(time_deltas)}/{len(deltas)} goals had a prior baseline)",
+            ]
+        )
     if unreachable:
         lines.extend(["", "## Unreachable", ""])
         for machine in unreachable:
@@ -411,9 +664,10 @@ def markdown_report(report: dict[str, Any]) -> str:
                 goal["objective"],
                 "",
                 f"- Status: {goal['status']}",
-                f"- Goal time: {format_duration(goal['goal_time_seconds'])}",
+                f"- Goal time snapshot: {format_duration(goal['goal_time_seconds'])}",
                 f"- Wall-clock thread span: {format_duration(goal['session_span_seconds'])} (includes idle/resume gaps)",
-                f"- Tokens: {goal['tokens_used']:,}",
+                f"- Token snapshot: {goal['tokens_used']:,}",
+                f"- Thread role: {goal.get('thread_role', 'unknown')}",
                 f"- Thread: `{goal['thread_id']}`",
                 "",
             ]
@@ -421,11 +675,14 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def parse_since(value: str | None) -> datetime | None:
+def parse_bound(value: str | None) -> datetime | None:
     if not value:
         return None
-    parsed = datetime.fromisoformat(value)
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     return parsed.replace(tzinfo=parsed.tzinfo or timezone.utc).astimezone(timezone.utc)
+
+
+parse_since = parse_bound
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -433,10 +690,32 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--policy", type=pathlib.Path, default=DEFAULT_POLICY, help="Fleet policy JSON; omit for local collection.")
     parser.add_argument("--machine", action="append", help="Fleet alias to include; repeat to select several.")
     parser.add_argument("--since", help="Only include goals created on or after this ISO date/time.")
+    parser.add_argument("--until", help="Exclusive ISO date/time upper bound.")
+    parser.add_argument(
+        "--activity-overlap",
+        action="store_true",
+        help="Select goals updated in the window instead of changing the existing creation-time semantics.",
+    )
     parser.add_argument("--ssh-timeout", type=int, default=8)
+    parser.add_argument(
+        "--one-attempt",
+        action="store_true",
+        help="Try only the configured or first remote interpreter for each fleet target.",
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON instead of Markdown.")
     parser.add_argument("--output", type=pathlib.Path, help="Write the report to a file instead of stdout.")
     parser.add_argument("--local", action="store_true", help="Collect only this machine instead of the configured fleet.")
+    parser.add_argument(
+        "--fleet",
+        action="store_true",
+        help="Require configured fleet collection; fail if no fleet policy is available.",
+    )
+    parser.add_argument(
+        "--cursor-file",
+        type=pathlib.Path,
+        help="Optional bounded counter snapshot for reset-safe deltas. No cursor is written by default.",
+    )
+    parser.add_argument("--cursor-max-entries", type=int, default=10_000)
     parser.add_argument("--collect-local", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--machine-name", default=os.environ.get("HOSTNAME") or "local", help=argparse.SUPPRESS)
     parser.add_argument("--sessions-root", type=pathlib.Path, default=pathlib.Path.home() / ".codex" / "sessions", help=argparse.SUPPRESS)
@@ -446,23 +725,68 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
-    since = parse_since(args.since)
+    since = parse_bound(args.since)
+    until = parse_bound(args.until)
+    if since and until and until <= since:
+        parser.error("--until must be later than --since")
+    if args.cursor_max_entries < 1:
+        parser.error("--cursor-max-entries must be positive")
+    if args.fleet and args.local:
+        parser.error("--fleet and --local conflict")
+    if args.fleet and args.policy is None:
+        parser.error("fleet policy is required; pass --policy or set CODEX_FLEET_POLICY")
     if args.collect_local:
-        payload: dict[str, Any] = collect_local_goals(args.machine_name, args.sessions_root, since)
+        payload: dict[str, Any] = collect_local_goals(
+            args.machine_name,
+            args.sessions_root,
+            since,
+            until,
+            args.activity_overlap,
+        )
     elif args.local or args.policy is None:
-        local_report = collect_local_goals(args.machine_name, args.sessions_root, since)
-        payload = {"generated_at": format_timestamp(datetime.now(timezone.utc)), "machines": [local_report]}
+        local_report = collect_local_goals(
+            args.machine_name,
+            args.sessions_root,
+            since,
+            until,
+            args.activity_overlap,
+        )
+        payload = {
+            "generated_at": format_timestamp(datetime.now(timezone.utc)),
+            "window": {
+                "since": format_timestamp(since),
+                "until": format_timestamp(until),
+                "selection": "activity" if args.activity_overlap else "created",
+            },
+            "coverage": {
+                "expected": [local_report["machine"]],
+                "reached": [local_report["machine"]],
+                "failed": [],
+                "complete": True,
+            },
+            "machines": [local_report],
+        }
     else:
         if not args.policy.exists():
             parser.error(f"fleet policy not found: {args.policy}")
-        payload = collect_fleet(args.policy, set(args.machine or []) or None, since, args.ssh_timeout)
+        payload = collect_fleet(
+            args.policy,
+            set(args.machine or []) or None,
+            since,
+            until,
+            args.activity_overlap,
+            args.ssh_timeout,
+            args.one_attempt,
+        )
+    if args.cursor_file:
+        apply_counter_cursor(payload, args.cursor_file, args.cursor_max_entries)
     rendered = json.dumps(payload, indent=2, ensure_ascii=False) + "\n" if args.json else markdown_report(payload)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered)
     else:
         sys.stdout.write(rendered)
-    return 0
+    return 2 if any(machine.get("error") for machine in payload.get("machines", [])) else 0
 
 
 if __name__ == "__main__":
