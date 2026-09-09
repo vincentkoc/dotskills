@@ -7,7 +7,7 @@ Read `principles.md` first, then follow this execution flow.
 - Use `references/agent-and-contributing.md` as the source of truth for inventory, canonical/alias mapping, and precedence/conflict handling.
 - Apply the symlink compatibility policy when in scope (`.agents` canonical directory with `.cursor` compatibility symlink when required by tooling).
 - Long-running and extensive build investigations are acceptable when needed to resolve ambiguous or conflicting documentation sources.
-- When available, use sub-agents for bounded parallel inventory/cross-check tasks and merge results into one canonical decision set.
+- When available, use sub-agents for bounded parallel inventory/cross-check tasks and merge results into one canonical decision set. For large trees with user opt-in, use Claude Workflows per `references/workflows.md`.
 - Capture required constraints before writing:
   - nested-agent rules, command/test requirements, PR workflow, and style checks.
 - Use the same command and validation expectations in proposed snippets and examples.
@@ -81,12 +81,17 @@ Read `principles.md` first, then follow this execution flow.
 - Include maintenance signals: owners, refresh triggers, stale criteria.
 - Include lifecycle notes: deprecation and replacement paths.
 
-## 10. Writing constraints
+## 10. Writing constraints (Simplified Technical English)
 
-- Use precise language and short, imperative instructions.
+- Apply `references/simplified-technical-english.md`. Pick Strict for procedures, reference, error text, and agent instruction files. Pick STE-flavored for explanation and README prose.
+- Use precise language and short, imperative instructions: active voice, one instruction per sentence, no semicolons, no phrasal verbs.
+- Keep sentences to 20 words for instructions and 25 for descriptions. Keep paragraphs to 6 sentences.
+- Use one term per concept across the file and match the project glossary when one exists.
+- Keep every hedge and scope qualifier. Never add a fact the source or the code does not support.
 - Keep code examples copy-ready and self-contained.
-- Include common failure modes and safe defaults.
+- Include common failure modes and safe defaults. Open warnings with the condition or the command.
 - Avoid placeholder guidance that cannot be executed.
+- Run `scripts/ste-lint.py` on every file you wrote (`--mode flavored` for prose, `--max-words 20` for procedures). Fix hard violations before handoff.
 
 ## 11. Agent and automation readiness
 

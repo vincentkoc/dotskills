@@ -87,7 +87,7 @@ skills:
     path: skills/technical-documentation
     source: local
     tags: [docs, writing, review, evergreen, brownfield]
-    version: 0.1.4
+    version: 0.3.0
 
   - id: technical-integrations
     name: Technical Integrations

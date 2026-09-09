@@ -100,7 +100,7 @@
     {
       "name": "technical-documentation",
       "source": "./skills/technical-documentation",
-      "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents, including contributor-governance files and agent instruction files.",
+      "description": "Produce, review, and audit technical documentation that is clear, unambiguous, and maintainable for both humans and agents. Covers product docs, contributor-governance files, and agent instruction files. Prose follows Simplified Technical English so a reader or an agent cannot misread it. Audits scale to trees with hundreds of pages through sharding, adversarial checks, and parallel remediation.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-documentation -y"
     },
     {
