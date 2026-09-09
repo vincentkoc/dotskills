@@ -57,7 +57,9 @@ For agent-instructions and contributor-governance specifics (AGENTS/aliases/CONT
 ## Execution policy for this skill
 
 - Long-running and extensive investigations are allowed for both build and review work when needed to resolve ambiguity or cross-file drift.
-- Audits run until coverage is complete. Do not cut an audit short to fit a message. Write findings to a ledger and summarize from it (`references/large-docs-audit.md`).
+- Audits run until requested coverage is complete. Do not cut an audit short to fit a message. Report gaps explicitly.
+- Keep routine scoped findings in chat or stdout. Require a requested deliverable or a concrete large-audit, resumption, or handoff consumer before creating durable evidence.
+- Follow [Evidence and artifacts](../SKILL.md#evidence-and-artifacts) for persistence. Keep the ledger and recovery contracts when using `references/large-docs-audit.md`.
 - Use sub-agents when available for bounded parallel discovery, verification, or cross-source comparison. Use Claude Workflows when the user opted in and the tree is large (`references/workflows.md`).
 - Keep one merged outcome: sub-agent outputs must be normalized into a single consistent recommendation/fix set.
 

@@ -7,14 +7,16 @@ Read `principles.md` first, then apply this checklist.
 - Identify doc type and target audience.
 - Confirm brownfield vs evergreen intent.
 - Confirm expected outcome for the reader.
+- Define the requested file, directory, or diff scope. Repository size alone does not turn a scoped review into a full-tree audit.
 - For full-repo reviews, explicitly include both governance surfaces and product-doc surfaces (`docs/`, README trees, `.md/.mdx/.mdc`, `.rst/.rsc`, framework docs configs).
 
 ## 2. Investigation behavior
 
 - Proactively find issues and risks without waiting for repeated prompts.
 - If there are signals of deeper problems, continue investigation beyond the first pass.
-- Long-running and extensive investigations are acceptable when needed for confidence and correctness. An audit ends when coverage is complete and two discovery passes add nothing new, not when the output gets long.
-- For trees with hundreds of pages, oversized pages, or many locales, switch to `references/large-docs-audit.md`: shard, ledger, verify, then remediate.
+- Long-running and extensive investigations are acceptable when needed for confidence and correctness. An audit ends when requested coverage is complete and two discovery passes add nothing new. Output length does not end an audit.
+- Keep routine scoped findings inline under [Evidence and artifacts](../SKILL.md#evidence-and-artifacts). An audit request alone does not require a ledger.
+- When the requested scope needs sharding, use `references/large-docs-audit.md`: shard, ledger, verify, then remediate. Preserve its journal, deduplication, and recovery requirements.
 - When available, use sub-agents for bounded parallel discovery (for example file-inventory, command validation, or cross-doc consistency checks), then merge to one final issue set. With user opt-in, run shards as a Claude Workflow per `references/workflows.md`.
 - When no issues are found, state that explicitly and call out residual risks or validation gaps.
 - Default to `apply-fixes` for high-confidence documentation defects unless the user explicitly requests `report-only`.
