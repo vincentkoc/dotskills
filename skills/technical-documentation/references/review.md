@@ -89,7 +89,7 @@ For agent-platform awareness:
 
 ## 7a. Reader-experience review (large or messy pages)
 
-- Score each page against the rubric in `references/large-docs-audit.md` section 3: purpose in first screen, funnel, Diataxis purity, task path, heading hierarchy, density, table monsters, code accuracy, trapped facts, cross-links, terminology, staleness, duplicates, nav position.
+- Score each page against the rubric in `references/large-docs-audit.md` section 5: purpose in first screen, funnel, Diataxis purity, task path, heading hierarchy, density, table monsters, code accuracy, trapped facts, cross-links, terminology, staleness, duplicates, nav position.
 - Treat pages over 20k characters as split candidates and follow the oversized page protocol.
 - Report nav orphans and nav ghosts from the framework config.
 

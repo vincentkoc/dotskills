@@ -22,6 +22,7 @@ Usage:
     ste-lint.py --selftest
 
 Exit 1 when hard ("advisory-free") violations exceed the baseline (default 0).
+Exit 2 when any input cannot be read or traversed, even if other inputs pass.
 Advisory findings (passive voice, compound tenses) never fail the run.
 """
 import json
@@ -75,10 +76,10 @@ SYNONYM_GROUPS = [
 DEFAULT_MAX_WORDS = 25  # descriptive cap; pass --max-words 20 for procedures
 
 CODE_FENCE = re.compile(r"^(```|~~~)")
-INLINE_CODE = re.compile(r"`[^`]*`")
+INLINE_CODE = re.compile(r"(`+).*?\1")
+COMMENT_OR_CODE = re.compile(INLINE_CODE.pattern + r"|<!--")
 MD_LINK = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
 BARE_URL = re.compile(r"https?://\S+")
-HTML_COMMENT = re.compile(r"<!--[\s\S]*?-->")
 MDX_IMPORT = re.compile(r"^\s*(import|export)\s")
 TABLE_ROW = re.compile(r"^\s*\|")
 FRONTMATTER_DELIM = re.compile(r"^---\s*$")
@@ -91,10 +92,35 @@ def _word_re(base):
 def _clean_line(line):
     """Strip syntax that is not prose so counts and matches reflect the text a reader sees."""
     line = INLINE_CODE.sub("", line)
-    line = HTML_COMMENT.sub("", line)
     line = MD_LINK.sub(r"\1", line)
     line = BARE_URL.sub("", line)
     return line
+
+
+def _mask_comments(line, in_comment):
+    """Carry comment state between lines without consuming inline-code literals."""
+    parts = []
+    offset = 0
+    while offset < len(line):
+        if in_comment:
+            end = line.find("-->", offset)
+            stop = len(line) if end < 0 else end + 3
+            parts.append(" " * (stop - offset))
+            offset = stop
+            in_comment = end < 0
+            continue
+        match = COMMENT_OR_CODE.search(line, offset)
+        if match is None:
+            parts.append(line[offset:])
+            break
+        parts.append(line[offset:match.start()])
+        if match.group() == "<!--":
+            in_comment = True
+            offset = match.start()
+        else:
+            parts.append(match.group())
+            offset = match.end()
+    return "".join(parts), in_comment
 
 
 def lint(text, filename="<stdin>", max_words=DEFAULT_MAX_WORDS, mode="strict"):
@@ -102,6 +128,7 @@ def lint(text, filename="<stdin>", max_words=DEFAULT_MAX_WORDS, mode="strict"):
     words_total = 0
     in_fence = False
     in_frontmatter = False
+    in_comment = False
     # first occurrence of each synonym-group member: (group_idx, base) -> (line, col, match)
     seen_synonyms = {}
     lines = text.splitlines()
@@ -114,12 +141,15 @@ def lint(text, filename="<stdin>", max_words=DEFAULT_MAX_WORDS, mode="strict"):
             if FRONTMATTER_DELIM.match(stripped):
                 in_frontmatter = False
             continue
-        if CODE_FENCE.match(stripped):
+        if not in_comment and CODE_FENCE.match(stripped):
             in_fence = not in_fence
             continue
-        if in_fence or TABLE_ROW.match(raw) or MDX_IMPORT.match(raw):
+        if in_fence:
             continue
-        line = _clean_line(raw)
+        line, in_comment = _mask_comments(raw, in_comment)
+        if TABLE_ROW.match(line) or MDX_IMPORT.match(line):
+            continue
+        line = _clean_line(line)
         words_total += len(line.split())
         for rule_id, level, pattern, msg in RULES:
             for m in pattern.finditer(line):
@@ -156,12 +186,17 @@ def lint(text, filename="<stdin>", max_words=DEFAULT_MAX_WORDS, mode="strict"):
     return findings, words_total
 
 
-def expand_paths(paths):
+def expand_paths(paths, onerror=None):
     """Expand directories to doc files (sorted, deterministic). Files pass through unchanged."""
+    def walk_error(exc):
+        if onerror is None:
+            raise exc
+        onerror(exc)
+
     out = []
     for p in paths:
         if os.path.isdir(p):
-            for root, dirs, files in os.walk(p):
+            for root, dirs, files in os.walk(p, onerror=walk_error):
                 dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
                 for name in sorted(files):
                     if name.lower().endswith(DOC_EXTENSIONS):
@@ -316,13 +351,20 @@ def main(argv):
 
     per_file = {}
     findings, words_total = [], 0
+    input_failed = False
+
+    def input_error(exc):
+        nonlocal input_failed
+        input_failed = True
+        print(f"{exc.filename or '<stdin>'}: cannot read ({exc})", file=sys.stderr)
+
     if paths:
-        for p in expand_paths(paths):
+        for p in expand_paths(paths, onerror=input_error):
             try:
                 with open(p, encoding="utf-8", errors="replace") as fh:
                     text = fh.read()
             except OSError as exc:
-                print(f"{p}: cannot read ({exc})", file=sys.stderr)
+                input_error(exc)
                 continue
             f, w = lint(text, filename=p, max_words=max_words, mode=mode)
             f = [x for x in f if x["rule"] not in disabled]
@@ -330,7 +372,12 @@ def main(argv):
             findings.extend(f)
             words_total += w
     else:
-        findings, words_total = lint(sys.stdin.read(), max_words=max_words, mode=mode)
+        try:
+            text = sys.stdin.read()
+        except OSError as exc:
+            input_error(exc)
+            text = ""
+        findings, words_total = lint(text, max_words=max_words, mode=mode)
         findings = [f for f in findings if f["rule"] not in disabled]
 
     hard_count = sum(1 for f in findings if f["level"] == "advisory-free")
@@ -338,6 +385,8 @@ def main(argv):
         report_summary(summarize(per_file), as_json, top, hard_count, baseline)
     else:
         report(findings, words_total, as_json, hard_count, baseline)
+    if input_failed:
+        return 2
     return 1 if hard_count > baseline else 0
 
 
