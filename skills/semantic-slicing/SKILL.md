@@ -24,7 +24,7 @@ Default stance: map locally first, rank second, spend agent/security-review budg
 
 ## Workflow
 
-1. Create a scratch run directory outside the target checkout, usually `~/.semantic-slicing/<repo>/<timestamp>`.
+1. Reuse suitable tool state. Create task-owned temporary storage only when a tool requires files.
 2. Read target repo instructions before scanning. For OpenClaw, read root `AGENTS.md`; subtree guides matter when reviewing a slice.
 3. Verify tool setup:
    - `clawpatch`: clone/build `openclaw/clawpatch`, then run `clawpatch init`, `clawpatch map`, `clawpatch status`.
@@ -36,10 +36,13 @@ Default stance: map locally first, rank second, spend agent/security-review budg
    - Deepsec regex scan for candidate threat surfaces.
    - Optional repo git overlay for CODEOWNERS routing, tracked files, code/test/doc shape, and recent churn.
    - Optional gitcrawl/discrawl lookups for historical pain around the same files, components, or symptoms.
-5. Run `scripts/semantic-map.mjs` to merge the local artifacts into `semantic-map.html` and `semantic-map.json`.
+5. Run `scripts/semantic-map.mjs` to merge the evidence into JSON on stdout.
+   - Select bounded fields for agent inspection. Do not save intermediate output by default.
+   - Use `--out <path>` only for a requested deliverable or required evidence. It retains HTML and JSON by default.
+   - Use `--format html|json|both` to select output. A single format writes only the exact `--out` path.
    - Sparse mode is on by default and omits dotfile/config trees, docs, changelog files, and mobile app trees so core review stays focused.
    - Use `--no-sparse` or `--sparse false` for the full repo; use `--sparse-exclude <csv>` and `--sparse-include <csv>` to tune the filter.
-6. Review the board in product order:
+6. When a visual board is requested, review it in product order:
    - review lanes first: semantic shape, ownership routing, development pressure, security pressure, issue pressure, support pressure,
    - focus controls second: lens and system filters that narrow the matrix without duplicating rows,
    - overall lens matrix third: the single slice-row table with comparable bars for semantic, ownership, development, security, issue, and support lenses,
@@ -52,12 +55,15 @@ Default stance: map locally first, rank second, spend agent/security-review budg
 8. Run AI only at the chosen size:
    - `clawpatch review --feature <id>` or a small `--limit`.
    - `deepsec process --files <csv>` or tightly scoped `--filter` plus `--only-slugs`.
-9. Report exact artifact paths, run IDs, counts, cost size, exclusions, and skipped expensive stages.
+9. Report retained paths, run IDs, counts, cost size, exclusions, and skipped expensive stages in chat.
+   Remove only task-owned disposable scratch when no longer needed or in use. Preserve named deliverables and recovery evidence.
 
 ## Inputs
 
 - `target_repo`: local checkout path and/or GitHub `owner/repo`.
-- `scratch_root`: local artifact directory, default `~/.semantic-slicing/<repo>/<timestamp>`.
+- `scratch_root`: optional task-owned temporary directory for tools that require physical state.
+- `out`: optional requested deliverable or required evidence path. Omit it for stdout.
+- `format`: `html`, `json`, or `both`. Default: `json` without `out`, otherwise `both`.
 - `clawpatch_repo`: local clone of `openclaw/clawpatch`, optional if `clawpatch` is already on PATH.
 - `deepsec_repo`: local clone of `vercel-labs/deepsec`, optional if `deepsec` is already on PATH.
 - `focus`: optional path prefixes, issue numbers, slugs, components, or channels to prioritize.
@@ -72,7 +78,7 @@ Default stance: map locally first, rank second, spend agent/security-review budg
 - Deepsec scan run ID, candidate counts, top slugs, and top files.
 - Optional repo overlays from `--repo`: CODEOWNERS routing, tracked files, code/test/doc shape, 90-day churn, and test-gap pressure.
 - Optional gitcrawl cluster/thread evidence and discrawl support evidence.
-- Local semantic review board: `semantic-map.html` plus machine-readable `semantic-map.json`.
+- Machine-readable semantic map on stdout by default. Retained HTML and JSON only when requested.
 - Clean semantic buckets, ownership overlay, development overlay, security overlay, issue overlay, support overlay, and normalized queues.
 - Human review lanes, focus controls, agent handoff packet, and ranked next commands per lens with cost-size rationale.
 

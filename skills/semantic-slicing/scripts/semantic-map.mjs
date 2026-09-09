@@ -4,13 +4,20 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 const args = parseArgs(process.argv.slice(2));
+const outPath = args.out;
+const outputFormat = args.format ?? (outPath ? "both" : "json");
+if (!["html", "json", "both"].includes(outputFormat)) {
+  die(`invalid --format: ${outputFormat}; expected html, json, or both`);
+}
+if (outputFormat === "both" && !outPath) {
+  die("--format both requires --out <semantic-map.html>");
+}
 if (!args.clawpatch && !args.deepsec && !args.gitcrawl && !args.discrawl && !args.repo) {
   die(
-    "usage: semantic-map.mjs --clawpatch <state-dir> --deepsec <data/project> --out <semantic-map.html> [--repo <target-repo>] [--churn-since <git-date>] [--gitcrawl <json>] [--discrawl <json>] [--no-sparse|--sparse false] [--sparse-exclude <csv>] [--sparse-include <csv>]",
+    "usage: semantic-map.mjs --clawpatch <state-dir> --deepsec <data/project> [--out <path>] [--format html|json|both] [--repo <target-repo>] [--churn-since <git-date>] [--gitcrawl <json>] [--discrawl <json>] [--no-sparse|--sparse false] [--sparse-exclude <csv>] [--sparse-include <csv>]",
   );
 }
 
-const outPath = args.out ?? path.resolve(process.cwd(), "semantic-map.html");
 const defaultSparseExcludes = [
   ".github/",
   ".vscode/",
@@ -201,11 +208,20 @@ const summary = {
   topFiles: topFiles.slice(0, 100),
 };
 
-fs.mkdirSync(path.dirname(outPath), { recursive: true });
-fs.writeFileSync(outPath, renderHtml(summary), "utf8");
-fs.writeFileSync(outPath.replace(/\.html?$/u, "") + ".json", JSON.stringify(summary, null, 2) + "\n", "utf8");
-console.log(`wrote ${outPath}`);
-console.log(`wrote ${outPath.replace(/\.html?$/u, "")}.json`);
+if (!outPath) {
+  process.stdout.write(outputFormat === "html" ? renderHtml(summary) : JSON.stringify(summary, null, 2) + "\n");
+} else {
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  if (outputFormat !== "json") {
+    fs.writeFileSync(outPath, renderHtml(summary), "utf8");
+    console.error(`wrote ${outPath}`);
+  }
+  if (outputFormat !== "html") {
+    const jsonPath = outputFormat === "both" ? outPath.replace(/\.html?$/u, "") + ".json" : outPath;
+    fs.writeFileSync(jsonPath, JSON.stringify(summary, null, 2) + "\n", "utf8");
+    console.error(`wrote ${jsonPath}`);
+  }
+}
 
 function parseArgs(argv) {
   const out = {};
@@ -1065,7 +1081,7 @@ ${lensMatrix(matrixRows)}
 </section>
 
 <h2 id="handoff">Agent Handoff Packet</h2>
-<p class="note">Small, normalized, copyable payload for follow-up agents. Full data is in the sibling JSON artifact.</p>
+<p class="note">Small, normalized, copyable payload for follow-up agents. JSON output contains the full data.</p>
 <pre>${escapeHtml(JSON.stringify(handoff, null, 2))}</pre>
 
 <h2 id="evidence">Evidence Tables</h2>
