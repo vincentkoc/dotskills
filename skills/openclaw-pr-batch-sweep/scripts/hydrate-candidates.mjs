@@ -24,7 +24,7 @@ for (let index = 0; index < args.length; index += 1) {
     sleepMs = Number.parseInt(args[++index] ?? "2000", 10);
   } else if (arg === "--help") {
     console.log(
-      "Usage: hydrate-candidates.mjs --input ranked.json [--output hydrated.json] [--repo owner/name] [--limit 40] [--sleep-ms 2000]",
+      "Usage: hydrate-candidates.mjs --input <ranked.json|-> [--output hydrated.json] [--repo owner/name] [--limit 40] [--sleep-ms 2000]",
     );
     process.exit(0);
   } else {
@@ -167,7 +167,7 @@ function hydrate(candidate) {
   };
 }
 
-const parsed = JSON.parse(fs.readFileSync(inputPath, "utf8"));
+const parsed = JSON.parse(fs.readFileSync(inputPath === "-" ? 0 : inputPath, "utf8"));
 const candidates = candidateArray(parsed).slice(0, limit);
 const hydrated = [];
 

@@ -38,6 +38,12 @@
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill ghcrawl-cluster-operator -y"
     },
     {
+      "name": "github-airplane-mode",
+      "source": "./skills/github-airplane-mode",
+      "description": "Switch an already-installed local Git and GitHub download guard.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill github-airplane-mode -y"
+    },
+    {
       "name": "graincrawl",
       "source": "./skills/graincrawl",
       "description": "Maintain `graincrawl`, the Go CLI that archives Granola notes, transcripts,",

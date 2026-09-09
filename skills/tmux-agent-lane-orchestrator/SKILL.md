@@ -28,12 +28,22 @@ Turn a tmux window of coding-agent workers into a visible, auditable lane with c
 2. Capture lane state.
    - `python3 scripts/lane_snapshot.py --lane <number>`
    - Add `--session <name>` outside the active tmux session.
-   - Override `--keywords` for repository-specific log matching.
+   - If a descendant command does not contain its resumed thread ID, repeat
+     `--thread L<number>.<pane>=<thread-id>` from separately verified evidence.
+   - Add `--json` for machine-readable output.
+   - Add `--cursor-file <path>` only when bounded incremental state is wanted;
+     the helper writes no persistent state by default.
 3. Cross-check panes and logs.
    - Pane titles alone are weak evidence.
-   - Compare command, PID, cwd, recent output, and matching `~/.codex/sessions` records.
+   - Resolve pane ID to shell PID, descendant Codex PID, exact thread ID, the
+     state-database rollout path, and the newest turn.
+   - Shared cwd and generic terms such as `CI`, `failed`, or `running` never
+     establish ownership.
+   - Missing or conflicting identity is `unknown`, never a restore target.
 4. Classify each pane.
-   - `active-progress`, `waiting`, `blocked`, `idle`, or `unknown`.
+   - Use the newest exact turn and changing event/tool/token counters.
+   - A completed turn after an earlier error is `completed`, not blocked.
+   - Report bounded bytes read and truncation with the state.
    - Include the evidence and next action, not only the label.
 5. Intervene conservatively.
    - Inspect before steering.
@@ -51,10 +61,12 @@ Read `references/factory-model.md` when designing lane responsibilities or escal
 - tmux session name.
 - Lane number or `L<number>` window.
 - Optional log keywords and capture depth.
+- Optional exact pane/thread declarations and bounded cursor path.
 - Optional operator-provided worker mission map.
 
 ## Outputs
 
-- Current pane and agent-session snapshot.
+- Current pane ID, shell PID, descendant agent PID, exact thread, and rollout snapshot.
 - Per-pane state classification with evidence.
+- Per-file and total log bytes read, cursor mode, and truncation status.
 - Concise manager summary and safe next actions.

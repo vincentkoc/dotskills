@@ -8,6 +8,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  codebase-memory-python39:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.9"
+
+      - name: Codebase memory boundary tests
+        run: >-
+          python -m unittest -v
+          tests/codebase_memory_cache_test.py
+          tests/codebase_memory_gateway_test.py
+
   validate-and-publish-readiness:
     runs-on: ubuntu-latest
     steps:

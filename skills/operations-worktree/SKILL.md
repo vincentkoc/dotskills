@@ -17,22 +17,32 @@ Create and manage worktrees safely and consistently across projects while avoidi
 - You need to avoid branching from stale local `main` or local `HEAD`.
 
 ## Workflow
-1. Ensure you are inside the target repository (main checkout or any linked worktree).
-2. Create a new worktree with the shell wrapper:
+1. Resolve the repository identity, canonical owning checkout, Git common
+   directory, and existing worktree registrations. Preserve dirty owner state.
+2. Verify the owner is healthy and the intended remote base is current. A
+   cached ref is not proof of the latest remote head.
+3. Discover the installed wrapper with `gwt help` and its managed root with
+   `gwt root`.
+4. Create a new worktree with the shell wrapper:
    - `gwt new <branch>`
    - Optional explicit base: `gwt new <branch> <start-point>`
-3. If shell wrappers are unavailable, use raw git safely:
-   - `default=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)`
-   - `base=${default#origin/}`
-   - `git fetch origin "$base" --prune`
-   - `git worktree add -b <branch> <path> "origin/$base"`
-4. For OpenClaw PR review worktrees, prefer that repository's native PR review-init helper instead of hand-assembling refs.
+   Stop if the wrapper is unavailable or refuses the owner. Do not replace it
+   with a raw-Git worktree, copied repository, or ad hoc clone.
+5. Verify the returned path, managed root, registration, branch, exact base,
+   and dependency ownership before editing.
+6. Read `references/task-artifacts.md` before work that retains evidence,
+   publishes expensive artifacts, or needs a resumable phase/blocker receipt.
+7. For OpenClaw, use its current `AGENTS.md` and native review/release lifecycle
+   helpers. Do not override their exact-head or evidence rules here.
+8. Finish with an explicit checkout outcome: `retained`, `blocked`, or verified
+   `removed`. Completion alone does not authorize cleanup.
 
 ## Inputs
 - Branch name (required)
 - Optional start-point (branch/tag/commit)
-- Optional destination path (for raw git mode)
+- Canonical owner and configured managed root
 
 ## Outputs
 - New linked worktree checked out on the target branch.
-- Default base anchored to a fetched remote default branch unless explicitly overridden.
+- Verified owner, managed path, registration, branch, and exact base.
+- Explicit retained, blocked, or verified removed checkout outcome.
