@@ -49,13 +49,30 @@ Compose the repository skills instead of duplicating them:
    - Start with `gitcrawl`; verify live state with `ghx`. If `gitcrawl` is stale, malformed, or unavailable, fall through immediately to live `ghx`.
    - Run discovery and hydration shell calls serially on the maintainer host. Do not fan out `gitcrawl`, `ghx`, or per-PR REST calls in parallel.
    - Fetch at least 100 open PRs. Widen toward 1000 when the strict filter yields fewer than 20.
-   - Write discovery JSON to a file and set `OPEN_PRS_JSON` to that path. The ranker accepts either a raw PR array or gitcrawl's `{ "threads": [...] }` envelope. It normalizes `labels_json`, `author_login`, and `is_draft`; do not strip those fields before ranking.
+   - Pipe discovery JSON into the ranker. It accepts a raw PR array or gitcrawl's `{ "threads": [...] }` envelope. Keep `labels_json`, `author_login`, and `is_draft` for normalization.
    - Combine `handled_refs` and `explicit_skips` into comma-separated `HANDLED_PRS`. Numbers, `#123`, and full pull-request URLs are accepted.
-   - Run `scripts/rank-candidates.mjs --input "$OPEN_PRS_JSON" --limit 40 --batch-size 20 --decision-ledger references/decision-ledger.json --exclude "$HANDLED_PRS"` as a first-pass noise filter.
-   - Set `HYDRATED_PRS_JSON` to a second JSON file, then hydrate the top 30-40 with `scripts/hydrate-candidates.mjs --input <ranked.json> --output "$HYDRATED_PRS_JSON"`. It serially merges authoritative REST author association, file count, merge state, paginated file deltas, and live check rollups while retrying unresolved mergeability.
+   - Pipe the first ranking into `scripts/hydrate-candidates.mjs --input -`, then rank its stdout with `--hydrated`. Hydration remains serial and includes REST metadata, paginated file deltas, live checks, and mergeability retries.
+   - Set `SKILL_ROOT` to this skill's directory. For live discovery, run this pipeline in Bash or Zsh:
+
+     ```bash
+     set -o pipefail
+     ghx pr list --repo openclaw/openclaw --state open --limit 100 \
+       --json number,title,url,author,labels,isDraft,state |
+       node "$SKILL_ROOT/scripts/rank-candidates.mjs" \
+         --limit 40 --batch-size 20 \
+         --decision-ledger "$SKILL_ROOT/references/decision-ledger.json" \
+         --exclude "$HANDLED_PRS" |
+       node "$SKILL_ROOT/scripts/hydrate-candidates.mjs" --input - |
+       node "$SKILL_ROOT/scripts/rank-candidates.mjs" --hydrated \
+         --decision-ledger "$SKILL_ROOT/references/decision-ledger.json" \
+         --exclude "$HANDLED_PRS"
+     ```
+
+   - Treat any nonzero pipeline status as failure. Do not act on JSON from a failed pipeline.
+   - Retain intermediate JSON only for a concrete debugging or recovery need. Explicit `--input <file>` and hydrator `--output <file>` remain available.
    - If process launch returns `EMFILE`, `Too many open files`, or another file-descriptor exhaustion error, stop spawning workers and parallel shells immediately. Let retained lanes finish, then continue from the coordinator with one shell call at a time.
    - When REST returns `mergeable: null` or an unknown merge state, retry that PR fetch up to three times with a two-second delay. If GitHub still has not resolved it, carry the PR as indeterminate instead of admitting it to the final batch.
-   - Rerun with `--input "$HYDRATED_PRS_JSON" --hydrated`. Final selection rejects missing author association, partial file hydration, dirty/conflicting state, failed checks, and high-risk changed paths.
+   - Final ranking rejects missing author association, partial file hydration, dirty/conflicting state, failed checks, and high-risk changed paths.
    - Treat pending non-routine checks as not ready. Do not admit them merely because older checks passed.
    - Risk labels are routing signals, not proof of a risky surface. Exact security/auth and availability labels are hard exclusions. A compatibility label alone still requires qualification against the title and changed paths.
    - Production-size and test/docs-only gates are intentionally deferred until the hydrated pass.
