@@ -150,9 +150,12 @@ Avoid pulling personal or unrelated message content into reports. Summarize only
 ## Map output
 
 The default is JSON on stdout, with no output files or directories.
+Use Bash or Zsh for the pipelines below. `pipefail` preserves upstream command failures.
+Do not treat output from a failed pipeline as successful evidence.
 For routine inspection, select bounded fields before sending data to an agent:
 
 ```bash
+set -o pipefail
 node /path/to/semantic-slicing/scripts/semantic-map.mjs \
   --repo "$TARGET_REPO" |
   jq '{totals, inputs: {sparse: .inputs.sparse, sparseExcludes: .inputs.sparseExcludes, sparseIncludes: .inputs.sparseIncludes}, top: [.buckets[:8][] | {name, impactScore, action}]}'
@@ -192,6 +195,7 @@ changelog files, and mobile app trees so the first board focuses on core review
 surfaces. Disable it for a whole-repo inspection:
 
 ```bash
+set -o pipefail
 node /path/to/semantic-slicing/scripts/semantic-map.mjs \
   --repo "$TARGET_REPO" \
   --clawpatch "$RUN_ROOT/clawpatch" \
@@ -204,6 +208,7 @@ Tune sparse mode with comma-separated path rules. `--sparse-exclude` replaces
 the default exclude list; `--sparse-include` re-includes matching paths:
 
 ```bash
+set -o pipefail
 node /path/to/semantic-slicing/scripts/semantic-map.mjs \
   --repo "$TARGET_REPO" \
   --clawpatch "$RUN_ROOT/clawpatch" \

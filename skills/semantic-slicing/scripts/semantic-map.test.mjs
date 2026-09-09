@@ -145,6 +145,22 @@ for (const [args, error] of [
   });
 }
 
+test("pipefail preserves map failures when the downstream consumer succeeds", (t) => {
+  const directory = fixture(t);
+  const before = footprint(directory);
+  const result = spawnSync("bash", [
+    "-c",
+    'set -o pipefail\n"$1" "$2" --format invalid | "$1" -e "process.stdin.resume()"',
+    "semantic-map-pipeline",
+    process.execPath,
+    scriptPath,
+  ], { cwd: directory, encoding: "utf8" });
+  assert.equal(result.status, 2);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /invalid --format/u);
+  assert.deepEqual(footprint(directory), before);
+});
+
 for (const [sparseArgs, expectedFeatures] of [
   [[], 1],
   [["--no-sparse"], 3],
