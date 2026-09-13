@@ -15,6 +15,7 @@ RESOLVER_PATH = @@RESOLVER_PATH_JSON@@
 RESOLVER_TIMEOUT_SECONDS = 60
 SAFE_CONFIG_SET = {
     ("config", "set", "auto_index", "false"),
+    ("config", "set", "auto_watch", "false"),
     ("config", "set", "ui", "false"),
 }
 
@@ -63,19 +64,32 @@ def strict_json_object(raw: str, label: str) -> dict[str, Any]:
     return payload
 
 
-def denied_command(args: list[str]) -> str | None:
-    if args and args[0] in {"install", "update", "uninstall"}:
-        return f"top-level {args[0]} is disabled"
-    if args[:2] == ["config", "reset"]:
-        return "config reset is disabled"
-    if args[:2] == ["config", "set"]:
-        if tuple(args) in SAFE_CONFIG_SET:
-            return None
-        return "config set is not in the safe allowlist"
-    for argument in args:
-        if argument == "--ui" or argument.startswith("--ui="):
-            return "UI enablement is disabled"
-    return None
+def public_args(args: list[str]) -> tuple[list[str], list[str]]:
+    """Accept only forms whose dispatch and argument source we can inspect."""
+    if not args or args in (["--version"], ["--help"], ["-h"]):
+        return args, []
+    if args in (["config", "list"], ["daemon", "status"]):
+        return args, []
+    if tuple(args) in SAFE_CONFIG_SET:
+        return args, []
+    if len(args) == 3 and args[:2] == ["config", "get"]:
+        if args[2].isidentifier():
+            return args, []
+    if args[0] != "cli":
+        raise GatewayError("unsupported public command form")
+    if args in (["cli", "--help"], ["cli", "-h"]):
+        return args, []
+
+    # Upstream strips these flags before selecting the tool, wherever they occur.
+    flags = [arg for arg in args[1:] if arg in {"--json", "--progress"}]
+    command = [arg for arg in args[1:] if arg not in {"--json", "--progress"}]
+    if not 1 <= len(command) <= 2 or not command[0].isidentifier():
+        raise GatewayError("CLI requires a tool and at most one JSON object")
+    if len(command) == 2:
+        strict_json_object(command[1], "CLI payload")
+    # Reject flags, files, stdin and internal worker roles as argument sources.
+    # Those forms can select index_repository without passing its path resolver.
+    return ["cli", *command], flags
 
 
 def resolve_index_path(
@@ -129,7 +143,7 @@ def main() -> int:
     python_path = rendered_path(PYTHON_PATH, "Python", executable=True)
     backend_path = rendered_path(BACKEND_PATH, "backend", executable=True)
     resolver_path = rendered_path(RESOLVER_PATH, "resolver", executable=False)
-    args = sys.argv[1:]
+    args, presentation_flags = public_args(sys.argv[1:])
 
     if args[:2] == ["cli", "index_repository"]:
         if len(args) != 3:
@@ -160,13 +174,12 @@ def main() -> int:
             ) from error
         exec_backend(
             backend_path,
-            ["cli", "index_repository", encoded],
+            ["cli", *presentation_flags, "index_repository", encoded],
         )
         raise AssertionError("backend exec returned")
 
-    reason = denied_command(args)
-    if reason is not None:
-        raise GatewayError(reason)
+    if args and args[0] == "cli":
+        args = ["cli", *presentation_flags, *args[1:]]
     exec_backend(backend_path, args)
     raise AssertionError("backend exec returned")
 
