@@ -92,7 +92,7 @@ For every page over 20k characters:
 
 1. Map its H2 sections with word counts and the Diataxis type of each section.
 2. Propose a split: one page per coherent job, plus a short parent page that is an index with one line per child.
-3. Preserve every anchor: list the old `page#anchor` targets and the new destinations, and add redirects in the framework config when it supports them.
+3. Preserve every anchor. List the old `page#anchor` targets and their new destinations, then keep each one alive **on the parent page** as an authored `<a id>` stub linking to the child. Server-side pathname rules cannot choose among child pages by the incoming fragment, so a `/page/anchor` route does not rescue a `/page#anchor` link. Compute the ids with the repo's publishing parser, not a hand-rolled slug. The link checker cannot detect this defect, because a split rewrites the repo's own links while external links stay broken — assert the old ids resolve instead of trusting a clean audit. See "A path is not a fragment" in `references/pr-program.md`.
 4. Generate the inbound-link and linked-anchor table with a script, not an agent. Agent counts of "47 inbound files" drift. A script is exact.
 5. If the page is a generated reference (config schema, CLI output), do not split by hand. Record it as a generator finding.
 
