@@ -20,7 +20,7 @@ Goal:
 
 Rules:
 - apply only the findings you were given. Do not sweep the file for other issues. Record extras as new findings instead.
-- follow brownfield rules from `references/build.md`. Match existing conventions, preserve anchors, and keep the change set small. When moving content, keep every old `page#anchor` alive with an authored `<a id>` stub on the parent — a redirect matches pathname only and cannot carry a fragment. Add redirects for moved *paths*.
+- follow brownfield rules from `references/build.md`. Match existing conventions, preserve anchors, and keep the change set small. When moving content, keep every old `page#anchor` alive with an authored `<a id>` stub on the parent — server-side pathname rules cannot select a child by the incoming fragment. Add redirects for moved *paths*.
 - for STE findings, follow `references/simplified-technical-english.md`. Preserve every hedge, number, and scope qualifier.
 - for oversized page splits, follow `references/large-docs-audit.md` section 7: map inbound links first, move content, update links, then prove every pre-split anchor still resolves. A clean link audit is not that proof; it only checks the repo's own links, which the split rewrote.
 - never edit generated content. If the finding targets a generated page, set the status to blocked and name the generator.
