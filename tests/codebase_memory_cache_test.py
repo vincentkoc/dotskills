@@ -67,6 +67,45 @@ def sqlite_file(path: pathlib.Path) -> int:
 
 
 class ResolverTests(unittest.TestCase):
+    def test_synthetic_root_is_reserved(self) -> None:
+        home = pathlib.Path("/Users/fixture")
+        for platform in ("darwin", "linux"):
+            self.assertTrue(CBM.synthetic_index_path(
+                home / "GIT/_Synthetic/github.com/example/repo/task",
+                home=home, platform=platform,
+            ))
+            self.assertFalse(CBM.synthetic_index_path(
+                home / "GIT/_Synthetic-extra/repo", home=home, platform=platform,
+            ))
+            self.assertFalse(CBM.reserved_index_path(
+                home / "GIT/_Synthetic/repo", home=home, platform=platform,
+            ))  # New indexing denial must not authorize cache cleanup.
+
+    def test_moved_synthetic_repository_remains_denied(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = pathlib.Path(directory) / "repo"
+            init_repo(repo)
+            (repo / ".git/gwt-synthetic.json").write_text('{"kind":"snapshot"}\n')
+            with mock.patch.object(CBM, "reserved_index_path", return_value=False):
+                with self.assertRaisesRegex(CBM.SafetyError, "synthetic history"):
+                    CBM.resolve_index_repository(repo)
+
+    def test_synthetic_alias_and_linked_worktree_remain_denied(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            temp = pathlib.Path(directory)
+            home = temp / "home"
+            repo = home / "GIT/_Synthetic/github.com/example/repo/task"
+            repo.parent.mkdir(parents=True)
+            init_repo(repo)
+            alias = temp / "ordinary-alias"
+            alias.symlink_to(repo, target_is_directory=True)
+            linked = temp / "linked"
+            command("git", "-C", str(repo), "worktree", "add", "-q", "-b", "linked", str(linked))
+            with mock.patch.object(CBM, "reserved_index_path", return_value=False):
+                for candidate in (alias, linked):
+                    with self.assertRaisesRegex(CBM.SafetyError, "synthetic"):
+                        CBM.resolve_index_repository(candidate, home=home)
+
     def test_main_and_linked_worktree_resolve_to_same_owner(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             temp = pathlib.Path(directory)

@@ -31,6 +31,7 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Linked worktrees resolve through their absolute Git common directory to the one checkout that owns it.
    - Separate clones remain separate projects.
    - Independent roots under `~/.codex/worktrees`, `~/GIT/_Worktrees`, any `.worktrees` component, `/tmp`, or `/private/tmp` are never indexed. Linked worktrees under those paths may only rewrite to one existing nonreserved owner.
+   - Never independently index `~/GIT/_Synthetic` or repositories marked by `.git/gwt-synthetic.json`. This indexing rule grants no cleanup authority.
    - Missing, invalid, bare, ambiguous, ownerless, reserved-owner, or NUL-containing repositories fail closed.
 3. Prefer exposed MCP graph tools for discovery.
    - Installer or client configuration must separately disable the MCP `index_repository` tool because it cannot enforce the canonical indexing boundary. For Codex installs, render the private `disabled_tools` configuration accordingly.
