@@ -194,6 +194,7 @@ def stage_install(source: pathlib.Path, stage: pathlib.Path, *, kind: str, mode:
             raise SyncError("source changed during staging")
         marker = staged / DIRECTORY_MARKER if kind == "directory" else stage / "new-marker"
         with marker.open("x", encoding="utf-8") as handle:
+            os.fchmod(handle.fileno(), 0o600)
             json.dump(metadata(source, kind, digest), handle, sort_keys=True)
             handle.write("\n")
             handle.flush()

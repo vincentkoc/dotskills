@@ -4,6 +4,7 @@ import importlib.util
 import os
 import pathlib
 import shutil
+import stat
 import subprocess
 import tempfile
 import unittest
@@ -44,6 +45,10 @@ class AgentSkillsSyncTests(unittest.TestCase):
 
     def test_wrapper_updates_owned_copies_and_both_mode_transitions(self):
         self.sync()
+        markers = (self.destination / SYNC.DIRECTORY_MARKER,
+                   self.codex / "prompts/.owned.md.agent-skills-managed.json")
+        for marker in markers:
+            self.assertEqual(stat.S_IMODE(marker.stat().st_mode), 0o600)
         (self.skill / "SKILL.md").write_text("two\n")
         self.command.write_text("command two\n")
         self.sync()
