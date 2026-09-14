@@ -58,7 +58,8 @@ def file_state(info: os.stat_result) -> tuple:
             info.st_mtime_ns, info.st_ctime_ns, info.st_uid, info.st_gid, info.st_nlink)
 
 
-def content_digest(path: pathlib.Path, *, ignore_marker: bool = False) -> str:
+def content_digest(path: pathlib.Path, *, ignore_marker: bool = False,
+                   exclude_names: frozenset[str] = frozenset()) -> str:
     digest = hashlib.sha256()
 
     def field(value: bytes) -> None:
@@ -73,6 +74,8 @@ def content_digest(path: pathlib.Path, *, ignore_marker: bool = False) -> str:
             field(os.fsencode(os.readlink(current)))
         elif stat.S_ISDIR(before.st_mode):
             for child in sorted(current.iterdir(), key=lambda item: os.fsencode(item.name)):
+                if child.name in exclude_names:
+                    continue
                 if ignore_marker and current == path and child.name == DIRECTORY_MARKER:
                     continue
                 visit(child, relative / child.name)
