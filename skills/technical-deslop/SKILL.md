@@ -3,6 +3,7 @@ name: technical-deslop
 description: Remove AI-style noise from staged and branch diffs while preserving behavior and repository style.
 license: MIT
 metadata:
+  workflow-exemption: "Linear scoped edit and behavior-preservation checklist with one final summary."
   source: "https://github.com/vincentkoc/dotskills"
 ---
 

@@ -3,6 +3,7 @@ name: codex-goal-mining
 description: Mine structured Codex /goal history locally or across a configured machine fleet, measure active goal time and resumed thread spans, identify unfinished and recurring semantic runs, and turn them into stable copy-paste rerun suites. Use when the user asks to inspect goal history, summarize goal commands, find repeated goals, recover large beta campaigns, compare goal duration or token usage, or prepare reusable /goal prompts and privacy-scrubbed reports.
 license: MIT
 metadata:
+  workflow-exemption: "Ordered collection, coverage accounting, analysis, and reporting; no separate action-routing lifecycle."
   source: "https://github.com/vincentkoc/dotskills"
 ---
 

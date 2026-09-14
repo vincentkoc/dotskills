@@ -229,7 +229,7 @@ Use `update_plan` at runtime and keep one in-progress step at a time.
 
 ## Flow
 
-See `references/flow.md` for the state chart covering mode selection, the autonomous viability gate, and the decision/closeout states.
+See the [workflow chart](references/flow.md) for mode selection, viability, and guarded closeout paths.
 
 ## Governance and anti-drift checks
 

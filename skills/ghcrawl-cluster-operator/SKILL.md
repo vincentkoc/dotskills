@@ -164,3 +164,31 @@ After edits, re-run:
 ghcrawl cluster owner/repo --json
 ghcrawl cluster-explain owner/repo --id 123 --member-limit 50 --event-limit 50 --json
 ```
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> InspectStore
+    InspectStore --> ReportEvidence: inspection only
+    InspectStore --> RefreshData: fresh data requested
+    InspectStore --> Enrich: enrichment requested
+    RefreshData --> ReportEvidence: refresh complete
+    Enrich --> SummarizeThenEmbed: summaries affect vectors
+    Enrich --> Embed: existing text basis
+    SummarizeThenEmbed --> Cluster
+    Embed --> Cluster
+    InspectStore --> ExplainCluster: durable edit requested
+    ExplainCluster --> ApplyNamedEdit
+    ApplyNamedEdit --> Cluster
+    Cluster --> ExplainResult
+    ExplainResult --> ReportEvidence
+    RefreshData --> ReportFailure: request fails
+    Enrich --> ReportFailure: request fails
+    SummarizeThenEmbed --> ReportFailure: enrichment fails
+    Embed --> ReportFailure: embedding fails
+    Cluster --> ReportFailure: clustering fails
+    ApplyNamedEdit --> ReportFailure: edit fails
+    ReportEvidence --> [*]
+    ReportFailure --> [*]
+```

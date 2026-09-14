@@ -507,6 +507,43 @@ def validate_body(skill_file: Path, body: str, errors: List[str], warnings: List
         warnings.append(f"{skill_file}: SKILL.md body has {len(lines)} lines (recommended < 500)")
 
 
+def has_state_chart(text: str) -> bool:
+    blocks = re.findall(r"^```mermaid[^\n]*\n(.*?)^```[ \t]*$", text, re.MULTILINE | re.DOTALL)
+    return any(re.match(r"\s*stateDiagram-v2\b", block) and "-->" in block for block in blocks)
+
+
+def validate_workflow(
+    skill_dir: Path, skill_file: Path, front: Dict[str, object], body: str, errors: List[str]
+) -> None:
+    if not is_public_skill(skill_dir, front):
+        return
+    metadata = front.get("metadata", {})
+    exemption = str(metadata.get("workflow-exemption", "")).strip() if isinstance(metadata, dict) else ""
+    flow = re.search(r"^## Flow\s*$([\s\S]*?)(?=^##\s+|\Z)", body, re.MULTILINE)
+    if exemption:
+        if flow:
+            errors.append(f"{skill_file}: choose a Flow chart or workflow-exemption, not both")
+        return
+    if flow:
+        section = flow.group(1)
+        if has_state_chart(section):
+            return
+        for match in MD_LINK_RE.finditer(section):
+            ref = normalize_ref(match.group(1))
+            if not ref.startswith("references/") or Path(ref).suffix != ".md":
+                continue
+            target = (skill_dir / ref).resolve()
+            if ".." in Path(ref).parts or not target.is_relative_to(skill_dir.resolve()):
+                errors.append(f"{skill_file}: workflow reference leaves skill directory: '{ref}'")
+                continue
+            if target.is_file() and has_state_chart(target.read_text(encoding="utf-8")):
+                return
+    errors.append(
+        f"{skill_file}: public skill needs a ## Flow stateDiagram-v2 chart, a direct link "
+        "to one under references/, or metadata.workflow-exemption explaining why a chart adds no value"
+    )
+
+
 def run_skills_ref_validator(skill_dirs: Sequence[Path]) -> Tuple[List[str], List[str]]:
     errors: List[str] = []
     warnings: List[str] = []
@@ -559,6 +596,7 @@ def main() -> int:
         )
         validate_body(skill_file, body, errors, warnings)
         validate_refs(skill_dir, skill_file, body, errors, warnings)
+        validate_workflow(skill_dir, skill_file, front, body, errors)
         validated += 1
 
     skills_ref_errors, skills_ref_warnings = run_skills_ref_validator(skill_dirs)

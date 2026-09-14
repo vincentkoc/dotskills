@@ -57,3 +57,22 @@ Recover crashed, detached, or confusing agent sessions while preserving the best
 - Selected restore source and target.
 - Dry-run restore plan before execution.
 - Concise blocker when evidence is insufficient.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> PreserveRestoreEvidence
+    PreserveRestoreEvidence --> MatchSourceAndTarget
+    MatchSourceAndTarget --> ReportUnknown: identity or source ambiguous
+    MatchSourceAndTarget --> ReturnResumeID: session-ID lookup
+    MatchSourceAndTarget --> ShowExactPlan: preview or recovery
+    ShowExactPlan --> ReportPlan: preview only or mutation not authorized
+    ShowExactPlan --> TargetedRecovery: exact mutation authorized
+    TargetedRecovery --> VerifyTarget
+    VerifyTarget --> ReportResult
+    ReportUnknown --> [*]
+    ReturnResumeID --> [*]
+    ReportPlan --> [*]
+    ReportResult --> [*]
+```

@@ -3,6 +3,7 @@ name: opik-integrations-auditor
 description: Audit, compare, and document Opik integrations across Python SDK, TypeScript SDK, and OTEL/API backend. Use when adding a new integration, reviewing an existing one, or generating first-pass integration docs and gap analysis.
 license: MIT
 metadata:
+  workflow-exemption: "Linear evidence inventory and cross-surface audit; findings and plans are the output, not an execution state machine."
   source: "https://github.com/vincentkoc/dotskills"
 ---
 

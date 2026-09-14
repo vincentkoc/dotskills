@@ -62,23 +62,24 @@ Default stance: map locally first, rank second, spend agent/security-review budg
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ScratchSetup
-    ScratchSetup --> ReadRepoInstructions
-    ReadRepoInstructions --> VerifyToolSetup
-    VerifyToolSetup --> RunDeterministicMaps
-    RunDeterministicMaps --> MergeSemanticMap
-    MergeSemanticMap --> ReviewBoard
+    [*] --> ReadScopeAndInstructions
+    ReadScopeAndInstructions --> ReuseToolState
+    ReuseToolState --> CreateTemporaryState: required by selected tool
+    ReuseToolState --> DeterministicMaps: existing state sufficient
+    CreateTemporaryState --> DeterministicMaps
+    DeterministicMaps --> MergeEvidence
+    MergeEvidence --> ReviewBoard: visual board requested
+    MergeEvidence --> ChooseCostSize: inspect stdout map
     ReviewBoard --> ChooseCostSize
-
     state ChooseCostSize <<choice>>
-    ChooseCostSize --> ReportArtifacts: cost_size = low, maps only
-    ChooseCostSize --> TargetedAIReview: cost_size = medium
-    ChooseCostSize --> BroadAIReview: cost_size = high, explicit budget decision
-
-    TargetedAIReview --> ReportArtifacts
-    BroadAIReview --> ReportArtifacts
-
-    ReportArtifacts --> [*]
+    ChooseCostSize --> ReportResults: low, no AI processing
+    ChooseCostSize --> TargetedAIReview: medium, explicit files and bounded controls
+    ChooseCostSize --> BroadAIReview: high, explicit budget and time decision
+    ChooseCostSize --> ReportBlocked: required budget or tool unavailable
+    TargetedAIReview --> ReportResults
+    BroadAIReview --> ReportResults
+    ReportResults --> [*]
+    ReportBlocked --> [*]
 ```
 
 ## Inputs

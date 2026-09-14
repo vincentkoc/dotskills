@@ -84,3 +84,23 @@ Find recurring pain points from local agent logs and convert them into actionabl
 
 Read `references/sources.md` for source precedence.
 Read `references/scorecard.md` for prioritization rules.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> SelectAuthorizedSources
+    SelectAuthorizedSources --> NormalizeAndCluster
+    NormalizeAndCluster --> CompareExistingSkills
+    CompareExistingSkills --> ProposeUpdate: substantial overlap
+    CompareExistingSkills --> ProposeNewSkill: no existing coverage
+    CompareExistingSkills --> ReportUncertainty: insufficient evidence
+    ProposeUpdate --> RankAndReport
+    ProposeNewSkill --> RankAndReport
+    RankAndReport --> [*]
+    ReportUncertainty --> [*]
+    note right of SelectAuthorizedSources
+        Personal channels require explicit approval.
+        Return findings inline unless retention is selected.
+    end note
+```

@@ -3,6 +3,7 @@ name: crabpot-perf-metrics
 description: Interpret Crabpot and OpenClaw performance dashboard metrics, import-loop profiles, runtime profiles, and branch-to-branch perf deltas without over-reading noisy samples.
 license: MIT
 metadata:
+  workflow-exemption: "Read-only metric interpretation checklist; freshness and uncertainty are reported with the result."
   source: "https://github.com/vincentkoc/dotskills"
 ---
 

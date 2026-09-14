@@ -127,7 +127,7 @@ Compose the repository skills instead of duplicating them:
    - Squash contributor PRs unless the operator says otherwise.
    - The coordinator serializes GitHub comments, closes, pushes, and merges to avoid duplicated actions.
    - Use `$operations-worktree` for terminal current-task closeout after verifying the PR outcome and finishing current-task proof and remote leases. `gwt finish` applies only to trees created with `--finish-managed`; existing and repository-native PR worktrees keep their own lifecycle.
-   - `gwt finish` records actual local job sign-off. Existing cleanup authorization still applies, with no age floor after owner release and all eligibility checks. It does not bypass those checks; the current unqualified holder backend retains the tree.
+   - `gwt finish` records actual local job sign-off. The current helper is report-only: managed owner release and removal are unavailable. Preserve the checkout; finish does not authorize cleanup or bypass a refusal.
    - Retain blocked or carried worktrees and trees needed by stacked PRs, proof, handoff, or recovery. Record or pin the dependency. Closing a PR or ending a process is not merge or owner-release proof. Never force removal, clear locks, or remove another session’s checkout.
 
 8. Close the batch with a ledger.
@@ -156,3 +156,24 @@ Compose the repository skills instead of duplicating them:
 - Exact worktree/branch ownership for active implementation lanes.
 - Landed PR URLs and SHAs, closed/rejected refs with reasons, CI/Testbox/Crabbox proof, and remaining blockers.
 - Clean current `main` status after landing work.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> RecoverQueueAndCurrentMain
+    RecoverQueueAndCurrentMain --> DiscoverAndHydrateSerially
+    DiscoverAndHydrateSerially --> QualifyCandidates: complete eligible evidence
+    DiscoverAndHydrateSerially --> RecordExcludedOrIndeterminate: hard exclusion or incomplete evidence
+    QualifyCandidates --> RepairAndProve: owner-boundary bug qualifies
+    QualifyCandidates --> RecordExcludedOrIndeterminate: insufficient value or unsafe scope
+    RepairAndProve --> ExactHeadReview: focused proof passes
+    RepairAndProve --> RecordBlockedOrCarried: proof fails or scope expands
+    ExactHeadReview --> LandSerially: current checks and reviews pass
+    ExactHeadReview --> RecordBlockedOrCarried: unresolved gate
+    LandSerially --> VerifyOutcome
+    VerifyOutcome --> RecordLedgerAndCheckout
+    RecordExcludedOrIndeterminate --> RecordLedgerAndCheckout
+    RecordBlockedOrCarried --> RecordLedgerAndCheckout
+    RecordLedgerAndCheckout --> [*]
+```

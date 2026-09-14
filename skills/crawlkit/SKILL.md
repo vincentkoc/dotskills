@@ -3,6 +3,7 @@ name: crawlkit
 description: Maintain and release the crawlkit Go library, preserving downstream compatibility for gitcrawl, slacrawl, discrawl, and notcrawl.
 license: MIT
 metadata:
+  workflow-exemption: "Repository-owned contribution and release lifecycle; this skill supplies library and downstream validation constraints."
   source: "https://github.com/vincentkoc/dotskills"
 ---
 

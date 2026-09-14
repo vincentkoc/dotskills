@@ -33,31 +33,20 @@ Design and review external-vendor integrations using existing internal patterns,
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ClassifyMode
-
-    state ClassifyMode <<choice>>
-    ClassifyMode --> Discover: mode = discover
-    ClassifyMode --> Design: mode = design
-    ClassifyMode --> Review: mode = review
-    ClassifyMode --> ImplementationPlan: mode = implementation-plan
-
-    Discover --> HuntAndInventory
-    Design --> HuntAndInventory
-    Review --> HuntAndInventory
-    ImplementationPlan --> HuntAndInventory
-
+    [*] --> ClassifyRequest
+    ClassifyRequest --> HuntAndInventory
     HuntAndInventory --> ApplyPrinciples
-
-    state ApplyPrinciples <<choice>>
-    ApplyPrinciples --> Deliverables: mode = discover
-    ApplyPrinciples --> DesignAndRFC: mode = design
-    ApplyPrinciples --> ImplementationPlanning: mode = implementation-plan
-    ApplyPrinciples --> ReviewChecklist: mode = review
-
-    DesignAndRFC --> Deliverables
-    ImplementationPlanning --> Deliverables
+    ApplyPrinciples --> SelectWork
+    state SelectWork <<choice>>
+    SelectWork --> Deliverables: discovery only
+    SelectWork --> DesignAndRFC: architecture or proposal
+    SelectWork --> ImplementationPlan: execution sequencing
+    SelectWork --> ReviewChecklist: review
+    DesignAndRFC --> ReviewChecklist: QA pass in scope
+    DesignAndRFC --> Deliverables: proposal only
+    ImplementationPlan --> ReviewChecklist: QA pass in scope
+    ImplementationPlan --> Deliverables: plan only
     ReviewChecklist --> Deliverables
-
     Deliverables --> [*]
 ```
 

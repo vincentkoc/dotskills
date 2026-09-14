@@ -3,6 +3,7 @@ name: graincrawl
 description: Maintain, verify, and release graincrawl, the local-first Granola archive CLI, including SQLite archive behavior, read-only Granola source boundaries, Homebrew tap packaging, and crawlkit-powered TUI/snapshot surfaces.
 license: MIT
 metadata:
+  workflow-exemption: "Repository-owned contribution and release lifecycle; this skill supplies archive boundaries and validation commands."
   source: "https://github.com/vincentkoc/dotskills"
 ---
 
