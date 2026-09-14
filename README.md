@@ -120,6 +120,13 @@ This repo can also mirror Codex slash-command prompts from `vendor/` and sync th
 - `make sync` now syncs skills and slash commands for the `codex` profile.
 - vendored command currently included: `/sectriage` from `steipete/agent-scripts`.
 
+Local `make sync` and `make sync-copy` require macOS or Linux. Sync updates only
+same-source symlinks or unchanged managed copies. An older unmarked copy can be
+adopted when all content and modes match the current source. Different copies,
+extra local files, and foreign links require reconciliation before sync. Failed
+publication never overwrites an intervening destination; the error names any
+retained recovery directory that needs review before retrying.
+
 ## Repository layout
 
 ```text

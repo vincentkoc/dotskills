@@ -438,6 +438,125 @@ class ResolverTests(unittest.TestCase):
         self.assertIn("missing or not a directory", result.stderr)
 
 
+class CloneHealthTests(unittest.TestCase):
+    def test_git_boolean_forms_and_unrelated_valueless_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = pathlib.Path(directory) / "repo"
+            init_repo(repo)
+            config = repo / ".git/config"
+            with config.open("a") as handle:
+                handle.write('\n[feature]\n\toptional\n[remote "mirror"]\n\tpromisor =\n')
+            self.assertTrue(CBM.clone_health(repo)["full"])
+            with config.open("a") as handle:
+                handle.write('\n[remote "Other"]\n\tpromisor\n')
+            self.assertFalse(CBM.clone_health(repo)["full"])
+
+    def test_full_clone_remains_healthy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = pathlib.Path(directory) / "repo"
+            init_repo(repo)
+            self.assertEqual(
+                CBM.clone_health(repo),
+                {
+                    "shallow": False,
+                    "promisor": False,
+                    "partial_filter": "",
+                    "full": True,
+                },
+            )
+
+    def test_non_origin_partial_clone_signals_are_unhealthy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = pathlib.Path(directory) / "repo"
+            init_repo(repo)
+            command(
+                "git",
+                "-C",
+                str(repo),
+                "config",
+                "extensions.partialClone",
+                "upstream",
+            )
+            command(
+                "git",
+                "-C",
+                str(repo),
+                "config",
+                "remote.upstream.promisor",
+                "true",
+            )
+            command(
+                "git",
+                "-C",
+                str(repo),
+                "config",
+                "remote.cache.partialCloneFilter",
+                "blob:none",
+            )
+            health = CBM.clone_health(repo)
+            self.assertTrue(health["promisor"])
+            self.assertIn(
+                "remote.cache.partialclonefilter=blob:none",
+                health["partial_filter"],
+            )
+            self.assertFalse(health["full"])
+
+    def test_case_distinct_remote_values_are_all_conservative(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = pathlib.Path(directory) / "repo"
+            init_repo(repo)
+            command(
+                "git",
+                "-C",
+                str(repo),
+                "config",
+                "remote.Alpha.promisor",
+                "true",
+            )
+            command(
+                "git",
+                "-C",
+                str(repo),
+                "config",
+                "remote.alpha.promisor",
+                "false",
+            )
+            command(
+                "git",
+                "-C",
+                str(repo),
+                "config",
+                "remote.alpha.partialCloneFilter",
+                "blob:none",
+            )
+            health = CBM.clone_health(repo)
+            self.assertTrue(health["promisor"])
+            self.assertIn(
+                "remote.alpha.partialclonefilter=blob:none",
+                health["partial_filter"],
+            )
+            self.assertFalse(health["full"])
+
+    def test_malformed_promisor_configuration_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = pathlib.Path(directory) / "repo"
+            init_repo(repo)
+            command(
+                "git",
+                "-C",
+                str(repo),
+                "config",
+                "remote.mirror.promisor",
+                "sometimes",
+            )
+            with self.assertRaisesRegex(
+                CBM.SafetyError,
+                "invalid clone configuration",
+            ):
+                CBM.clone_health(repo)
+
+
+
 class ReservedCacheClassificationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(dir=pathlib.Path.home())
@@ -759,6 +878,50 @@ class ReservedCacheClassificationTests(unittest.TestCase):
             self.record(missing, "alias")["reason"],
             "missing_canonical_graph",
         )
+
+    def test_named_partial_clone_remote_blocks_duplicate_deletion(self) -> None:
+        owner = self.temp / "named-partial-owner"
+        init_repo(owner)
+        command(
+            "git",
+            "-C",
+            str(owner),
+            "config",
+            "extensions.partialClone",
+            "upstream",
+        )
+        command(
+            "git",
+            "-C",
+            str(owner),
+            "config",
+            "remote.Upstream.promisor",
+            "true",
+        )
+        command(
+            "git",
+            "-C",
+            str(owner),
+            "config",
+            "remote.upstream.promisor",
+            "false",
+        )
+        alias = self.home / "GIT" / "_Worktrees" / "named-partial"
+        alias.parent.mkdir(parents=True)
+        alias.symlink_to(owner, target_is_directory=True)
+        payload = self.manifest(
+            [
+                self.project("owner", owner),
+                self.project("alias", alias),
+            ]
+        )
+        self.assertFalse(payload["candidates"])
+        self.assertEqual(
+            self.record(payload, "alias")["reason"],
+            "canonical_clone_not_full",
+        )
+        self.assertIn(self.record(payload, "alias"), payload["blockers"])
+
 
     def test_nonreserved_sole_alias_stays_protected(self) -> None:
         owner = self.temp / "owner"
@@ -2459,6 +2622,61 @@ raise SystemExit(module.main())
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("project DB is held", result.stderr)
         self.assertFalse(self.deleted.exists())
+
+    def test_manifest_write_ignores_precreated_temporary_symlink(self) -> None:
+        victim = self.temp / "victim"
+        victim.write_text("untouched\n")
+        manifest = self.temp / "manifest.json"
+        predictable = self.temp / ".manifest.json.fixed.tmp"
+        predictable.symlink_to(victim)
+        payload = {"proof": True}
+
+        with mock.patch.object(
+            CBM.secrets,
+            "token_hex",
+            side_effect=("fixed", "fresh"),
+        ):
+            CBM.write_manifest(manifest, payload)
+
+        self.assertEqual(victim.read_text(), "untouched\n")
+        self.assertEqual(json.loads(manifest.read_text()), payload)
+        self.assertTrue(predictable.is_symlink())
+
+
+    def test_manifest_cli_rejects_final_symlink_without_touching_victim(self) -> None:
+        victim = self.temp / "victim"
+        victim.write_text("untouched\n")
+        self.manifest.symlink_to(victim)
+
+        result = self.run_helper(
+            "cache-audit",
+            "--manifest",
+            str(self.manifest),
+            "--cache-dir",
+            str(self.cache),
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("manifest path must not be a symlink", result.stderr)
+        self.assertEqual(victim.read_text(), "untouched\n")
+        self.assertTrue(self.manifest.is_symlink())
+
+
+    def test_manifest_write_rejects_shared_output_parent(self) -> None:
+        shared = self.temp / "shared"
+        shared.mkdir()
+        shared.chmod(0o777)
+        try:
+            with self.assertRaisesRegex(
+                CBM.SafetyError,
+                "owner-controlled",
+            ):
+                CBM.write_manifest(shared / "manifest.json", {"proof": True})
+            self.assertFalse((shared / "manifest.json").exists())
+        finally:
+            shared.chmod(0o700)
+
 
     def test_holder_after_validation_stops_preflight_without_delete(self) -> None:
         self.audit()
