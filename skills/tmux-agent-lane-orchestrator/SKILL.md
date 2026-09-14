@@ -70,3 +70,19 @@ Read `references/factory-model.md` when designing lane responsibilities or escal
 - Per-pane state classification with evidence.
 - Per-file and total log bytes read, cursor mode, and truncation status.
 - Concise manager summary and safe next actions.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> ResolveOneLane
+    ResolveOneLane --> CaptureAndMatchIdentity
+    CaptureAndMatchIdentity --> ReportUnknown: missing or conflicting identity
+    CaptureAndMatchIdentity --> ClassifyNewestTurn: identity matched
+    ClassifyNewestTurn --> ReportLane: observation only
+    ClassifyNewestTurn --> TargetedIntervention: exact scope authorized
+    TargetedIntervention --> VerifyAndReport
+    ReportUnknown --> [*]
+    ReportLane --> [*]
+    VerifyAndReport --> [*]
+```

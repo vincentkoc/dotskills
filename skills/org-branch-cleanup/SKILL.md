@@ -85,3 +85,24 @@ The bundled `scripts/org_branch_cleanup.py` separates the work into read-only au
 - `deleted.tsv` and `skipped.tsv`: resumable mutation ledger.
 - `verification.tsv`: post-delete ref state.
 - JSON audit and apply summaries with exact counts and timestamps.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> AuditRequestedScope
+    AuditRequestedScope --> ReportAudit: audit only
+    AuditRequestedScope --> ReviewCandidates: apply requested
+    ReviewCandidates --> ReportBlocked: incomplete audit without explicit exception
+    ReviewCandidates --> RevalidateLiveRef: exact organization and candidates approved
+    RevalidateLiveRef --> RecordSkip: moved, protected, open PR, or missing
+    RevalidateLiveRef --> DeleteExactRef: eligible unchanged ref
+    DeleteExactRef --> VerifyDeletion
+    VerifyDeletion --> RecordDeleted: absent
+    VerifyDeletion --> ReportBlocked: failure or ambiguous result
+    RecordSkip --> ReportCounts
+    RecordDeleted --> ReportCounts
+    ReportAudit --> [*]
+    ReportCounts --> [*]
+    ReportBlocked --> [*]
+```

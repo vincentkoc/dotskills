@@ -58,6 +58,30 @@ Default stance: map locally first, rank second, spend agent/security-review budg
 9. Report retained paths, run IDs, counts, cost size, exclusions, and skipped expensive stages in chat.
    Remove only task-owned disposable scratch when no longer needed or in use. Preserve named deliverables and recovery evidence.
 
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> ReadScopeAndInstructions
+    ReadScopeAndInstructions --> ReuseToolState
+    ReuseToolState --> CreateTemporaryState: required by selected tool
+    ReuseToolState --> DeterministicMaps: existing state sufficient
+    CreateTemporaryState --> DeterministicMaps
+    DeterministicMaps --> MergeEvidence
+    MergeEvidence --> ReviewBoard: visual board requested
+    MergeEvidence --> ChooseCostSize: inspect stdout map
+    ReviewBoard --> ChooseCostSize
+    state ChooseCostSize <<choice>>
+    ChooseCostSize --> ReportResults: low, no AI processing
+    ChooseCostSize --> TargetedAIReview: medium, explicit files and bounded controls
+    ChooseCostSize --> BroadAIReview: high, explicit budget and time decision
+    ChooseCostSize --> ReportBlocked: required budget or tool unavailable
+    TargetedAIReview --> ReportResults
+    BroadAIReview --> ReportResults
+    ReportResults --> [*]
+    ReportBlocked --> [*]
+```
+
 ## Inputs
 
 - `target_repo`: local checkout path and/or GitHub `owner/repo`.

@@ -147,3 +147,24 @@ If you need local runnable scripts, vendor the upstream examples into a `scripts
 - For in-depth behavior and per-class parameter tables: `references/algorithms.md`
 - For exact `optimize_prompt` signatures, prompts, tool constraints, and result usage: `references/prompt_agent_workflow.md`
 - For pattern examples and source-backed workflows: `references/example_patterns.md`
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> SelectObjective
+    SelectObjective --> ConfigurePromptOrTools: prompt, agent, or tool objective
+    SelectObjective --> ConfigureParameters: parameter objective
+    ConfigurePromptOrTools --> ValidateDatasetAndControls
+    ConfigureParameters --> ValidateDatasetAndControls
+    ValidateDatasetAndControls --> ReportBlocked: fields, metric, or limits invalid
+    ValidateDatasetAndControls --> OptimizePrompt: prompt or tool strategy
+    ValidateDatasetAndControls --> OptimizeParameter: ParameterOptimizer
+    OptimizePrompt --> CompareBaseline
+    OptimizeParameter --> CompareBaseline
+    OptimizePrompt --> ReportBlocked: run fails
+    OptimizeParameter --> ReportBlocked: run fails
+    CompareBaseline --> ReportRecommendations
+    ReportRecommendations --> [*]
+    ReportBlocked --> [*]
+```

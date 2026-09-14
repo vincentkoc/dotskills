@@ -94,3 +94,28 @@ With Claude Workflows (`references/workflows.md`), the audit template runs `docs
 - Round-by-round finding counts and a convergence statement.
 - PR program when the task is remediation at scale.
 - Multilingual parity note (in-sync, partial with rationale, or intentionally divergent).
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> ScopeInventoryAndRules
+    ScopeInventoryAndRules --> SelectMode
+    state SelectMode <<choice>>
+    SelectMode --> Build: build
+    SelectMode --> Review: review
+    SelectMode --> RewriteWithLint: rewrite
+    SelectMode --> AuditScope: audit
+    AuditScope --> InlineAudit: scoped work needs no sharding
+    AuditScope --> ShardedAudit: scope requires coverage ledger and shards
+    Build --> ValidateAndReport
+    Review --> ValidateAndReport
+    RewriteWithLint --> ValidateAndReport
+    InlineAudit --> ValidateAndReport
+    ShardedAudit --> ValidateAndReport
+    ValidateAndReport --> [*]
+    note right of ShardedAudit
+        Workflow tool use requires opt-in.
+        Retain evidence only for a declared need.
+    end note
+```

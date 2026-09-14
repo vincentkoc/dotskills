@@ -29,6 +29,27 @@ Design and review external-vendor integrations using existing internal patterns,
 6. For QA pass, apply `references/review-checklist.md`.
 7. Return deliverables with explicit decisions, tradeoffs, and open risks.
 
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> ClassifyRequest
+    ClassifyRequest --> HuntAndInventory
+    HuntAndInventory --> ApplyPrinciples
+    ApplyPrinciples --> SelectWork
+    state SelectWork <<choice>>
+    SelectWork --> Deliverables: discovery only
+    SelectWork --> DesignAndRFC: architecture or proposal
+    SelectWork --> ImplementationPlan: execution sequencing
+    SelectWork --> ReviewChecklist: review
+    DesignAndRFC --> ReviewChecklist: QA pass in scope
+    DesignAndRFC --> Deliverables: proposal only
+    ImplementationPlan --> ReviewChecklist: QA pass in scope
+    ImplementationPlan --> Deliverables: plan only
+    ReviewChecklist --> Deliverables
+    Deliverables --> [*]
+```
+
 ## Inputs
 
 - Integration objective and target vendor capability.

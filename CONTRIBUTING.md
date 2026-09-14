@@ -38,6 +38,27 @@ Each skill directory must include `SKILL.md` with these sections:
 - `## Inputs`
 - `## Outputs`
 
+### Workflow charts
+
+Public skills must make their action paths inspectable. Use a concise Mermaid
+`stateDiagram-v2` block under `## Flow`, or a direct Markdown link from that
+section to a chart in the skill's `references/` directory.
+
+Chart meaningful mode choices, authorization gates, failures, and exits. Every
+supported mode needs a path to an outcome, including plans, no-ops, and blockers.
+Keep the prose workflow authoritative; a diagram must not add execution,
+retention, retry, or cleanup authority. Update both when behavior changes.
+
+For a linear analysis/checklist or a skill that defers its lifecycle entirely to
+the target repository, use `metadata.workflow-exemption` with a specific reason
+instead of a redundant diagram. Do not exempt a branching workflow merely to
+avoid describing its guards. Internal examples and vendored skills are excluded.
+
+`make validate` checks chart presence or the exemption. It does not prove Mermaid
+syntax or workflow semantics: render changed charts and walk their permitted,
+blocked, and non-mutating paths against the instructions before review. Use the
+existing validator and generators; do not add a parallel chart registry or tool.
+
 ## Upstream skill imports
 
 Use the import workflow to vendor third-party skills and pin provenance:

@@ -112,3 +112,28 @@ If a native helper reports incomplete cleanup, preserve that result and report t
 - Verified owner, managed path, registration, branch, and exact base.
 - Remote freshness status and dependency compatibility evidence.
 - Explicit `retained`, `blocked`, or verified `removed` closeout outcome.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> ResolveOwnerAndRegistrations
+    ResolveOwnerAndRegistrations --> ReuseOwnedCheckout: exact task ownership matches
+    ResolveOwnerAndRegistrations --> QualifyOwner: new checkout needed
+    QualifyOwner --> RepairSameOwner: authorized repair needed
+    RepairSameOwner --> QualifyOwner: repair changes evidence
+    QualifyOwner --> ReportBlocked: no qualified owner or unresolved refusal
+    QualifyOwner --> CreateWithWrapper: healthy owner and verified base
+    CreateWithWrapper --> VerifyCheckoutAndDependencies
+    CreateWithWrapper --> ReportBlocked: wrapper refuses
+    ReuseOwnedCheckout --> VerifyCheckoutAndDependencies
+    VerifyCheckoutAndDependencies --> DoTask: qualified
+    VerifyCheckoutAndDependencies --> ReportBlocked: missing proof
+    DoTask --> RecordFinish: enrolled managed checkout and owner work complete
+    RecordFinish --> ReportRetained: report-only helper
+    DoTask --> NativeCloseout: ordinary or repository-native checkout
+    NativeCloseout --> ReportCheckout: existing authorized lifecycle and fresh proof
+    ReportBlocked --> [*]
+    ReportRetained --> [*]
+    ReportCheckout --> [*]
+```

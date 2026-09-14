@@ -185,3 +185,21 @@ risks: <only material blockers or duplicate-work hazards>
 ```
 
 Keep it blunt. The operator needs factory-floor signal, not a diary.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> ResolveManagerLane
+    ResolveManagerLane --> ReportMissingScope: lane cannot be resolved
+    ResolveManagerLane --> CaptureLiveEvidence: exact lane known
+    CaptureLiveEvidence --> DirectBoundedInspection: helper slow or stale
+    CaptureLiveEvidence --> ClassifyAndSummarize: evidence current
+    DirectBoundedInspection --> ClassifyAndSummarize
+    ClassifyAndSummarize --> ReportState: observe or summarize
+    ClassifyAndSummarize --> InterveneWithinScope: named intervention authorized
+    InterveneWithinScope --> VerifyResultAndReachability
+    VerifyResultAndReachability --> ReportState
+    ReportMissingScope --> [*]
+    ReportState --> [*]
+```

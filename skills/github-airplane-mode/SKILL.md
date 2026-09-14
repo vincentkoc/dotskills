@@ -103,3 +103,19 @@ check. Do not claim success from the mode-setting command alone.
 - Post-change `status` and `active` exit-code proof.
 - Exact missing prerequisite or failed verification when the operation cannot
   complete.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> VerifyInstalledCommand
+    VerifyInstalledCommand --> ReportBlocked: missing or incompatible
+    VerifyInstalledCommand --> ReadCurrentState: compatible
+    ReadCurrentState --> ReportState: status only
+    ReadCurrentState --> SetRequestedMode: on, off, or auto requested
+    SetRequestedMode --> CheckStatusAndActive
+    CheckStatusAndActive --> ReportState: mode and active result agree
+    CheckStatusAndActive --> ReportBlocked: unexpected exit or mismatch
+    ReportState --> [*]
+    ReportBlocked --> [*]
+```

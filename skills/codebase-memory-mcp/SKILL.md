@@ -90,3 +90,30 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
 - Indexed and queryable repository graph.
 - A dry-run cache manifest or guarded CLI-only deletion report.
 - Exact status, schema, and proof summary.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> ResolveCanonicalOwner
+    ResolveCanonicalOwner --> ReportBlocked: missing, ambiguous, or reserved owner
+    ResolveCanonicalOwner --> SelectTask: valid owning checkout
+    state SelectTask <<choice>>
+    SelectTask --> QueryGraph: discovery
+    SelectTask --> GuardedIndex: index requested or graph missing
+    SelectTask --> AuditManifest: cache maintenance
+    SelectTask --> ReportBlocked: UI startup requested
+    GuardedIndex --> QueryGraph: index succeeds
+    GuardedIndex --> ReportBlocked: index fails
+    QueryGraph --> ReportProof: schema and focused query pass
+    QueryGraph --> ReportBlocked: verification fails
+    AuditManifest --> ReviewAndDryRun
+    ReviewAndDryRun --> ReportProof: audit or dry-run only
+    ReviewAndDryRun --> ApplyThroughCLI: apply requested and every precondition passes
+    ReviewAndDryRun --> ReportBlocked: blockers or drift
+    ApplyThroughCLI --> VerifyDeletion
+    VerifyDeletion --> ReportProof: registration and files absent
+    VerifyDeletion --> ReportBlocked: failure, residue, or ambiguity
+    ReportProof --> [*]
+    ReportBlocked --> [*]
+```
