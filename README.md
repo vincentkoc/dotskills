@@ -27,6 +27,23 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 - support external skills through submodules
 - git managed personal registry and github action hooks
 
+## Configuration ownership
+
+Keep each configuration with the component that installs and validates it:
+
+| Configuration | Owner |
+|---|---|
+| Reusable skills, references, and bundled helpers | This repository |
+| Personal global agent instructions | [dotfiles `.codex/AGENTS.md`](https://github.com/vincentkoc/dotfiles/blob/master/.codex/AGENTS.md) |
+| Repository-specific `AGENTS.md` instructions | The repository they govern |
+| MCP registrations, machine-local settings, and credential injection | The platform's dotfiles/bootstrap installer |
+
+`make sync` selects agent targets such as `codex` and `cursor`. It installs
+skills and the supported slash-command prompts; it does not render repository
+instructions or MCP configuration. Use the platform installer to reconcile a
+machine's MCP setup, and keep credentials out of skill packages. This avoids a
+second configuration generator competing with those owners.
+
 ## Public skills
 
 | Skill | What it does | Install |
