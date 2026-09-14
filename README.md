@@ -49,6 +49,7 @@ second configuration generator competing with those owners.
 | Skill | What it does | Install |
 |---|---|---|
 | `codebase-memory-mcp` | Index canonical Git checkouts through a guarded CLI and audit duplicate worktree caches. | `npx skills add vincentkoc/dotskills --skill codebase-memory-mcp -y` |
+| `agent-device-lab` | Prepare physical Android and iPhone tests, with separate iPhone Mirroring setup. | `npx skills add vincentkoc/dotskills --skill agent-device-lab -y` |
 | `codex-goal-mining` | Mine local or fleet Codex goal history into evidence-backed rerun suites. | `npx skills add vincentkoc/dotskills --skill codex-goal-mining -y` |
 | `codex-session-recovery` | Recover Codex and Claude tmux sessions without overwriting restore evidence. | `npx skills add vincentkoc/dotskills --skill codex-session-recovery -y` |
 | `crabpot-perf-metrics` | Interpret Crabpot and OpenClaw performance artifacts without over-reading noise. | `npx skills add vincentkoc/dotskills --skill crabpot-perf-metrics -y` |
@@ -79,6 +80,7 @@ Install one skill:
 
 ```bash
 npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y
+npx skills add vincentkoc/dotskills --skill agent-device-lab -y
 npx skills add vincentkoc/dotskills --skill codebase-memory-mcp -y
 npx skills add vincentkoc/dotskills --skill codex-goal-mining -y
 npx skills add vincentkoc/dotskills --skill codex-session-recovery -y

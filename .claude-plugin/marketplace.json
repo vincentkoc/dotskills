@@ -9,6 +9,12 @@
   },
   "plugins": [
     {
+      "name": "agent-device-lab",
+      "source": "./skills/agent-device-lab",
+      "skills": "./",
+      "description": "Prepare a Mac and one physical Android or iPhone for an authorized test."
+    },
+    {
       "name": "codebase-memory-mcp",
       "source": "./skills/codebase-memory-mcp",
       "skills": "./",
