@@ -77,10 +77,27 @@ Give each task checkout one outcome:
 - `removed`: report only after an authorized removal verifies both path and registration absence.
 
 Task completion alone is not owner release or removal authorization.
-Removal requires the existing authorized scope, fresh ownership and recovery proof, and the repository's approved non-force procedure.
-Where installed, `gwt finish` records per-job sign-off under its own lifecycle contract.
-Owner release, merge and dependency proof, and qualified holder checks remain separate requirements.
-An unqualified holder backend retains the worktree; do not bypass that result.
+Ordinary and repository-native checkouts keep their existing authorized lifecycle:
+removal requires fresh ownership and recovery proof and the repository's approved non-force procedure.
+
+Where installed, personal GWT completion applies only to explicitly enrolled
+`--finish-managed` worktrees. Record the current owner's completed work promptly
+with `gwt finish --pr <full URL>`; there is no age delay.
+Finish records the exact PR head and final target, not proof that the PR merged.
+Use `--target <final branch>` when needed and repeat `--wait-for <full PR URL>`
+for every stack dependency. Each declared PR must target that same final branch.
+Dependent PRs need not be merged to record owner completion; an unfinished upper
+layer still keeps the checkout retained.
+
+Keep the runtime `CODEX_THREAD_ID` identity; outside Codex, use a stable
+task-specific `GWT_OWNER_ID`. `gwt resume`, `gwt cd`, and existing-tree reuse
+through `gwt new` invalidate prior completion. Keep recovery and dependency pins
+until their owner resolves them.
+`gwt finish-status` reads recorded state; report-only `gwt finish-check` refreshes
+completion and merge proof. The current helper always retains the checkout:
+managed owner release and removal are unavailable, including `--apply`.
+Do not present `gwt release` as a next step or bypass its refusal.
+
 Dirty state, active owners, unknown commits, locks, or incomplete proof require retention.
 Do not start broad maintenance, clear locks, or remove other sessions' checkouts during closeout.
 If a native helper reports incomplete cleanup, preserve that result and report the retained path.
