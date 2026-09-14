@@ -64,6 +64,18 @@ class AgentSkillsSyncTests(unittest.TestCase):
         self.assertFalse(self.destination.is_symlink())
         self.assertFalse(list(self.codex.rglob(".agent-skills-stage-*")))
 
+    def test_symlink_publication_does_not_read_source_content(self):
+        cases = ((self.skill, self.destination, "directory"),
+                 (self.command, self.codex / "prompts/owned.md", "file"))
+        for source, destination, kind in cases:
+            with self.subTest(kind=kind):
+                with mock.patch.object(SYNC, "content_digest", side_effect=AssertionError(
+                    "symlink publication must not read source content",
+                )):
+                    SYNC.install(source, destination, kind=kind, mode="symlink")
+                self.assertTrue(destination.is_symlink())
+                self.assertEqual(os.readlink(destination), str(source))
+
     def test_local_edits_extra_files_modes_and_foreign_destinations_are_preserved(self):
         for change in ("edit", "extra", "mode", "foreign-marker"):
             with self.subTest(change=change):
