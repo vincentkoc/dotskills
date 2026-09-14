@@ -31,6 +31,7 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Linked worktrees resolve through their absolute Git common directory to the one checkout that owns it.
    - Separate clones remain separate projects.
    - Independent roots under `~/.codex/worktrees`, `~/GIT/_Worktrees`, any `.worktrees` component, `/tmp`, or `/private/tmp` are never indexed. Linked worktrees under those paths may only rewrite to one existing nonreserved owner.
+   - Never independently index `~/GIT/_Synthetic` or repositories marked by `.git/gwt-synthetic.json`. This indexing rule grants no cleanup authority.
    - Missing, invalid, bare, ambiguous, ownerless, reserved-owner, or NUL-containing repositories fail closed.
 3. Prefer exposed MCP graph tools for discovery.
    - Installer or client configuration must separately disable the MCP `index_repository` tool because it cannot enforce the canonical indexing boundary. For Codex installs, render the private `disabled_tools` configuration accordingly.
@@ -42,6 +43,8 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Use `--mode fast` for a smoke index.
    - Installer integrations render `scripts/codebase-memory-gateway.py.tmpl` with an approved pinned backend path. Replace `@@PYTHON_PATH_SHEBANG@@` with the raw absolute interpreter path and replace `@@PYTHON_PATH_JSON@@`, `@@BACKEND_PATH_JSON@@`, and `@@RESOLVER_PATH_JSON@@` with JSON string literals containing the exact absolute interpreter, backend, and `codebase_memory_cache.py` paths. The rendered gateway has no upgrade logic and uses `execve` for pass-through.
    - The gateway guards raw CLI calls only. Zero-argument MCP stdio startup intentionally passes through to the approved backend, so the gateway is not an MCP tool-filtering proxy and does not replace the separate `disabled_tools` control.
+   - The public CLI accepts a tool name and at most one JSON object. It normalizes `--json` and `--progress` before checking `index_repository`; index calls always require an explicit JSON `repo_path`. File, stdin, worker, prefixed-command, and vendor-installer forms fail closed. Default output and explicit `--json` output keep their upstream formats.
+   - Before activating a daemon-capable backend, verify `auto_index=false`, `auto_watch=false`, and UI disabled. Ordinary MCP clients can share one session-managed daemon. The gateway denies `daemon start` because version 0.10.8 enables the UI on a cold start; it permits only `daemon status`.
 5. Verify the graph.
    - `codebase-memory-mcp cli list_projects`
    - `scripts/codebase-memory-graph.sh schema --repo "$(git rev-parse --show-toplevel)"`

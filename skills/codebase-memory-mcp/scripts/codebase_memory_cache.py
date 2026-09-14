@@ -385,6 +385,16 @@ def repository_reserved_evidence(
     )
 
 
+def synthetic_index_path(path: pathlib.Path, *, home: pathlib.Path, platform: str) -> bool:
+    # This is indexing policy only. Do not extend reserved-root cleanup eligibility.
+    candidate = lexical_absolute_path(path)
+    roots = (lexical_absolute_path(home) / "GIT/_Synthetic", home.resolve() / "GIT/_Synthetic")
+    if platform == "darwin":
+        candidate = pathlib.Path(str(candidate).casefold())
+        roots = tuple(pathlib.Path(str(root).casefold()) for root in roots)
+    return any(path_is_within_lexical(candidate, root) for root in roots)
+
+
 def resolve_index_repository(
     path: str | os.PathLike[str],
     *,
@@ -394,6 +404,8 @@ def resolve_index_repository(
     details = resolve_repository_details(path)
     home = pathlib.Path.home() if home is None else home
     platform = sys.platform if platform is None else platform
+    if os.path.lexists(details["common_dir"] / "gwt-synthetic.json"):
+        raise SafetyError("synthetic history cannot be indexed as an independent project")
     guarded = [
         ("owning checkout lexical path", details["canonical_lexical"]),
         ("owning checkout resolved path", details["canonical_root"]),
@@ -408,6 +420,8 @@ def resolve_index_repository(
             ]
         )
     for label, candidate in guarded:
+        if synthetic_index_path(candidate, home=home, platform=platform):
+            raise SafetyError(f"{label} is synthetic and cannot be indexed: {candidate}")
         if reserved_index_path(candidate, home=home, platform=platform):
             raise SafetyError(f"{label} is reserved for indexing: {candidate}")
     return public_repository_resolution(details)
