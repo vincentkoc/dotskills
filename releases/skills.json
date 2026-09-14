@@ -2,6 +2,12 @@
   "repo": "vincentkoc/dotskills",
   "skills": [
     {
+      "name": "agent-device-lab",
+      "source": "./skills/agent-device-lab",
+      "description": "Prepare a Mac and one physical Android or iPhone for an authorized test.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill agent-device-lab -y"
+    },
+    {
       "name": "codebase-memory-mcp",
       "source": "./skills/codebase-memory-mcp",
       "description": "Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph is usable before relying on it for code discovery. Keep linked worktrees on the owner's graph instead of creating one graph per branch.",

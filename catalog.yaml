@@ -124,6 +124,13 @@ skills:
     tags: [codebase, graph, mcp, indexing, discovery]
     version: 0.2.0
 
+  - id: agent-device-lab
+    name: Agent Device Lab
+    path: skills/agent-device-lab
+    source: local
+    tags: [android, ios, physical-devices, testing, xcode]
+    version: 0.1.0
+
   - id: codex-session-recovery
     name: Codex Session Recovery
     path: skills/codex-session-recovery

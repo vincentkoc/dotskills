@@ -1,0 +1,10 @@
+interface:
+  display_name: "Agent Device Lab"
+  short_description: "Prepare physical Android and iPhone test workflows."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Use $agent-device-lab to check my Mac and physical test phone, then prepare one authorized device test."
+
+policy:
+  allow_implicit_invocation: true
