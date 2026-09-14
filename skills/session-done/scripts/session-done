@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""Render a handoff; retain one file only when its destination is explicit."""
+
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import os
+from pathlib import Path
+import sys
+import tempfile
+
+
+SECTIONS = (
+    ("summary", "Summary"),
+    ("decisions", "Decisions"),
+    ("questions", "Open questions"),
+    ("follow-ups", "Follow-ups"),
+    ("state", "State"),
+    ("reflection", "Reflection"),
+    ("flashcards", "Flashcards"),
+)
+
+
+def render(args: argparse.Namespace) -> str:
+    timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    lines = [
+        "# Session handoff", "", "## Metadata", "",
+        f"- session_id: {args.session_id}",
+        f"- branch: {args.branch}",
+        f"- timestamp_utc: {timestamp}",
+    ]
+    for flag, title in SECTIONS:
+        value = getattr(args, flag.replace("-", "_"))
+        if value:
+            lines.extend(["", f"## {title}", "", value])
+    return "\n".join(lines) + "\n"
+
+
+def retain(path: Path, text: str) -> None:
+    # Publish complete bytes without replacing an existing file, including a
+    # competing invocation or symlink. The staging link is removed immediately.
+    fd, temporary = tempfile.mkstemp(prefix=".session-done-", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, path)
+    finally:
+        os.unlink(temporary)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--session-id", default="unknown", help="Known session ID; never inferred from history")
+    parser.add_argument("--branch", default="unknown", help="Verified branch name, when relevant")
+    parser.add_argument("--output", type=Path, help="Explicit new Markdown path; parent must exist; never overwritten")
+    for flag, title in SECTIONS:
+        parser.add_argument(f"--{flag}", default="", help=title)
+    args = parser.parse_args()
+    if not any(getattr(args, flag.replace("-", "_")).strip() for flag, _ in SECTIONS):
+        parser.error("provide at least one non-empty content section")
+    text = render(args)
+    try:
+        if args.output is None:
+            sys.stdout.write(text)
+        else:
+            retain(args.output, text)
+            print(f"Wrote handoff: {args.output}", file=sys.stderr)
+    except OSError as exc:
+        print(f"session-done: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
