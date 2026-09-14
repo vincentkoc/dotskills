@@ -1,0 +1,34 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Crawling & Archives",
+      "description": "Skills for maintaining crawl libraries, archive CLIs, and local GitHub crawl data.",
+      "skills": [
+        "crawlkit",
+        "ghcrawl-cluster-operator",
+        "graincrawl"
+      ]
+    },
+    {
+      "title": "Review & Operations",
+      "description": "Skills for GitHub dedupe, worktree hygiene, semantic review slices, and clean diffs.",
+      "skills": [
+        "openclaw-github-dedupe",
+        "operations-worktree",
+        "semantic-slicing",
+        "technical-deslop"
+      ]
+    },
+    {
+      "title": "Technical Authoring",
+      "description": "Skills for documentation, integration design, and discovering new skill opportunities.",
+      "skills": [
+        "technical-documentation",
+        "technical-integrations",
+        "technical-skill-finder"
+      ]
+    }
+  ]
+}
