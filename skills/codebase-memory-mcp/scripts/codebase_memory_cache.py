@@ -9,6 +9,7 @@ import json
 import math
 import os
 import pathlib
+import secrets
 import shutil
 import socket
 import sqlite3
@@ -152,21 +153,38 @@ def worktree_entries(root: pathlib.Path) -> list[dict[str, pathlib.Path]]:
 
 def clone_health(root: pathlib.Path) -> dict[str, Any]:
     shallow = git(root, "rev-parse", "--is-shallow-repository") == "true"
-    promisor = (
-        run(
-            ["git", "-C", str(root), "config", "--bool", "--get", "remote.origin.promisor"],
-            check=False,
-            env=git_env(),
-            timeout=GIT_TIMEOUT_SECONDS,
-        ).stdout.strip()
-        == "true"
+
+    def values(pattern: str, *, boolean: bool = False) -> list[tuple[str, str]]:
+        result = run(
+            ["git", "-C", str(root), "config", "--null",
+             *(["--type=bool"] if boolean else []), "--get-regexp", pattern],
+            check=False, env=git_env(), timeout=GIT_TIMEOUT_SECONDS,
+        )
+        if result.returncode == 1 and not result.stdout:
+            return []
+        if result.returncode != 0:
+            raise SafetyError("invalid clone configuration: " + result.stderr.strip())
+        if not result.stdout.endswith("\0"):
+            raise SafetyError("invalid NUL-delimited clone configuration")
+        records = []
+        for record in result.stdout.split("\0")[:-1]:
+            name, separator, value = record.partition("\n")
+            if not separator or not value.strip():
+                raise SafetyError(f"empty clone configuration: {name}")
+            records.append((name, value))
+        return records
+
+    # Ask Git to parse booleans: a valueless key is true, an explicit empty
+    # value is false. Query all remotes without reading unrelated config values.
+    promisors = values(r"^remote\..*\.promisor$", boolean=True)
+    partials = values(r"^(extensions\.partialclone|remote\..*\.partialclonefilter)$")
+    promisor = any(value == "true" for _, value in promisors) or any(
+        name == "extensions.partialclone" for name, _ in partials
     )
-    partial_filter = run(
-        ["git", "-C", str(root), "config", "--get", "remote.origin.partialclonefilter"],
-        check=False,
-        env=git_env(),
-        timeout=GIT_TIMEOUT_SECONDS,
-    ).stdout.strip()
+    partial_filter = ",".join(sorted(
+        f"{name}={value}" for name, value in partials
+        if name != "extensions.partialclone"
+    ))
     return {
         "shallow": shallow,
         "promisor": promisor,
@@ -506,6 +524,20 @@ def manifest_digest(payload: dict[str, Any]) -> str:
     unsigned = dict(payload)
     unsigned.pop("manifest_digest", None)
     return hashlib.sha256(canonical_json(unsigned)).hexdigest()
+
+
+def manifest_path(raw: str | os.PathLike[str]) -> pathlib.Path:
+    path = lexical_absolute_path(raw)
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return path
+    except OSError as error:
+        raise SafetyError(f"cannot inspect manifest path {path}: {error}") from error
+    if stat.S_ISLNK(metadata.st_mode):
+        raise SafetyError(f"manifest path must not be a symlink: {path}")
+    return path
+
 
 
 def normalize_prefix(
@@ -943,16 +975,115 @@ def build_manifest(
 
 
 def write_manifest(path: pathlib.Path, payload: dict[str, Any]) -> None:
+    path = manifest_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
-    os.chmod(temporary, 0o600)
-    os.replace(temporary, path)
+    if not hasattr(os, "O_DIRECTORY") or not hasattr(os, "O_NOFOLLOW"):
+        raise SafetyError("manifest publication requires no-follow directory support")
+    try:
+        parent_descriptor = os.open(
+            path.parent,
+            os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+        )
+    except OSError as error:
+        raise SafetyError(
+            f"cannot securely open manifest parent {path.parent}: {error}"
+        ) from error
+    temporary_name = ""
+    temporary_identity: tuple[int, int] | None = None
+    try:
+        parent_info = os.fstat(parent_descriptor)
+        if (
+            not stat.S_ISDIR(parent_info.st_mode)
+            or parent_info.st_uid != os.geteuid()
+            or stat.S_IMODE(parent_info.st_mode) & 0o022
+        ):
+            raise SafetyError(
+                f"manifest parent must be owner-controlled and not group/other writable: "
+                f"{path.parent}"
+            )
+
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
+        descriptor = -1
+        for _ in range(128):
+            temporary_name = f".{path.name}.{secrets.token_hex(16)}.tmp"
+            try:
+                descriptor = os.open(
+                    temporary_name,
+                    flags,
+                    0o600,
+                    dir_fd=parent_descriptor,
+                )
+                break
+            except FileExistsError:
+                continue
+        if descriptor < 0:
+            raise SafetyError("cannot allocate an exclusive manifest temporary file")
+
+        try:
+            temporary_info = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(temporary_info.st_mode)
+                or temporary_info.st_uid != os.geteuid()
+                or temporary_info.st_nlink != 1
+                or stat.S_IMODE(temporary_info.st_mode) != 0o600
+            ):
+                raise SafetyError("manifest temporary file identity is unsafe")
+            temporary_identity = (temporary_info.st_dev, temporary_info.st_ino)
+            data = (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode()
+            view = memoryview(data)
+            while view:
+                written = os.write(descriptor, view)
+                view = view[written:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+
+        published_info = os.stat(
+            temporary_name,
+            dir_fd=parent_descriptor,
+            follow_symlinks=False,
+        )
+        if (
+            temporary_identity != (published_info.st_dev, published_info.st_ino)
+            or not stat.S_ISREG(published_info.st_mode)
+            or published_info.st_nlink != 1
+        ):
+            raise SafetyError("manifest temporary file identity changed before publish")
+        os.replace(
+            temporary_name,
+            path.name,
+            src_dir_fd=parent_descriptor,
+            dst_dir_fd=parent_descriptor,
+        )
+        temporary_name = ""
+        os.fsync(parent_descriptor)
+    finally:
+        if temporary_name:
+            try:
+                current = os.stat(
+                    temporary_name,
+                    dir_fd=parent_descriptor,
+                    follow_symlinks=False,
+                )
+                if temporary_identity == (current.st_dev, current.st_ino):
+                    os.unlink(temporary_name, dir_fd=parent_descriptor)
+            except FileNotFoundError:
+                pass
+        os.close(parent_descriptor)
 
 
 def load_manifest(path: pathlib.Path) -> dict[str, Any]:
+    path = manifest_path(path)
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
     try:
-        payload = json.loads(path.read_text())
+        descriptor = os.open(path, flags)
+        with os.fdopen(descriptor, encoding="utf-8") as handle:
+            metadata = os.fstat(handle.fileno())
+            if not stat.S_ISREG(metadata.st_mode):
+                raise SafetyError(f"manifest is not a regular file: {path}")
+            payload = json.load(handle)
     except (OSError, json.JSONDecodeError) as error:
         raise SafetyError(f"cannot read manifest {path}: {error}") from error
     if not isinstance(payload, dict):
@@ -2408,6 +2539,7 @@ def candidate_execution_summary(
 
 
 def audit(args: argparse.Namespace) -> int:
+    output_path = manifest_path(args.manifest)
     binary = cbm_binary(args.cbm_bin)
     cache_dir = cbm_cache_dir(args.cache_dir)
     home = lexical_absolute_path(pathlib.Path.home())
@@ -2425,13 +2557,12 @@ def audit(args: argparse.Namespace) -> int:
         home=home,
         platform=sys.platform,
     )
-    manifest_path = pathlib.Path(args.manifest).expanduser().resolve()
-    write_manifest(manifest_path, payload)
+    write_manifest(output_path, payload)
     print(
         json.dumps(
             {
                 "action": "audit",
-                "manifest": str(manifest_path),
+                "manifest": str(output_path),
                 "projects": len(projects),
                 "project_bytes": payload["project_bytes"],
                 "candidates": len(payload["candidates"]),
@@ -2452,8 +2583,8 @@ def audit(args: argparse.Namespace) -> int:
 
 
 def prune(args: argparse.Namespace) -> int:
-    manifest_path = pathlib.Path(args.manifest).expanduser().resolve()
-    payload = load_manifest(manifest_path)
+    input_path = manifest_path(args.manifest)
+    payload = load_manifest(input_path)
     runtime_protected = runtime_protected_candidates(
         payload, args.protect_candidate
     )
@@ -2530,7 +2661,7 @@ def prune(args: argparse.Namespace) -> int:
             json.dumps(
                 {
                     "action": "prune",
-                    "manifest": str(manifest_path),
+                    "manifest": str(input_path),
                     **execution_summary,
                     "projects": len(projects),
                     "project_bytes": sum(
@@ -2597,7 +2728,7 @@ def prune(args: argparse.Namespace) -> int:
         json.dumps(
             {
                 "action": "prune",
-                "manifest": str(manifest_path),
+                "manifest": str(input_path),
                 **execution_summary,
                 "applied": True,
                 "deleted": deleted,
