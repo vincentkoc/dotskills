@@ -92,6 +92,12 @@
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill semantic-slicing -y"
     },
     {
+      "name": "session-done",
+      "source": "./skills/session-done",
+      "description": "Capture the outcome, evidence, unresolved work, and next action without making session completion a cleanup or memory-write command.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill session-done -y"
+    },
+    {
       "name": "technical-deslop",
       "source": "./skills/technical-deslop",
       "description": "Clean branch/staged diffs by removing AI-style slop and restoring repo-consistent style without changing behavior.",
