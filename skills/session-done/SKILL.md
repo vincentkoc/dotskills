@@ -1,7 +1,7 @@
 ---
 name: session-done
-description: Capture each completed agent session as a structured `/done` teardown with branch/session metadata, key decisions, questions, follow-ups, reflection, and PKM-friendly handoff artifacts.
-license: AGPL-3.0-only
+description: Prepare a concise session handoff when the user asks to wrap up, capture continuation context, or use /done. Retain a Markdown file only when requested.
+license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
 ---
@@ -10,46 +10,45 @@ metadata:
 
 ## Purpose
 
-Create an atomic handoff for every finished agent session so context can be resumed without ambiguity and work can be resumed in small, traceable units.
+Capture the outcome, evidence, unresolved work, and next action without making session completion a cleanup or memory-write command.
 
 ## When to use
 
-- A session has ended and you want a durable teardown before context switch.
-- You need a canonical `.md` record with session id, branch, decisions, questions, and follow-ups.
-- You want optional Obsidian/PKM sync plus shared-memory updates.
-- You want self-reflection plus flashcard-ready prompts captured alongside outcomes.
+- The user asks for a session handoff, continuation summary, or `/done`.
+- The user requests a durable Markdown handoff, including a note in a PKM/Obsidian folder.
 
 ## Workflow
 
-1. End with `/done` and collect values for at least one section.
-2. Run `scripts/session-done` with section flags:
-   - `--summary`
-   - `--decisions`
-   - `--questions`
-   - `--follow-ups`
-   - `--state`
-   - `--reflection`
-   - `--flashcards`
-3. Use `--session-id` for the current Claude session and `--branch` (defaults to git branch).
-4. Review the generated `.md` file in `DONE_NOTES_DIR` (or `.session-notes`).
-5. If configured, confirm sync to Obsidian/PKM and shared-memory append.
+1. Use the current task's evidence. Record completed work, validation and its limits, blockers, and the next owner/action. Do not scan unrelated sessions or copy credentials, private logs, or raw transcripts.
+2. Include known session, branch, commit/PR, and retained-checkout identities when relevant. Mark unknown facts as unknown. Completion does not terminate sessions, remove worktrees, release owners, or rerun cleanup.
+3. Return the handoff in chat by default. For deterministic Markdown, run `python3 scripts/session-done --summary "..." --state "..." --follow-ups "..."`; it writes only stdout.
+4. If the user explicitly requested retention, use one named destination with `--output <new-path>`. The parent must already exist; existing files and symlinks are refused. A PKM/Obsidian folder can be that destination, without a second copy or sync service.
+5. Report the created path or exact failure. A failed write is not saved evidence. Preserve existing notes and recovery material; do not retry under new filenames automatically.
+6. Update memory only when the user directly requests it, through the environment's existing memory workflow. This writer never appends to shared memory or edits agent-managed memory files. Report that separate action's outcome.
 
 ## Inputs
 
-- `--summary`: what was discussed or changed.
-- `--decisions`: final choices and rationale.
-- `--questions`: unresolved questions.
-- `--follow-ups`: pending items.
-- `--state`: work state / status.
-- `--reflection`: what to improve next session.
-- `--flashcards`: optional spaced-repetition prompts.
-- Optional env vars:
-  - `DONE_NOTES_DIR`: output directory (default `./.session-notes`).
-  - `DONE_OBSIDIAN_VAULT`: optional PKM/Obsidian target directory.
-  - `DONE_MEMORY_FILE`: optional shared-memory filename in notes dir.
+- At least one content flag: `--summary`, `--decisions`, `--questions`, `--follow-ups`, `--state`, `--reflection`, or `--flashcards`.
+- Optional `--session-id` and `--branch`: verified values; both default to `unknown`.
+- Optional `--output`: the explicitly requested new Markdown file. No environment variable enables retention, copying, or memory writes.
 
 ## Outputs
 
-- One markdown file named with session id + branch + timestamp.
-- Structured sections for summary, decisions, questions, follow-ups, state, reflection, and flashcards.
-- Optional Obsidian/PKM copy and optional shared-memory append.
+- Structured Markdown on stdout by default, containing only supplied sections plus metadata.
+- With `--output`, one UTF-8 file published from complete staged bytes without overwriting another note; success is reported on stderr. Temporary staging is confined to the destination directory and removed when the command exits normally or handles a write failure.
+- Atomic publication applies to that one file, not a multi-file transaction or power-loss durability guarantee. An interrupted process can leave its staging file; preserve unknown files instead of sweeping the directory.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> GatherCurrentEvidence
+    GatherCurrentEvidence --> PrepareHandoff
+    PrepareHandoff --> DeliverInChat: retention not requested
+    PrepareHandoff --> PublishNewFile: retention explicitly requested
+    PublishNewFile --> ReportSavedPath: destination new and write succeeds
+    PublishNewFile --> ReportFailure: collision or write failure
+    DeliverInChat --> [*]
+    ReportSavedPath --> [*]
+    ReportFailure --> [*]
+```

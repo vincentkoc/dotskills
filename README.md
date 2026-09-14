@@ -48,7 +48,7 @@ This is my personal **.skills** repository for Codex, Cursor, OpenClaw and agent
 | `semantic-slicing` | Build local feature, threat, issue, and support maps for focused repo review. | `npx skills add vincentkoc/dotskills --skill semantic-slicing -y` |
 | `technical-deslop` | Ship clean diffs fast: remove AI noise and keep behavior unchanged. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
 | `technical-documentation` | Build, review, and audit docs with Simplified Technical English, sharded large-tree audits, and Workflow/sub-agent fan-out. | `npx skills add vincentkoc/dotskills --skill technical-documentation -y` |
-| `session-done` | Capture atomic `/done` session teardowns with structured decisions, follow-ups, reflection, and PKM handoff. | `npx skills add vincentkoc/dotskills --skill session-done -y` |
+| `session-done` | Prepare a session handoff; retain a Markdown note only when requested. | `npx skills add vincentkoc/dotskills --skill session-done -y` |
 | `technical-integrations` | Design integrations that land: vendor‑agnostic API/RFC/SDK plans with rollout safety. | `npx skills add vincentkoc/dotskills --skill technical-integrations -y` |
 | `technical-skill-finder` | Turn real agent pain into new skills: mine logs, rank wins, draft next steps. | `npx skills add vincentkoc/dotskills --skill technical-skill-finder -y` |
 | `tmux-agent-lane-orchestrator` | Monitor tmux coding-agent lanes and produce evidence-backed manager summaries. | `npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y` |

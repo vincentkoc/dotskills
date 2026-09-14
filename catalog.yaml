@@ -93,7 +93,7 @@ skills:
     name: Session Done
     path: skills/session-done
     source: local
-    tags: [handoff, teardown, memory, workflow]
+    tags: [handoff, notes, workflow]
     version: 0.1.0
 
   - id: technical-integrations

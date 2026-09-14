@@ -99,6 +99,12 @@
       "description": "Turn a large repo into reviewable semantic slices with evidence. Use code shape, threat candidates, issue clusters, and support chatter together so review budget lands on the right parts of the system."
     },
     {
+      "name": "session-done",
+      "source": "./skills/session-done",
+      "skills": "./",
+      "description": "Capture the outcome, evidence, unresolved work, and next action without making session completion a cleanup or memory-write command."
+    },
+    {
       "name": "technical-deslop",
       "source": "./skills/technical-deslop",
       "skills": "./",

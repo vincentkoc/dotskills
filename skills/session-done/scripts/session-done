@@ -1,191 +1,78 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env python3
+"""Render a handoff; retain one file only when its destination is explicit."""
 
-usage() {
-  cat <<'EOF'
-Usage: session-done [options]
+from __future__ import annotations
 
-Required: at least one content section.
+import argparse
+from datetime import datetime, timezone
+import os
+from pathlib import Path
+import sys
+import tempfile
 
-Options:
-  --session-id VALUE      Session identifier (defaults to CLAUDE_SESSION_ID or timestamp)
-  --branch VALUE          Git branch name (defaults to current branch or unknown)
-  --summary VALUE         Session summary
-  --decisions VALUE       Key decisions
-  --questions VALUE       Open questions
-  --follow-ups VALUE      Follow-up actions
-  --state VALUE           Current state snapshot
-  --reflection VALUE      Self-reflection notes
-  --flashcards VALUE      Flashcards in "Q: ... | A: ..." per line
-  --notes-dir VALUE       Directory for output notes (default: ./.session-notes)
-  --obsidian-dir VALUE    Additional copy target (e.g. Obsidian vault notes folder)
-  --memory-file VALUE      Shared memory file inside notes dir (default: done-shared-memory.md)
-  --help                  Show this help
 
-Environment variables:
-  DONE_NOTES_DIR          Default notes dir
-  DONE_OBSIDIAN_VAULT     Optional Obsidian/PKM notes folder
-  DONE_MEMORY_FILE         Default shared memory filename
-EOF
-}
+SECTIONS = (
+    ("summary", "Summary"),
+    ("decisions", "Decisions"),
+    ("questions", "Open questions"),
+    ("follow-ups", "Follow-ups"),
+    ("state", "State"),
+    ("reflection", "Reflection"),
+    ("flashcards", "Flashcards"),
+)
 
-notes_dir="${DONE_NOTES_DIR:-.session-notes}"
-obsidian_dir="${DONE_OBSIDIAN_VAULT:-}"
-memory_file="${DONE_MEMORY_FILE:-done-shared-memory.md}"
-session_id="${CLAUDE_SESSION_ID:-$(date +%s)}"
-branch="$(git branch --show-current 2>/dev/null || true)"
-summary=""
-decisions=""
-questions=""
-follow_ups=""
-state=""
-reflection=""
-flashcards=""
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --session-id)
-      session_id="${2:?missing --session-id value}"
-      shift 2
-      ;;
-    --branch)
-      branch="${2:?missing --branch value}"
-      shift 2
-      ;;
-    --summary)
-      summary="${2:?missing --summary value}"
-      shift 2
-      ;;
-    --decisions)
-      decisions="${2:?missing --decisions value}"
-      shift 2
-      ;;
-    --questions)
-      questions="${2:?missing --questions value}"
-      shift 2
-      ;;
-    --follow-ups)
-      follow_ups="${2:?missing --follow-ups value}"
-      shift 2
-      ;;
-    --state)
-      state="${2:?missing --state value}"
-      shift 2
-      ;;
-    --reflection)
-      reflection="${2:?missing --reflection value}"
-      shift 2
-      ;;
-    --flashcards)
-      flashcards="${2:?missing --flashcards value}"
-      shift 2
-      ;;
-    --notes-dir)
-      notes_dir="${2:?missing --notes-dir value}"
-      shift 2
-      ;;
-    --obsidian-dir)
-      obsidian_dir="${2:?missing --obsidian-dir value}"
-      shift 2
-      ;;
-    --memory-file)
-      memory_file="${2:?missing --memory-file value}"
-      shift 2
-      ;;
-    --help|-h)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Unknown argument: $1" >&2
-      usage
-      exit 2
-      ;;
-  esac
-done
+def render(args: argparse.Namespace) -> str:
+    timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    lines = [
+        "# Session handoff", "", "## Metadata", "",
+        f"- session_id: {args.session_id}",
+        f"- branch: {args.branch}",
+        f"- timestamp_utc: {timestamp}",
+    ]
+    for flag, title in SECTIONS:
+        value = getattr(args, flag.replace("-", "_"))
+        if value:
+            lines.extend(["", f"## {title}", "", value])
+    return "\n".join(lines) + "\n"
 
-if [[ -z "${summary}" && -z "${decisions}" && -z "${questions}" && -z "${follow_ups}" && -z "${state}" && -z "${reflection}" && -z "${flashcards}" ]]; then
-  echo "No content provided. Add at least one of --summary/--decisions/--questions/--follow-ups/--state/--reflection/--flashcards." >&2
-  exit 2
-fi
 
-if [[ -z "${branch}" ]]; then
-  branch="unknown"
-fi
+def retain(path: Path, text: str) -> None:
+    # Publish complete bytes without replacing an existing file, including a
+    # competing invocation or symlink. The staging link is removed immediately.
+    fd, temporary = tempfile.mkstemp(prefix=".session-done-", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, path)
+    finally:
+        os.unlink(temporary)
 
-timestamp="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
-safe_session_id="$(echo "${session_id}" | tr -cd '[:alnum:]._-' | head -c 48)"
-if [[ -z "${safe_session_id}" ]]; then
-  safe_session_id="session"
-fi
-safe_branch="$(echo "${branch}" | tr -cd '[:alnum:]._-' | head -c 64)"
-if [[ -z "${safe_branch}" ]]; then
-  safe_branch="branch"
-fi
-safe_ts="${timestamp//:/-}"
 
-mkdir -p "${notes_dir}"
-note_file="${notes_dir}/session-${safe_branch}-${safe_session_id}-${safe_ts}.md"
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--session-id", default="unknown", help="Known session ID; never inferred from history")
+    parser.add_argument("--branch", default="unknown", help="Verified branch name, when relevant")
+    parser.add_argument("--output", type=Path, help="Explicit new Markdown path; parent must exist; never overwritten")
+    for flag, title in SECTIONS:
+        parser.add_argument(f"--{flag}", default="", help=title)
+    args = parser.parse_args()
+    if not any(getattr(args, flag.replace("-", "_")).strip() for flag, _ in SECTIONS):
+        parser.error("provide at least one non-empty content section")
+    text = render(args)
+    try:
+        if args.output is None:
+            sys.stdout.write(text)
+        else:
+            retain(args.output, text)
+            print(f"Wrote handoff: {args.output}", file=sys.stderr)
+    except OSError as exc:
+        print(f"session-done: {exc}", file=sys.stderr)
+        return 1
+    return 0
 
-cat > "${note_file}" <<EOF
-# Session teardown
 
-## Metadata
-
-- session_id: ${session_id}
-- branch: ${branch}
-- timestamp_utc: ${timestamp}
-- generator: session-done skill script
-
-## Summary
-
-${summary}
-
-## Decisions
-
-${decisions}
-
-## Open Questions
-
-${questions}
-
-## Follow-ups
-
-${follow_ups}
-
-## State
-
-${state}
-
-## Self-reflection
-
-${reflection}
-
-## Flashcards
-
-${flashcards}
-
-EOF
-
-echo "Wrote session teardown: ${note_file}"
-
-if [[ -n "${obsidian_dir}" ]]; then
-  mkdir -p "${obsidian_dir}"
-  cp "${note_file}" "${obsidian_dir}/"
-  echo "Synced to Obsidian/PKM: ${obsidian_dir}"
-fi
-
-if [[ -n "${memory_file}" ]]; then
-  memory_path="${notes_dir}/${memory_file}"
-  {
-    echo ""
-    echo "## Session ${timestamp}"
-    echo "- session_id: ${session_id}"
-    echo "- branch: ${branch}"
-    echo "- summary: ${summary}"
-    echo "- follow-ups: ${follow_ups}"
-    echo "- reflection: ${reflection}"
-    echo ""
-  } >> "${memory_path}"
-  echo "Updated shared memory: ${memory_path}"
-fi
+if __name__ == "__main__":
+    raise SystemExit(main())
