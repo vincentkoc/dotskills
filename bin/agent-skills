@@ -128,7 +128,6 @@ link_or_copy_skill() {
     return 0
   fi
 
-  mkdir -p "$dest_root"
   python3 "$ROOT_DIR/scripts/managed_sync.py" \
     install-directory --source "$src" --destination "$dest" --mode "$mode"
 
@@ -149,7 +148,6 @@ link_or_copy_file() {
     return 0
   fi
 
-  mkdir -p "$dest_root"
   python3 "$ROOT_DIR/scripts/managed_sync.py" \
     install-file --source "$src" --destination "$dest" --mode "$mode"
 
