@@ -267,6 +267,62 @@ print(json.dumps({"canonical_root": os.environ["FAKE_CANONICAL"]}))
                 self.assertFalse(self.resolver_log.exists())
 
 
+    def test_index_presentation_flags_cannot_bypass_canonicalization(self):
+        payload = json.dumps({"repo_path": "/fixture/worktrees/task", "mode": "full"})
+        for args in (
+            ["cli", "index_repository", payload],
+            ["cli", "--json", "index_repository", payload],
+            ["cli", "--progress", "index_repository", payload, "--json"],
+            ["cli", "index_repository", "--json", payload, "--progress"],
+        ):
+            with self.subTest(args=args):
+                result = self.run_gateway(*args)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                forwarded = json.loads(result.stdout)["argv"][1:]
+                self.assertEqual(json.loads(forwarded[-1]), {
+                    "repo_path": str(self.canonical), "mode": "full"
+                })
+                self.assertEqual(forwarded.count("--json"), args.count("--json"))
+
+    def test_uninspectable_and_mutating_dispatch_forms_never_reach_backend(self):
+        payload = '{"repo_path":"/fixture/worktrees/task"}'
+        for args in (
+            ["--profile", "cli", "index_repository", payload],
+            ["cli", "index_repository"],
+            ["cli", "index_repository", "--repo-path", "/fixture/worktrees/task"],
+            ["cli", "index_repository", "--args-file", "/fixture/args.json"],
+            ["cli", "--index-worker", "index_repository", payload],
+            ["cli", "index_repository", payload, "--response-out", "/fixture/out"],
+            ["--daemon"], ["daemon", "start"], ["daemon", "stop"],
+            ["install", "--skip-config"], ["update"], ["uninstall"],
+            ["config", "reset"], ["config", "set", "auto_watch", "true"],
+            ["--ui=false", "cli", "index_repository", payload],
+            ["cli", "--worker-marker", "index_repository", payload],
+            ["cli", "index_repository", '{"repo_path":"a","repo_path":"b"}'],
+        ):
+            with self.subTest(args=args):
+                self.reset_logs()
+                result = self.run_gateway(*args)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertEqual(result.stdout, "")
+                self.assertFalse(self.backend_log.exists())
+                self.assertFalse(self.resolver_log.exists())
+
+    def test_safe_passthrough_keeps_default_and_explicit_output_modes(self):
+        for args in (
+            [], ["--version"], ["daemon", "status"], ["config", "list"],
+            ["config", "set", "auto_watch", "false"],
+            ["config", "set", "auto_index", "false"],
+            ["config", "set", "ui", "false"],
+            ["cli", "list_projects"], ["cli", "--json", "list_projects"],
+            ["cli", "get_graph_schema", '{"project":"fixture"}'],
+        ):
+            with self.subTest(args=args):
+                result = self.run_gateway(*args)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(json.loads(result.stdout)["argv"][1:], args)
+
+
 class GraphUiBoundaryTests(unittest.TestCase):
     def test_ui_commands_fail_before_external_processes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
