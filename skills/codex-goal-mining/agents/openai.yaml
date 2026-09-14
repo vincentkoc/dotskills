@@ -1,0 +1,10 @@
+interface:
+  display_name: "Codex Goal Mining"
+  short_description: "Mine Codex goals into reusable rerun suites."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Mine local or fleet Codex /goal history, rank unfinished and repeated runs, and produce reusable rerun suites with timing evidence."
+
+policy:
+  allow_implicit_invocation: true

@@ -2,14 +2,16 @@
 
 ## Scratch layout
 
-Use a run directory outside the target checkout:
+Reuse suitable existing tool state. Map inspection alone does not need a new directory.
+If Clawpatch or Deepsec requires physical state, create one task-owned temporary directory:
 
 ```bash
-RUN_ROOT="$HOME/.semantic-slicing/openclaw/$(date +%Y%m%d-%H%M%S)"
-mkdir -p "$RUN_ROOT"
+TOOLS_ROOT="${TOOLS_ROOT:-$HOME/src}"
+TARGET_REPO="${TARGET_REPO:-$HOME/src/openclaw}"
+RUN_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/semantic-slicing.XXXXXX")"
 ```
 
-Recommended layout:
+Keep only necessary tool state and file inputs there:
 
 ```text
 <run>/
@@ -17,17 +19,21 @@ Recommended layout:
   deepsec/
   gitcrawl-evidence.json
   discrawl-evidence.json
-  semantic-map.html
-  semantic-map.json
 ```
+
+Create evidence JSON inputs only when the map needs those overlays.
+Do not retain each command's output or intermediate summaries.
+Remove only this task's disposable scratch after its consumers finish.
+Preserve active state, named deliverables, and evidence needed for recovery.
+Report any retained path and its purpose in chat.
 
 ## Clawpatch
 
 Setup from source:
 
 ```bash
-git clone https://github.com/openclaw/clawpatch.git ~/GIT/_Perso/clawpatch
-cd ~/GIT/_Perso/clawpatch
+git clone https://github.com/openclaw/clawpatch.git "$TOOLS_ROOT/clawpatch"
+cd "$TOOLS_ROOT/clawpatch"
 pnpm install
 pnpm build
 ```
@@ -35,18 +41,18 @@ pnpm build
 Run against a target repo:
 
 ```bash
-node ~/GIT/_Perso/clawpatch/dist/cli.js \
-  --root ~/GIT/_Perso/openclaw \
+node "$TOOLS_ROOT/clawpatch/dist/cli.js" \
+  --root "$TARGET_REPO" \
   --state-dir "$RUN_ROOT/clawpatch" \
   init --json
 
-node ~/GIT/_Perso/clawpatch/dist/cli.js \
-  --root ~/GIT/_Perso/openclaw \
+node "$TOOLS_ROOT/clawpatch/dist/cli.js" \
+  --root "$TARGET_REPO" \
   --state-dir "$RUN_ROOT/clawpatch" \
   map --json
 
-node ~/GIT/_Perso/clawpatch/dist/cli.js \
-  --root ~/GIT/_Perso/openclaw \
+node "$TOOLS_ROOT/clawpatch/dist/cli.js" \
+  --root "$TARGET_REPO" \
   --state-dir "$RUN_ROOT/clawpatch" \
   status --json
 ```
@@ -66,8 +72,8 @@ If contamination is non-zero, post-filter before ranking. Current clawpatch may 
 Setup from source:
 
 ```bash
-git clone https://github.com/vercel-labs/deepsec.git ~/GIT/_Perso/deepsec
-cd ~/GIT/_Perso/deepsec
+git clone https://github.com/vercel-labs/deepsec.git "$TOOLS_ROOT/deepsec"
+cd "$TOOLS_ROOT/deepsec"
 pnpm install
 pnpm -r build
 pnpm bundle
@@ -76,19 +82,19 @@ pnpm bundle
 Create a scratch workspace and link the local build:
 
 ```bash
-node ~/GIT/_Perso/deepsec/packages/deepsec/dist/cli.mjs \
-  init "$RUN_ROOT/deepsec" ~/GIT/_Perso/openclaw --id openclaw --force
+node "$TOOLS_ROOT/deepsec/packages/deepsec/dist/cli.mjs" \
+  init "$RUN_ROOT/deepsec" "$TARGET_REPO" --id openclaw --force
 
 cd "$RUN_ROOT/deepsec"
-pnpm add -w "deepsec@file:$HOME/GIT/_Perso/deepsec/packages/deepsec"
+pnpm add -w "deepsec@file:$TOOLS_ROOT/deepsec/packages/deepsec"
 ```
 
 Run deterministic scan:
 
 ```bash
-node ~/GIT/_Perso/deepsec/packages/deepsec/dist/cli.mjs scan --project-id openclaw
-node ~/GIT/_Perso/deepsec/packages/deepsec/dist/cli.mjs status --project-id openclaw
-node ~/GIT/_Perso/deepsec/packages/deepsec/dist/cli.mjs metrics --project-id openclaw
+node "$TOOLS_ROOT/deepsec/packages/deepsec/dist/cli.mjs" scan --project-id openclaw
+node "$TOOLS_ROOT/deepsec/packages/deepsec/dist/cli.mjs" status --project-id openclaw
+node "$TOOLS_ROOT/deepsec/packages/deepsec/dist/cli.mjs" metrics --project-id openclaw
 ```
 
 Do not run `process` blindly on large candidate sets. Size the run first:
@@ -141,45 +147,75 @@ discrawl digest --help
 
 Avoid pulling personal or unrelated message content into reports. Summarize only the symptom evidence needed to rank the slice.
 
-## Visual map
+## Map output
 
-Generate the local review map:
+The default is JSON on stdout, with no output files or directories.
+Use Bash or Zsh for the pipelines below. `pipefail` preserves upstream command failures.
+Do not treat output from a failed pipeline as successful evidence.
+For routine inspection, select bounded fields before sending data to an agent:
+
+```bash
+set -o pipefail
+node /path/to/semantic-slicing/scripts/semantic-map.mjs \
+  --repo "$TARGET_REPO" |
+  jq '{totals, inputs: {sparse: .inputs.sparse, sparseExcludes: .inputs.sparseExcludes, sparseIncludes: .inputs.sparseIncludes}, top: [.buckets[:8][] | {name, impactScore, action}]}'
+```
+
+Use `--out` only for a requested deliverable or required evidence.
+Set `MAP_PATH` to that destination, outside disposable scratch.
+Generate a requested visual map and its JSON data:
 
 ```bash
 node /path/to/semantic-slicing/scripts/semantic-map.mjs \
-  --repo ~/GIT/_Perso/openclaw \
+  --repo "$TARGET_REPO" \
   --churn-since 90.days \
   --clawpatch "$RUN_ROOT/clawpatch" \
   --deepsec "$RUN_ROOT/deepsec/data/openclaw" \
   --gitcrawl "$RUN_ROOT/gitcrawl-evidence.json" \
   --discrawl "$RUN_ROOT/discrawl-evidence.json" \
-  --out "$RUN_ROOT/semantic-map.html"
+  --out "$MAP_PATH"
 ```
+
+Omit `--gitcrawl` or `--discrawl` when that evidence file is not needed.
+
+| Options | Result |
+| --- | --- |
+| No `--out` or `--format` | JSON on stdout, no files. |
+| `--format html` without `--out` | HTML on stdout, no files. |
+| `--out map.html` | HTML at `map.html` and JSON at `map.json`, as before. |
+| `--format json --out result.json` | JSON at exactly `result.json`, no HTML. |
+| `--format html --out map.html` | HTML at exactly `map.html`, no JSON. |
+| `--format both` | Requires `--out`. |
+
+Use one stable destination per deliverable. Do not create timestamped report copies for repeated inspection.
+File-write notices go to stderr, so stdout contains only the selected payload.
 
 Sparse mode is enabled by default. It omits dotfile/config trees, docs,
 changelog files, and mobile app trees so the first board focuses on core review
-surfaces. Disable it for a whole-repo board:
+surfaces. Disable it for a whole-repo inspection:
 
 ```bash
+set -o pipefail
 node /path/to/semantic-slicing/scripts/semantic-map.mjs \
-  --repo ~/GIT/_Perso/openclaw \
+  --repo "$TARGET_REPO" \
   --clawpatch "$RUN_ROOT/clawpatch" \
   --deepsec "$RUN_ROOT/deepsec/data/openclaw" \
-  --out "$RUN_ROOT/semantic-map-full.html" \
-  --no-sparse
+  --no-sparse |
+  jq '{totals, top: [.buckets[:8][] | {name, impactScore, action}]}'
 ```
 
 Tune sparse mode with comma-separated path rules. `--sparse-exclude` replaces
 the default exclude list; `--sparse-include` re-includes matching paths:
 
 ```bash
+set -o pipefail
 node /path/to/semantic-slicing/scripts/semantic-map.mjs \
-  --repo ~/GIT/_Perso/openclaw \
+  --repo "$TARGET_REPO" \
   --clawpatch "$RUN_ROOT/clawpatch" \
   --deepsec "$RUN_ROOT/deepsec/data/openclaw" \
-  --out "$RUN_ROOT/semantic-map-core-plus-android.html" \
   --sparse-exclude ".github/,.vscode/,.devcontainer/,docs/,CHANGELOG.md,apps/android/,apps/ios/" \
-  --sparse-include "apps/android/"
+  --sparse-include "apps/android/" |
+  jq '{totals, inputs: {sparseIncludes: .inputs.sparseIncludes}, top: [.buckets[:8][] | {name, impactScore, action}]}'
 ```
 
 The `--repo`, `--gitcrawl`, and `--discrawl` inputs are optional. Use `--repo`
@@ -191,7 +227,7 @@ Use `--churn-since` to size the development lens. `30.days` is good for a fast
 current-sprint view; `90.days` is better for planning refactors or ownership
 reviews.
 
-The script writes both HTML and JSON. The HTML is a semantic review board:
+HTML output is a semantic review board:
 review lanes for humans first, focus controls for lens and system filtering
 second, an overall lens matrix as the single slice-row table third, a compact
 agent handoff packet fourth, and collapsible evidence tables last. The JSON contains

@@ -2,6 +2,30 @@
   "repo": "vincentkoc/dotskills",
   "skills": [
     {
+      "name": "codebase-memory-mcp",
+      "source": "./skills/codebase-memory-mcp",
+      "description": "Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph is usable before relying on it for code discovery. Keep linked worktrees on the owner's graph instead of creating one graph per branch.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill codebase-memory-mcp -y"
+    },
+    {
+      "name": "codex-goal-mining",
+      "source": "./skills/codex-goal-mining",
+      "description": "Recover structured Codex goal history and convert free-form runs into evidence-backed, repeatable suites.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill codex-goal-mining -y"
+    },
+    {
+      "name": "codex-session-recovery",
+      "source": "./skills/codex-session-recovery",
+      "description": "Recover crashed, detached, or confusing agent sessions while preserving the best restore source.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill codex-session-recovery -y"
+    },
+    {
+      "name": "crabpot-perf-metrics",
+      "source": "./skills/crabpot-perf-metrics",
+      "description": "Turn Crabpot/OpenClaw perf artifacts into a clear read: what changed, what is real signal, what is stale/noisy, and what action is worth taking.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill crabpot-perf-metrics -y"
+    },
+    {
       "name": "crawlkit",
       "source": "./skills/crawlkit",
       "description": "Maintain crawlkit, the shared Go library for crawl app archive infrastructure.",
@@ -12,6 +36,12 @@
       "source": "./skills/ghcrawl-cluster-operator",
       "description": "Operate ghcrawl as a local-first GitHub issue and pull request crawler: inspect the SQLite store, pull GitHub data, refresh summaries and embeddings, build clusters, and extract cluster evidence through deterministic CLI commands.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill ghcrawl-cluster-operator -y"
+    },
+    {
+      "name": "github-airplane-mode",
+      "source": "./skills/github-airplane-mode",
+      "description": "Switch an already-installed local Git and GitHub download guard.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill github-airplane-mode -y"
     },
     {
       "name": "graincrawl",
@@ -26,10 +56,34 @@
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill openclaw-github-dedupe -y"
     },
     {
+      "name": "openclaw-pr-batch-sweep",
+      "source": "./skills/openclaw-pr-batch-sweep",
+      "description": "Drive a continuing queue of real, low-risk OpenClaw contributor bug fixes through qualification, repair, proof, and landing. Work in batches of up to 20 without padding the batch with micro-patches, speculative cleanup, or risky surfaces.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y"
+    },
+    {
       "name": "operations-worktree",
       "source": "./skills/operations-worktree",
       "description": "Create and manage worktrees safely and consistently across projects while avoiding stale branch bases.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill operations-worktree -y"
+    },
+    {
+      "name": "opik-integrations-auditor",
+      "source": "./skills/opik-integrations-auditor",
+      "description": "Audit, compare, and document Opik integrations across Python, TypeScript, and backend OTEL/API surfaces with a repeatable evidence-first workflow.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill opik-integrations-auditor -y"
+    },
+    {
+      "name": "opik-optimizer",
+      "source": "./skills/opik-optimizer",
+      "description": "Design, run, and interpret Opik Optimizer workflows for prompts, tools, and model parameters with consistent dataset/metric wiring and reproducible evaluation.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill opik-optimizer -y"
+    },
+    {
+      "name": "org-branch-cleanup",
+      "source": "./skills/org-branch-cleanup",
+      "description": "Remove organization branch clutter without guessing which refs are safe to delete.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill org-branch-cleanup -y"
     },
     {
       "name": "semantic-slicing",
@@ -46,7 +100,7 @@
     {
       "name": "technical-documentation",
       "source": "./skills/technical-documentation",
-      "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents, including contributor-governance files and agent instruction files.",
+      "description": "Produce, review, and audit technical documentation that is clear, unambiguous, and maintainable for both humans and agents. Covers product docs, contributor-governance files, and agent instruction files. Prose follows Simplified Technical English so a reader or an agent cannot misread it. Audits scale to trees with hundreds of pages through sharding, adversarial checks, and parallel remediation.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-documentation -y"
     },
     {
@@ -60,6 +114,18 @@
       "source": "./skills/technical-skill-finder",
       "description": "Find recurring pain points from local agent logs and convert them into actionable skill candidates, reuse opportunities, or existing skill updates.",
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill technical-skill-finder -y"
+    },
+    {
+      "name": "tmux-agent-lane-orchestrator",
+      "source": "./skills/tmux-agent-lane-orchestrator",
+      "description": "Turn a tmux window of coding-agent workers into a visible, auditable lane with clear state and next actions.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y"
+    },
+    {
+      "name": "tmux-lane-orchestrator",
+      "source": "./skills/tmux-lane-orchestrator",
+      "description": "Act as the manager for one tmux worker lane. Keep visibility over the lane's panes, infer what each worker is doing from tmux and Codex logs, surface blockers, and give the operator short status summaries with concrete next actions.",
+      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill tmux-lane-orchestrator -y"
     }
   ]
 }

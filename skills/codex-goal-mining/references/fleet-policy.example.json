@@ -1,0 +1,17 @@
+{
+  "systems": {
+    "local": {
+      "ssh_target": null
+    },
+    "desktop": {
+      "ssh_target": "desktop-ssh-alias",
+      "python": "python3"
+    },
+    "windows": {
+      "ssh_target": "windows-ssh-alias",
+      "python": "py -3",
+      "wsl_target": "windows-wsl-ssh-alias",
+      "wsl_python": "python3"
+    }
+  }
+}

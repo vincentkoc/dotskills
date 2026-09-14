@@ -1,6 +1,6 @@
 ---
 name: operations-worktree
-description: Safe git worktree creation and hygiene workflow that defaults new branches to an up-to-date remote default branch instead of local HEAD.
+description: Create managed Git worktrees from a verified healthy owner, verify dependency reuse, and report explicit retained, blocked, or removed closeout.
 license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
@@ -17,22 +17,98 @@ Create and manage worktrees safely and consistently across projects while avoidi
 - You need to avoid branching from stale local `main` or local `HEAD`.
 
 ## Workflow
-1. Ensure you are inside the target repository (main checkout or any linked worktree).
-2. Create a new worktree with the shell wrapper:
+1. Resolve the repository identity, canonical owning checkout, Git common directory, and existing worktree registrations.
+   Preserve dirty owner state.
+   Read the repository's worktree and dependency rules.
+2. Inspect existing worktrees before creating another checkout.
+   Reuse an existing task-owned worktree only when its identity, branch, and ownership match.
+   Do not adopt another session's checkout.
+3. Use a healthy owning checkout accepted by the installed wrapper.
+   An unsafe, shallow, or promisor source is not permission to create an ad hoc clone.
+   Do not bypass worktree creation with raw Git, copied repositories, or temporary clones.
+   A refusal stops creation, not diagnosis. Repair that same verified owner within existing task authorization, then let the wrapper recheck it.
+   Report the concrete blocker if no qualified owner is available.
+4. Use `gwt help` for discovery and `gwt root` to resolve the configured managed root.
+   Keep new worktrees under that root or a repository-native managed root.
+   Do not place new checkouts in arbitrary sibling or temporary directories.
+5. Verify the download policy before any fetch.
+   Task-required additive fetch or unshallow is not GC, repacking, pruning, or owner consolidation.
+   Recheck current state; do not repeat completed repair or ask again for an already authorized step.
+   Respect contention, suppress automatic maintenance/pruning, and preserve local branches, HEAD/index, patches, and registrations.
+   Distinguish a verified current remote base from a cached local ref.
+   Cached refs do not prove the latest head.
+   When freshness cannot be verified, report that gap rather than silently substituting a stale base.
+6. Create the worktree with the installed shell wrapper:
    - `gwt new <branch>`
    - Optional explicit base: `gwt new <branch> <start-point>`
-3. If shell wrappers are unavailable, use raw git safely:
-   - `default=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)`
-   - `base=${default#origin/}`
-   - `git fetch origin "$base" --prune`
-   - `git worktree add -b <branch> <path> "origin/$base"`
-4. For OpenClaw PR review worktrees, prefer that repository's native PR review-init helper instead of hand-assembling refs.
+   Stop creation if the wrapper is unavailable or still refuses the repaired owner.
+   Do not substitute an unrestricted raw-Git creation route.
+7. Verify the returned path, managed root, registration, owner, branch, and HEAD.
+8. Verify dependency reuse under [Dependency Ownership](#dependency-ownership).
+9. Read `references/task-artifacts.md` before work that retains evidence,
+   publishes expensive artifacts, or needs a resumable phase/blocker receipt.
+10. For OpenClaw, use its current `AGENTS.md` and native review/release lifecycle
+    helpers. Do not override their exact-head or evidence rules here.
+11. Finish with the explicit [Closeout](#closeout) result.
+
+## Dependency Ownership
+
+Inspect the source pin and actual installed package-manager metadata separately.
+Verify lockfile compatibility, workspace dependency graph, patches, platform, linker layout, and resolved dependency paths before reuse.
+A matching store path or package-manager major version does not prove compatibility.
+Do not assume a root dependency symlink supplies every workspace package.
+
+APFS copy-on-write package imports can share storage without sharing a Git checkout.
+They are not Git snapshots, worktree creation, or cleanup.
+Do not infer physical reclaim from logical dependency sizes.
+Inspect the installed package manager's contract before applying an APFS optimization.
+
+Follow the repository and user dependency rules, existing authorization, and shared-symlink guards.
+If the install is incompatible or missing, use the repository's approved proof route.
+Do not add a new approval requirement for dependency work already authorized by that route.
+
+## Closeout
+
+Report the exact task-owned path, branch, HEAD, owner, and remaining work.
+Give each task checkout one outcome:
+
+- `retained`: keep the checkout, with its reason and next owner or action.
+- `blocked`: name the missing proof or permission and the exact unblock action.
+- `removed`: report only after an authorized removal verifies both path and registration absence.
+
+Task completion alone is not owner release or removal authorization.
+Ordinary and repository-native checkouts keep their existing authorized lifecycle:
+removal requires fresh ownership and recovery proof and the repository's approved non-force procedure.
+
+Where installed, personal GWT completion applies only to explicitly enrolled
+`--finish-managed` worktrees. Record the current owner's completed work promptly
+with `gwt finish --pr <full URL>`; there is no age delay.
+Finish records the exact PR head and final target, not proof that the PR merged.
+Use `--target <final branch>` when needed and repeat `--wait-for <full PR URL>`
+for every stack dependency. Each declared PR must target that same final branch.
+Dependent PRs need not be merged to record owner completion; an unfinished upper
+layer still keeps the checkout retained.
+
+Keep the runtime `CODEX_THREAD_ID` identity; outside Codex, use a stable
+task-specific `GWT_OWNER_ID`. `gwt resume`, `gwt cd`, and existing-tree reuse
+through `gwt new` invalidate prior completion. Keep recovery and dependency pins
+until their owner resolves them.
+`gwt finish-status` reads recorded state; report-only `gwt finish-check` refreshes
+completion and merge proof. The current helper always retains the checkout:
+managed owner release and removal are unavailable, including `--apply`.
+Do not present `gwt release` as a next step or bypass its refusal.
+
+Dirty state, active owners, unknown commits, locks, or incomplete proof require retention.
+Do not start broad maintenance, clear locks, or remove other sessions' checkouts during closeout.
+If a native helper reports incomplete cleanup, preserve that result and report the retained path.
 
 ## Inputs
 - Branch name (required)
 - Optional start-point (branch/tag/commit)
-- Optional destination path (for raw git mode)
+- Canonical owner and configured managed root
 
 ## Outputs
-- New linked worktree checked out on the target branch.
-- Default base anchored to a fetched remote default branch unless explicitly overridden.
+- New linked worktree on the target branch.
+- Verified owner, managed path, registration, branch, and exact base.
+- Remote freshness status and dependency compatibility evidence.
+- Explicit `retained`, `blocked`, or verified `removed` closeout outcome.

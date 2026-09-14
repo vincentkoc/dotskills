@@ -57,6 +57,25 @@ def find_local_skill_dirs() -> List[Path]:
     return skill_dirs
 
 
+def validate_private_tracking(errors: List[str]) -> None:
+    result = subprocess.run(
+        ["git", "ls-files", "private-skills"],
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        errors.append("cannot inspect tracked private-skills files")
+        return
+    tracked = [path for path in result.stdout.splitlines() if path != "private-skills/.gitkeep"]
+    if tracked:
+        errors.append(
+            "private-skills is local-only in this public repo; tracked files: "
+            + ", ".join(tracked)
+        )
+
+
 def parse_frontmatter(
     text: str, skill_file: Path
 ) -> Tuple[Dict[str, object], str, List[str], List[str]]:
@@ -518,6 +537,7 @@ def main() -> int:
     errors: List[str] = []
     warnings: List[str] = []
     validated = 0
+    validate_private_tracking(errors)
     validate_repo_license(errors)
     openai_defaults = parse_openai_defaults_from_agents(errors)
 
