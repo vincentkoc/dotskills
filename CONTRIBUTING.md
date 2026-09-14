@@ -70,6 +70,25 @@ make import-anthropic
 
 This records pinned metadata in `catalog.yaml`.
 
+Reimporting an existing skill updates its repository, ref, resolved commit, and
+entry format together with the vendored files. Existing names, tags, annotations,
+and unrelated catalog entries remain intact. The importer edits the repository's
+plain-ID catalog layout; unsupported layouts stop before publication.
+Source and imported skill names use lowercase letters, digits, and hyphens.
+Resolved subdirectories and selected skills must stay inside the cloned checkout.
+Root skills are supported. Import discovery and copies exclude exact `.git`
+entries; tracked files such as `.gitignore`, `.github/`, and nested skills remain.
+
+Imports stage every selected skill and the catalog before replacing targets.
+The catalog publishes last. A caught publication failure restores the original
+pair only when the import still owns the changed paths. Otherwise, recovery stays
+in `.agent-skills-import/`, outside skill discovery, and later commands refuse to
+continue. Inspect `recovery.json`: its ordered targets correspond to `old-N`
+backups and staged or rejected replacements. Preserve later edits, reconcile the
+entire catalog/vendor pair, and verify it before removing the recovery directory.
+Do not rerun import or sync over unresolved recovery. A dry run still clones the
+requested source, but creates no vendor directories or catalog changes.
+
 ## Pull requests
 
 PRs should include:

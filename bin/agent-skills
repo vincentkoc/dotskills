@@ -5,7 +5,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS_DIR="$ROOT_DIR/skills"
 PRIVATE_SKILLS_DIR="$ROOT_DIR/private-skills"
 VENDOR_DIR="$ROOT_DIR/vendor"
-CATALOG_FILE="$ROOT_DIR/catalog.yaml"
 ENTRY_FILES=("SKILL.md" "AGENT.md" "AGENTS.md")
 DEFAULT_SYNC_EXCLUDE=("example-skill")
 
@@ -52,25 +51,13 @@ detect_entry_file() {
   return 1
 }
 
-detect_format_from_dir() {
-  local dir="$1"
-  local entry=""
-  entry="$(detect_entry_file "$dir" || true)"
-  case "$entry" in
-    SKILL.md) echo "skill_md" ;;
-    AGENT.md) echo "agent_md" ;;
-    AGENTS.md) echo "agents_md" ;;
-    *) echo "unknown" ;;
-  esac
-}
-
 find_skill_dirs_under() {
   local base="$1"
   if [[ ! -d "$base" ]]; then
     return 0
   fi
 
-  find "$base" -type f \( -name "SKILL.md" -o -name "AGENT.md" -o -name "AGENTS.md" \) -print \
+  find "$base" -name .git -prune -o -type f \( -name "SKILL.md" -o -name "AGENT.md" -o -name "AGENTS.md" \) -print \
     | sed -E 's#/(SKILL|AGENT|AGENTS)\.md$##' \
     | sort -u
 }
@@ -197,43 +184,6 @@ sync_profile() {
   fi
 }
 
-catalog_has_id() {
-  local id="$1"
-  rg -q "^[[:space:]]*- id: ${id}$" "$CATALOG_FILE"
-}
-
-append_catalog_entry() {
-  local id="$1"
-  local name="$2"
-  local path="$3"
-  local repo="$4"
-  local ref="$5"
-  local commit="$6"
-  local format="$7"
-
-  if catalog_has_id "$id"; then
-    echo "[catalog] id '$id' already exists, skipped"
-    return 0
-  fi
-
-  cat >> "$CATALOG_FILE" <<__CATALOG__
-
-  - id: $id
-    name: $name
-    path: $path
-    format: $format
-    source: upstream
-    upstream:
-      type: git
-      repo: $repo
-      ref: $ref
-      commit: $commit
-    tags: [upstream, imported]
-__CATALOG__
-
-  echo "[catalog] added id '$id'"
-}
-
 import_repo_skills() {
   local source_name="$1"
   local repo="$2"
@@ -242,6 +192,17 @@ import_repo_skills() {
   local skills_csv="$5"
   local dry_run="$6"
 
+  if [[ ! "$source_name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+    echo "Invalid import source name: use lowercase letters, digits, and hyphens" >&2
+    return 1
+  fi
+  case "$subdir" in
+    /*|..|../*|*/../*|*/..)
+      echo "Import subdir must stay inside the cloned repository" >&2
+      return 1
+      ;;
+  esac
+
   command -v git >/dev/null || {
     echo "git is required for import" >&2
     exit 1
@@ -249,23 +210,17 @@ import_repo_skills() {
 
   local tmp_dir
   tmp_dir="$(mktemp -d)"
-  trap "rm -rf '$tmp_dir'" EXIT
+  trap "$(printf 'rm -rf -- %q' "$tmp_dir")" EXIT
 
   echo "Cloning $repo@$ref ..."
-  git clone --depth 1 --branch "$ref" "$repo" "$tmp_dir/repo" >/dev/null
+  git clone --depth 1 --branch "$ref" -- "$repo" "$tmp_dir/repo" >/dev/null
 
   local commit
   commit="$(git -C "$tmp_dir/repo" rev-parse HEAD)"
 
-  local import_base="$tmp_dir/repo"
-  if [[ -n "$subdir" ]]; then
-    import_base="$import_base/$subdir"
-  fi
-
-  if [[ ! -d "$import_base" ]]; then
-    echo "Import base does not exist: $import_base" >&2
-    exit 1
-  fi
+  local import_base
+  import_base="$(python3 "$ROOT_DIR/scripts/import_skills.py" resolve-base \
+    --checkout "$tmp_dir/repo" --subdir "$subdir")"
 
   mapfile -t candidates < <(find_skill_dirs_under "$import_base")
   if [[ "${#candidates[@]}" -eq 0 ]]; then
@@ -280,8 +235,11 @@ import_repo_skills() {
       local matched=""
       for candidate in "${candidates[@]}"; do
         if [[ "$(basename "$candidate")" == "$wanted" ]]; then
+          if [[ -n "$matched" ]]; then
+            echo "Skill '$wanted' is ambiguous in repo import set" >&2
+            exit 1
+          fi
           matched="$candidate"
-          break
         fi
       done
       if [[ -z "$matched" ]]; then
@@ -294,42 +252,20 @@ import_repo_skills() {
     selected=("${candidates[@]}")
   fi
 
-  local target_root="$VENDOR_DIR/$source_name"
-  mkdir -p "$target_root"
-
-  for src in "${selected[@]}"; do
-    local skill_name
-    skill_name="$(basename "$src")"
-    local target_dir="$target_root/$skill_name"
-    local catalog_id="${source_name}-${skill_name}"
-    local format
-    format="$(detect_format_from_dir "$src")"
-
-    if [[ "$dry_run" == "true" ]]; then
-      echo "[dry-run] import $src -> $target_dir"
-      echo "[dry-run] format: $format"
-      echo "[dry-run] catalog id: $catalog_id"
-      continue
-    fi
-
-    rm -rf "$target_dir"
-    mkdir -p "$target_dir"
-    cp -R "$src"/. "$target_dir"
-    echo "imported $src -> $target_dir"
-
-    append_catalog_entry \
-      "$catalog_id" \
-      "$source_name/$skill_name" \
-      "vendor/$source_name/$skill_name" \
-      "$repo" \
-      "$ref" \
-      "$commit" \
-      "$format"
-  done
+  local dry_run_args=()
+  [[ "$dry_run" == "false" ]] || dry_run_args+=(--dry-run)
+  python3 "$ROOT_DIR/scripts/import_skills.py" publish --checkout "$tmp_dir/repo" \
+    --root "$ROOT_DIR" --source "$source_name" --repo "$repo" \
+    --ref "$ref" --commit "$commit" "${dry_run_args[@]}" -- "${selected[@]}"
 }
 
 command="${1:-}"
 shift || true
+
+if [[ -e "$ROOT_DIR/.agent-skills-import" || -L "$ROOT_DIR/.agent-skills-import" ]]; then
+  echo "Import in progress or recovery retained at $ROOT_DIR/.agent-skills-import; reconcile it before continuing" >&2
+  exit 1
+fi
 
 case "$command" in
   list)
