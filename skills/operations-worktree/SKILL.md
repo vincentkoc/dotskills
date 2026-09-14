@@ -1,6 +1,6 @@
 ---
 name: operations-worktree
-description: Create managed Git worktrees from a verified healthy owner, verify dependency reuse, and report explicit retained, blocked, or removed closeout.
+description: Create managed Git worktrees from a verified healthy owner, verify dependency reuse, and report explicit checkout and recovery outcomes.
 license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
@@ -39,7 +39,7 @@ Create and manage worktrees safely and consistently across projects while avoidi
    Cached refs do not prove the latest head.
    When freshness cannot be verified, report that gap rather than silently substituting a stale base.
 6. Choose the creation command for the intended completion lifecycle:
-   - For new personal GWT task worktrees, use report-only finish when `gwt help`
+   - For new personal GWT task worktrees, use finish tracking when `gwt help`
      advertises `--finish-managed`: `gwt new <branch> <start-point> --finish-managed`.
      The start-point is optional. Keep the runtime `CODEX_THREAD_ID`; outside Codex,
      set a stable task-specific `GWT_OWNER_ID` before creation.
@@ -75,39 +75,62 @@ Do not add a new approval requirement for dependency work already authorized by 
 ## Closeout
 
 Report the exact task-owned path, branch, HEAD, owner, and remaining work.
-Give each task checkout one outcome:
+Give each task checkout an explicit outcome:
 
 - `retained`: keep the checkout, with its reason and next owner or action.
 - `blocked`: name the missing proof or permission and the exact unblock action.
-- `removed`: report only after an authorized removal verifies both path and registration absence.
+- `removed`: report only after authorized removal verifies path and registration absence.
+- `unknown`: preserve an incomplete removal result; reconcile its exact intent read-only before recovery.
 
 Task completion alone is not owner release or removal authorization.
 Ordinary and repository-native checkouts keep their existing authorized lifecycle:
 removal requires fresh ownership and recovery proof and the repository's approved non-force procedure.
 
-Where installed, personal GWT completion applies only to explicitly enrolled
-`--finish-managed` worktrees. Record the current owner's completed work promptly
-with `gwt finish --pr <full URL>`; there is no age delay.
-Finish records the exact PR head and final target, not proof that the PR merged.
-Use `--target <final branch>` when needed and repeat `--wait-for <full PR URL>`
-for every stack dependency. Each declared PR must target that same final branch.
-Dependent PRs need not be merged to record owner completion; an unfinished upper
-layer still keeps the checkout retained.
+Personal GWT completion applies only to explicitly enrolled `--finish-managed`
+worktrees. Record the current owner's completed work promptly with
+`gwt finish --pr <full URL>`, even if the PR has not merged.
+Plain finish grants no new release and does not cancel an earlier sign-off.
+Treat generic Codex Stop as turn-scoped attention only, never completion or release.
 
-If personal finish reports `not-enrolled`, retain the checkout and explain that
-enrollment was required at creation. Do not try to enroll an existing checkout retroactively.
+When the installed wrapper advertises `finish --release` and this new enrollment
+supports release, use `gwt finish --pr <full URL> --release` once this owner's
+job is complete and it relinquishes future checkout use. Use `gwt release`
+for an already completed owner. This is explicit local job sign-off.
+Every enrolled owner, including the creator, must complete and release against
+the same proof. A finished fix or feature can be removed as soon as its exact
+PR head has merged into the final target and native admission passes; age adds no delay.
 
-`gwt resume`, `gwt cd`, and existing-tree reuse
-through `gwt new` invalidate prior completion. Keep recovery and dependency pins
-until their owner resolves them.
-`gwt finish-status` reads recorded state; report-only `gwt finish-check` refreshes
-completion and merge proof. The current helper always retains the checkout:
-managed owner release and removal are unavailable, including `--apply`.
-Do not present `gwt release` as a next step or bypass its refusal.
+For stacks, first record an owner-scoped `gwt finish-pin --reason <reason>`
+while upper work or recovery still needs the checkout. Then record completion
+with `--target <final branch>` when needed and repeat `--wait-for <full PR URL>`
+for every dependent PR. Each declared PR must target that same final branch;
+they need not be merged to record completion. Only the pin's owner clears it
+with `gwt finish-unpin --reason <reason>` once resolved; owners must release
+afresh afterwards. All declared PRs must merge at their recorded heads before
+removal; open or closed-unmerged PRs retain the checkout.
 
-Dirty state, active owners, unknown commits, locks, or incomplete proof require retention.
-Do not start broad maintenance, clear locks, or remove other sessions' checkouts during closeout.
-If a native helper reports incomplete cleanup, preserve that result and report the retained path.
+Resume before further use. `gwt resume`, `gwt cd`, reuse through `gwt new`,
+and sparse-profile changes invalidate prior completion and releases.
+Head, target or dependency changes require fresh completion and release;
+adding a pin reactivates ownership and any pin change invalidates releases.
+Never sign off for another owner.
+
+`gwt finish-status` reads recorded state; `gwt finish-check` refreshes proof
+without removal. On an explicitly activated, natively qualified host, the same
+`gwt finish-check --all --apply --policy <absolute path>` consumer can revisit
+pending merges and departure. Installing source or reporting release capability
+does not activate deletion or prove removal readiness.
+The wrapper parks only its own shell; checkout/admin CWD, FD or mapped holders
+still block removal. Preserve native guard failures and their exact reasons.
+
+If finish reports `not-enrolled`, retain the checkout; enrollment was required
+at creation. Existing report-only enrollments remain report-only. Do not retrofit
+enrollment, recreate a checkout to obtain release capability, or bypass a refusal.
+
+Dirty state, active owners, unknown commits, locks, pins, ignored recovery content
+or incomplete proof require retention. Native non-force removal preserves branches.
+Do not start broad maintenance, clear locks, or remove other sessions' checkouts.
+Never retry an uncertain removal automatically or label an unknown result retained.
 
 ## Inputs
 - Branch name (required)
@@ -118,7 +141,7 @@ If a native helper reports incomplete cleanup, preserve that result and report t
 - New linked worktree on the target branch.
 - Verified owner, managed path, registration, branch, and exact base.
 - Remote freshness status and dependency compatibility evidence.
-- Explicit `retained`, `blocked`, or verified `removed` closeout outcome.
+- Explicit `retained`, `blocked`, verified `removed`, or unresolved `unknown` outcome.
 
 ## Flow
 
@@ -141,11 +164,19 @@ stateDiagram-v2
     VerifyCheckoutAndDependencies --> DoTask: qualified
     VerifyCheckoutAndDependencies --> ReportBlocked: missing proof
     DoTask --> RecordFinish: enrolled managed checkout and owner work complete
-    RecordFinish --> ReportRetained: report-only helper
+    RecordFinish --> ReportRetained: no release or report-only enrollment
+    RecordFinish --> SignOffOwner: release supported and no future owner use
+    RecordFinish --> EvaluateRelease: existing release remains valid
+    SignOffOwner --> EvaluateRelease: finish --release or release
+    EvaluateRelease --> ReportRetained: pending proof, owners, pins or native guard
+    EvaluateRelease --> ReportRemoved: qualified native removal verified
+    EvaluateRelease --> ReportUnknown: incomplete removal or missing readback
     DoTask --> ReportRetained: personal finish reports not-enrolled
     DoTask --> NativeCloseout: ordinary or repository-native checkout
     NativeCloseout --> ReportCheckout: existing authorized lifecycle and fresh proof
     ReportBlocked --> [*]
     ReportRetained --> [*]
     ReportCheckout --> [*]
+    ReportRemoved --> [*]
+    ReportUnknown --> [*]
 ```
