@@ -185,10 +185,10 @@ def pinned_parent(parent: pathlib.Path):
 def stage_install(source: pathlib.Path, stage: pathlib.Path, *, kind: str, mode: str):
     staged = stage / "new"
     marker = None
-    before = content_digest(source)
     if mode == "symlink":
         staged.symlink_to(source, target_is_directory=kind == "directory")
     else:
+        before = content_digest(source)
         if kind == "directory":
             shutil.copytree(source, staged, symlinks=True)
             if os.path.lexists(staged / DIRECTORY_MARKER):
