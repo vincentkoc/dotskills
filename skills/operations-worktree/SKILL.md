@@ -109,6 +109,10 @@ with `gwt finish-unpin --reason <reason>` once resolved; owners must release
 afresh afterwards. All declared PRs must merge at their recorded heads before
 removal; open or closed-unmerged PRs retain the checkout.
 
+If an upper PR targets another stack branch, keep its dependency and pin,
+and report the checkout retained until the stack is retargeted or restacked
+to the actual final branch. Do not fake `--target` or omit `--wait-for` to pass finish.
+
 Resume before further use. `gwt resume`, `gwt cd`, reuse through `gwt new`,
 and sparse-profile changes invalidate prior completion and releases.
 Head, target or dependency changes require fresh completion and release;
