@@ -78,6 +78,9 @@ def content_digest(path: pathlib.Path, *, ignore_marker: bool = False) -> str:
                 visit(child, relative / child.name)
         elif stat.S_ISREG(before.st_mode):
             # A swapped symlink must not redirect hashing into another file.
+            # Frame payload bytes too: file contents must not impersonate the
+            # following entry's header and hide an extra local file.
+            digest.update(before.st_size.to_bytes(8, "big"))
             descriptor = os.open(current, os.O_RDONLY | os.O_NOFOLLOW)
             with os.fdopen(descriptor, "rb") as handle:
                 if file_state(os.fstat(handle.fileno())) != file_state(before):

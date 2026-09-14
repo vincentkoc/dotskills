@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import os
 import pathlib
 import shutil
@@ -93,6 +94,35 @@ class AgentSkillsSyncTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("reconcile before syncing", result.stderr)
         self.assertEqual((self.destination / "private.txt").read_text(), "keep")
+
+    def test_file_payload_cannot_impersonate_an_extra_tree_entry(self):
+        source, destination = self.root / "source", self.root / "destination"
+        source.mkdir(mode=0o755)
+        destination.mkdir(mode=0o755)
+
+        def frame(value):
+            return len(value).to_bytes(8, "big") + value
+
+        header = frame(b"b") + frame(str(stat.S_IFREG | 0o644).encode())
+        (source / "a").write_bytes(b"first" + header + b"private")
+        (destination / "a").write_bytes(b"first")
+        (destination / "b").write_bytes(b"private")
+        for tree in (source, destination):
+            for path in tree.iterdir():
+                path.chmod(0o644)
+
+        def old_digest(tree):
+            stream = frame(b".") + frame(str(tree.stat().st_mode).encode())
+            for path in sorted(tree.iterdir()):
+                stream += frame(os.fsencode(path.name))
+                stream += frame(str(path.stat().st_mode).encode()) + path.read_bytes()
+            return hashlib.sha256(stream).digest()
+
+        self.assertEqual(old_digest(source), old_digest(destination))
+        self.assertNotEqual(SYNC.content_digest(source), SYNC.content_digest(destination))
+        with self.assertRaisesRegex(SYNC.SyncError, "unmanaged or edited copy"):
+            SYNC.install(source, destination, kind="directory", mode="copy")
+        self.assertEqual((destination / "b").read_bytes(), b"private")
 
     def test_foreign_symlink_and_edited_prompt_are_preserved(self):
         self.destination.parent.mkdir(parents=True)
