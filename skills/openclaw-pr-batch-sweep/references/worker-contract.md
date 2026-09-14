@@ -97,9 +97,9 @@ GitHub mutations performed:
 - On `EMFILE`, `Too many open files`, or equivalent process-launch failure, stop spawning workers and parallel shells immediately. Let retained lanes finish, then continue with one coordinator shell call at a time.
 - Keep qualification read-only.
 - Serialize comments, branch pushes, closes, and merges.
-- After each merge, close, or other terminal decision, stop current-task remote leases and remove that PR's `gwt` worktree once no live process or operation lock owns it. Do not keep terminal worktrees until batch closeout.
-- Remove carried/blocked worktrees unless work is actively continuing in the current run; recreate from the remote PR head when resumed.
-- Never remove a worktree owned by another process, tmux pane, Codex session, or agent. If ownership is unclear, leave it in place and report it.
+- For terminal current-task PR closeout, follow `$operations-worktree` and the repository-native lifecycle. `gwt finish` applies only to opted-in finish-managed jobs and records actual local sign-off; existing cleanup authorization and all eligibility checks still apply, with no age floor after owner release.
+- Retain blocked or carried worktrees and stack, proof, handoff, or recovery dependencies. An unqualified holder backend or incomplete proof retains the tree; never force removal, clear locks, or remove another session’s checkout.
+- Report each task checkout as `retained`, `blocked`, or verified `removed`, with its exact path, branch/HEAD, owner, reason, and next action.
 - For editable-fork sync, use `${OPENCLAW_ROOT}/scripts/pr prepare-sync-head`. A GraphQL payload-limit fallback may set `OPENCLAW_PR_PUSH_MODE=git OPENCLAW_ALLOW_UNSIGNED_GIT_PUSH=1`; never replace the wrapper with a raw push.
 - When a Testbox starts from `main`, reconstruct the exact contributor head with `pull/<PR>/head` before gates and overlay only reviewed maintainer repair files. Never fill sparse omissions from a newer `main` tree onto the contributor head.
 - Recheck live state immediately before every mutation.
