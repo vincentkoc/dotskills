@@ -38,12 +38,17 @@ Create and manage worktrees safely and consistently across projects while avoidi
    Distinguish a verified current remote base from a cached local ref.
    Cached refs do not prove the latest head.
    When freshness cannot be verified, report that gap rather than silently substituting a stale base.
-6. Create the worktree with the installed shell wrapper:
-   - `gwt new <branch>`
-   - Optional explicit base: `gwt new <branch> <start-point>`
+6. Choose the creation command for the intended completion lifecycle:
+   - For new personal GWT task worktrees, use report-only finish when `gwt help`
+     advertises `--finish-managed`: `gwt new <branch> <start-point> --finish-managed`.
+     The start-point is optional. Keep the runtime `CODEX_THREAD_ID`; outside Codex,
+     set a stable task-specific `GWT_OWNER_ID` before creation.
+   - Other or repository-native wrappers use their documented creation and closeout commands.
+   Enrollment is creation-only. It records ownership and does not authorize removal.
    Stop creation if the wrapper is unavailable or still refuses the repaired owner.
    Do not substitute an unrestricted raw-Git creation route.
 7. Verify the returned path, managed root, registration, owner, branch, and HEAD.
+   For personal finish, confirm enrollment with `gwt finish-status` before starting work.
 8. Verify dependency reuse under [Dependency Ownership](#dependency-ownership).
 9. Read `references/task-artifacts.md` before work that retains evidence,
    publishes expensive artifacts, or needs a resumable phase/blocker receipt.
@@ -89,8 +94,10 @@ for every stack dependency. Each declared PR must target that same final branch.
 Dependent PRs need not be merged to record owner completion; an unfinished upper
 layer still keeps the checkout retained.
 
-Keep the runtime `CODEX_THREAD_ID` identity; outside Codex, use a stable
-task-specific `GWT_OWNER_ID`. `gwt resume`, `gwt cd`, and existing-tree reuse
+If personal finish reports `not-enrolled`, retain the checkout and explain that
+enrollment was required at creation. Do not try to enroll an existing checkout retroactively.
+
+`gwt resume`, `gwt cd`, and existing-tree reuse
 through `gwt new` invalidate prior completion. Keep recovery and dependency pins
 until their owner resolves them.
 `gwt finish-status` reads recorded state; report-only `gwt finish-check` refreshes
@@ -123,7 +130,11 @@ stateDiagram-v2
     QualifyOwner --> RepairSameOwner: authorized repair needed
     RepairSameOwner --> QualifyOwner: repair changes evidence
     QualifyOwner --> ReportBlocked: no qualified owner or unresolved refusal
-    QualifyOwner --> CreateWithWrapper: healthy owner and verified base
+    QualifyOwner --> ChooseLifecycle: healthy owner and verified base
+    ChooseLifecycle --> CreateEnrolledWorktree: new personal GWT and finish supported
+    ChooseLifecycle --> CreateWithWrapper: other or repository-native lifecycle
+    CreateEnrolledWorktree --> VerifyCheckoutAndDependencies: enrollment recorded
+    CreateEnrolledWorktree --> ReportBlocked: creation or enrollment refuses
     CreateWithWrapper --> VerifyCheckoutAndDependencies
     CreateWithWrapper --> ReportBlocked: wrapper refuses
     ReuseOwnedCheckout --> VerifyCheckoutAndDependencies
@@ -131,6 +142,7 @@ stateDiagram-v2
     VerifyCheckoutAndDependencies --> ReportBlocked: missing proof
     DoTask --> RecordFinish: enrolled managed checkout and owner work complete
     RecordFinish --> ReportRetained: report-only helper
+    DoTask --> ReportRetained: personal finish reports not-enrolled
     DoTask --> NativeCloseout: ordinary or repository-native checkout
     NativeCloseout --> ReportCheckout: existing authorized lifecycle and fresh proof
     ReportBlocked --> [*]
