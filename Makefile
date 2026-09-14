@@ -57,7 +57,25 @@ publish-skill:
 
 release:
 	@test -n "$(VERSION)" || (echo "VERSION is required (example: VERSION=v0.4.0)" && exit 1)
-	@git diff --quiet || (echo "Working tree is not clean" && exit 1)
-	$(MAKE) ci
-	git tag -a "$(VERSION)" -m "Release $(VERSION)"
-	@echo "Created tag $(VERSION). Push with: git push origin $(VERSION)"
+	@set -eu; \
+	release_head="$$(git rev-parse --verify HEAD^{commit})"; \
+	status="$$(git status --porcelain=v1 --untracked-files=all)"; \
+	if test -n "$$status"; then \
+		echo "Release requires the index and working tree to exactly match HEAD" >&2; \
+		printf '%s\n' "$$status" >&2; \
+		exit 1; \
+	fi; \
+	$(MAKE) ci; \
+	current_head="$$(git rev-parse --verify HEAD^{commit})"; \
+	if test "$$current_head" != "$$release_head"; then \
+		echo "HEAD changed during release checks; refusing to tag" >&2; \
+		exit 1; \
+	fi; \
+	status="$$(git status --porcelain=v1 --untracked-files=all)"; \
+	if test -n "$$status"; then \
+		echo "Release checks changed the index or working tree; refusing to tag" >&2; \
+		printf '%s\n' "$$status" >&2; \
+		exit 1; \
+	fi; \
+	git tag -a -m "Release $(VERSION)" -- "$(VERSION)" "$$release_head"; \
+	echo "Created tag $(VERSION) at $$release_head. Push with: git push origin $(VERSION)"
