@@ -129,13 +129,8 @@ link_or_copy_skill() {
   fi
 
   mkdir -p "$dest_root"
-  rm -rf "$dest"
-
-  if [[ "$mode" == "symlink" ]]; then
-    ln -s "$src" "$dest"
-  else
-    cp -R "$src" "$dest"
-  fi
+  python3 "$ROOT_DIR/scripts/managed_sync.py" \
+    install-directory --source "$src" --destination "$dest" --mode "$mode"
 
   echo "$mode $src -> $dest"
 }
@@ -155,13 +150,8 @@ link_or_copy_file() {
   fi
 
   mkdir -p "$dest_root"
-  rm -f "$dest"
-
-  if [[ "$mode" == "symlink" ]]; then
-    ln -s "$src" "$dest"
-  else
-    cp "$src" "$dest"
-  fi
+  python3 "$ROOT_DIR/scripts/managed_sync.py" \
+    install-file --source "$src" --destination "$dest" --mode "$mode"
 
   echo "$mode $src -> $dest"
 }
