@@ -10,7 +10,8 @@ Use this file when deciding build/review expectations for doc platforms.
 - API workflow depth: generated references, OpenAPI support, testability.
 - Collaboration model: docs-as-code, review workflow, versioning.
 - Runtime quality: search, navigation, and copy-ready code snippets.
-- AI readiness: structured content, stable URLs, machine-friendly layout.
+- AI readiness: structured content, stable URLs, machine-friendly layout yet human readable.
+- Human readiness: reading complexity, reading UX, navigation depth, minimize jargon.
 
 ## Apply in brownfield mode
 

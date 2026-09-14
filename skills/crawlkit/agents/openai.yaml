@@ -1,0 +1,10 @@
+interface:
+  display_name: "Crawlkit"
+  short_description: "Maintain and release the shared crawl app Go library."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Maintain crawlkit or verify a crawlkit release while preserving downstream app compatibility and avoiding live archive mutations."
+
+policy:
+  allow_implicit_invocation: true

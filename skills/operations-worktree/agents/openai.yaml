@@ -1,0 +1,10 @@
+interface:
+  display_name: "Operations Worktree"
+  short_description: "Create safe git worktrees from fresh remote defaults."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Create or inspect a safe git worktree for this repository using a fresh remote default branch unless I give an explicit start point."
+
+policy:
+  allow_implicit_invocation: true

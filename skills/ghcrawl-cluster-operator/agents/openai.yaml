@@ -1,0 +1,10 @@
+interface:
+  display_name: "ghcrawl Cluster Operator"
+  short_description: "Operate ghcrawl sync, clustering, and cluster inspection workflows."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Inspect this ghcrawl repository cluster state and pull the relevant cluster details using the CLI."
+
+policy:
+  allow_implicit_invocation: true

@@ -62,7 +62,7 @@ description_for_entry() {
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 tmp_rows="$(mktemp)"
-trap "rm -f '$tmp_rows'" EXIT
+trap 'rm -f "$tmp_rows"' EXIT
 
 if [[ -d "$ROOT_DIR/skills" ]]; then
   while IFS= read -r skill_dir; do

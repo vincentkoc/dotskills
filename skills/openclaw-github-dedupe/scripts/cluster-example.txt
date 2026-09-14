@@ -1,0 +1,16 @@
+# Example cluster workflow plan
+# Replace placeholder IDs with real issue/pr numbers before running.
+#
+# Columns:
+#   <type>:<id>|<action>|<target>
+#   type: pr | issue
+#   action: inspect | close-pr-duplicate | close-issue-duplicate | noop
+#
+# Canonical IDs used by this sample:
+#   - canonical PR: xxxxx
+#   - issue canonical: aaaaa
+
+pr:xxxxx|inspect|
+pr:yyyyy|close-pr-duplicate|xxxxx
+issue:bbbbb|close-issue-duplicate|aaaaa
+issue:ccccc|noop|

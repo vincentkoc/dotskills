@@ -19,7 +19,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 LOCAL_SKILL_ROOTS = [ROOT_DIR / "skills", ROOT_DIR / "private-skills"]
 SECTION_ROOTS = ("references", "scripts", "assets")
 PUBLIC_SKILLS_ROOT = ROOT_DIR / "skills"
-PUBLIC_SKILL_LICENSE = "AGPL-3.0-only"
+PUBLIC_SKILL_LICENSE = "MIT"
 PUBLIC_SKILL_SOURCE = "https://github.com/vincentkoc/dotskills"
 REPO_LICENSE_FILE = ROOT_DIR / "LICENSE"
 AGENTS_DOC_FILE = ROOT_DIR / "AGENTS.md"
@@ -55,6 +55,25 @@ def find_local_skill_dirs() -> List[Path]:
             if child.is_dir() and (child / "SKILL.md").is_file():
                 skill_dirs.append(child)
     return skill_dirs
+
+
+def validate_private_tracking(errors: List[str]) -> None:
+    result = subprocess.run(
+        ["git", "ls-files", "private-skills"],
+        cwd=ROOT_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        errors.append("cannot inspect tracked private-skills files")
+        return
+    tracked = [path for path in result.stdout.splitlines() if path != "private-skills/.gitkeep"]
+    if tracked:
+        errors.append(
+            "private-skills is local-only in this public repo; tracked files: "
+            + ", ".join(tracked)
+        )
 
 
 def parse_frontmatter(
@@ -201,15 +220,15 @@ def is_public_skill(skill_dir: Path, front: Dict[str, object]) -> bool:
 def validate_repo_license(errors: List[str]) -> None:
     if not REPO_LICENSE_FILE.is_file():
         errors.append(
-            f"{REPO_LICENSE_FILE}: missing repository license file (expected AGPL-3.0 text)"
+            f"{REPO_LICENSE_FILE}: missing repository license file (expected MIT text)"
         )
         return
 
     text = REPO_LICENSE_FILE.read_text(encoding="utf-8", errors="replace")
-    if "GNU AFFERO GENERAL PUBLIC LICENSE" not in text:
-        errors.append(f"{REPO_LICENSE_FILE}: does not look like AGPL-3.0 license text")
-    if "Version 3, 19 November 2007" not in text:
-        errors.append(f"{REPO_LICENSE_FILE}: expected AGPLv3 version marker is missing")
+    if "MIT License" not in text:
+        errors.append(f"{REPO_LICENSE_FILE}: does not look like MIT license text")
+    if "Permission is hereby granted, free of charge" not in text:
+        errors.append(f"{REPO_LICENSE_FILE}: expected MIT permission grant is missing")
 
 
 def validate_public_skill_policy(
@@ -518,6 +537,7 @@ def main() -> int:
     errors: List[str] = []
     warnings: List[str] = []
     validated = 0
+    validate_private_tracking(errors)
     validate_repo_license(errors)
     openai_defaults = parse_openai_defaults_from_agents(errors)
 

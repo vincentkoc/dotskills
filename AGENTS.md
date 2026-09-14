@@ -9,7 +9,11 @@ Skills are managed using vercel-labs/agent-skills (skills.sh/docs).
 
 1. Read `CONTRIBUTING.md` before making changes in this repo.
 2. Make targeted edits to skill files and references.
-3. Run relevant formatters/test commands when scripts or code are changed.
+3. Run validation gates before finalizing:
+   - `make validate`
+   - `pre-commit run --all-files`
+   - `make check-generated`
+   - if generated artifacts are out of date, run `make marketplace && make releases-index` and re-run `make check-generated`
 4. Open PRs as drafts first when applicable.
 
 ## Skill Standards
@@ -18,7 +22,7 @@ Skills are managed using vercel-labs/agent-skills (skills.sh/docs).
 - Prefer deterministic commands and repeatable workflows.
 - Prefer concise, evidence-backed SKILL.md guidance.
 - Put operational details in `references/` when they are verbose.
-- Public skills under `skills/` must include `license: AGPL-3.0-only` and `metadata.source: https://github.com/vincentkoc/dotskills`.
+- Public skills under `skills/` must include `license: MIT` and `metadata.source: https://github.com/vincentkoc/dotskills`.
 - Validators must enforce public-skill license and source metadata.
 
 ## OpenAI Metadata Defaults
@@ -43,6 +47,29 @@ openai_yaml_defaults:
 - If a public skill is added or renamed, update `catalog.yaml` entry.
 - Regenerate published indexes when public skills change: `make marketplace` and `make releases-index`.
 
+### Add/remove skill checklist
+
+When adding or removing a public skill:
+
+- Add public skill path: `skills/<skill-name>/`.
+- Add or update `SKILL.md` required sections and `metadata.source`/`license`.
+- Add `agents/openai.yaml` and `assets/icon.jpg` for public skills.
+- Update `catalog.yaml` entry:
+  - set `id`, `name`, `path`, and `source`.
+  - remove stale entry for deleted/renamed skills.
+- Update `README.md` public skills table and install examples.
+- Run `make marketplace && make releases-index`.
+- Run `make check-generated` and fix any sync gaps.
+- On publish, include versioned tag/release flow after PR merge.
+
+When adding or removing a private skill:
+
+- Place or remove under `private-skills/<skill-name>/`.
+- Do not update `catalog.yaml`.
+- Do not update public `README.md` install list unless you intentionally expose it.
+- No public-release index regeneration is required unless a public skill changed.
+- Still run `make validate`, `pre-commit run --all-files`, and `make check-generated`.
+
 ## PR/Issue Hygiene
 
 - Include issue references when available (for example `Fixes: 123`).
@@ -58,3 +85,15 @@ openai_yaml_defaults:
 
 - For external repos, run available unit tests and formatters before finalizing.
 - Use `gh` for PR operations and status checks.
+
+## Technical Documentation sub-agent prompt files
+
+- `skills/technical-documentation/agents/inventory-agent.md` (Claude `haiku`)
+- `skills/technical-documentation/agents/ste-lint-agent.md` (Claude `haiku`)
+- `skills/technical-documentation/agents/governance-agent.md` (Claude `sonnet`)
+- `skills/technical-documentation/agents/docs-framework-agent.md` (Claude `sonnet`)
+- `skills/technical-documentation/agents/verify-agent.md` (Claude `sonnet`)
+- `skills/technical-documentation/agents/docs-ux-audit-agent.md` (Claude `fable`)
+- `skills/technical-documentation/agents/ste-rewrite-agent.md` (Claude `fable`)
+- `skills/technical-documentation/agents/remediation-agent.md` (Claude `fable`)
+- `skills/technical-documentation/agents/synthesis-agent.md` (Claude `fable`)

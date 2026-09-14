@@ -9,6 +9,96 @@
   },
   "plugins": [
     {
+      "name": "codebase-memory-mcp",
+      "source": "./skills/codebase-memory-mcp",
+      "skills": "./",
+      "description": "Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph is usable before relying on it for code discovery. Keep linked worktrees on the owner's graph instead of creating one graph per branch."
+    },
+    {
+      "name": "codex-goal-mining",
+      "source": "./skills/codex-goal-mining",
+      "skills": "./",
+      "description": "Recover structured Codex goal history and convert free-form runs into evidence-backed, repeatable suites."
+    },
+    {
+      "name": "codex-session-recovery",
+      "source": "./skills/codex-session-recovery",
+      "skills": "./",
+      "description": "Recover crashed, detached, or confusing agent sessions while preserving the best restore source."
+    },
+    {
+      "name": "crabpot-perf-metrics",
+      "source": "./skills/crabpot-perf-metrics",
+      "skills": "./",
+      "description": "Turn Crabpot/OpenClaw perf artifacts into a clear read: what changed, what is real signal, what is stale/noisy, and what action is worth taking."
+    },
+    {
+      "name": "crawlkit",
+      "source": "./skills/crawlkit",
+      "skills": "./",
+      "description": "Maintain crawlkit, the shared Go library for crawl app archive infrastructure."
+    },
+    {
+      "name": "ghcrawl-cluster-operator",
+      "source": "./skills/ghcrawl-cluster-operator",
+      "skills": "./",
+      "description": "Operate ghcrawl as a local-first GitHub issue and pull request crawler: inspect the SQLite store, pull GitHub data, refresh summaries and embeddings, build clusters, and extract cluster evidence through deterministic CLI commands."
+    },
+    {
+      "name": "github-airplane-mode",
+      "source": "./skills/github-airplane-mode",
+      "skills": "./",
+      "description": "Switch an already-installed local Git and GitHub download guard."
+    },
+    {
+      "name": "graincrawl",
+      "source": "./skills/graincrawl",
+      "skills": "./",
+      "description": "Maintain `graincrawl`, the Go CLI that archives Granola notes, transcripts,"
+    },
+    {
+      "name": "openclaw-github-dedupe",
+      "source": "./skills/openclaw-github-dedupe",
+      "skills": "./",
+      "description": "Use this skill when a cluster of GitHub issues and pull requests has been reported for a common failure mode (Slack, iMessage, support threads, or manual list), and you need an evidence-based dedupe recommendation, execution pass, or autonomous closeout run."
+    },
+    {
+      "name": "openclaw-pr-batch-sweep",
+      "source": "./skills/openclaw-pr-batch-sweep",
+      "skills": "./",
+      "description": "Drive a continuing queue of real, low-risk OpenClaw contributor bug fixes through qualification, repair, proof, and landing. Work in batches of up to 20 without padding the batch with micro-patches, speculative cleanup, or risky surfaces."
+    },
+    {
+      "name": "operations-worktree",
+      "source": "./skills/operations-worktree",
+      "skills": "./",
+      "description": "Create and manage worktrees safely and consistently across projects while avoiding stale branch bases."
+    },
+    {
+      "name": "opik-integrations-auditor",
+      "source": "./skills/opik-integrations-auditor",
+      "skills": "./",
+      "description": "Audit, compare, and document Opik integrations across Python, TypeScript, and backend OTEL/API surfaces with a repeatable evidence-first workflow."
+    },
+    {
+      "name": "opik-optimizer",
+      "source": "./skills/opik-optimizer",
+      "skills": "./",
+      "description": "Design, run, and interpret Opik Optimizer workflows for prompts, tools, and model parameters with consistent dataset/metric wiring and reproducible evaluation."
+    },
+    {
+      "name": "org-branch-cleanup",
+      "source": "./skills/org-branch-cleanup",
+      "skills": "./",
+      "description": "Remove organization branch clutter without guessing which refs are safe to delete."
+    },
+    {
+      "name": "semantic-slicing",
+      "source": "./skills/semantic-slicing",
+      "skills": "./",
+      "description": "Turn a large repo into reviewable semantic slices with evidence. Use code shape, threat candidates, issue clusters, and support chatter together so review budget lands on the right parts of the system."
+    },
+    {
       "name": "technical-deslop",
       "source": "./skills/technical-deslop",
       "skills": "./",
@@ -18,7 +108,7 @@
       "name": "technical-documentation",
       "source": "./skills/technical-documentation",
       "skills": "./",
-      "description": "Produce and review technical documentation that is clear, actionable, and maintainable for both humans and agents."
+      "description": "Produce, review, and audit technical documentation that is clear, unambiguous, and maintainable for both humans and agents. Covers product docs, contributor-governance files, and agent instruction files. Prose follows Simplified Technical English so a reader or an agent cannot misread it. Audits scale to trees with hundreds of pages through sharding, adversarial checks, and parallel remediation."
     },
     {
       "name": "technical-integrations",
@@ -31,6 +121,18 @@
       "source": "./skills/technical-skill-finder",
       "skills": "./",
       "description": "Find recurring pain points from local agent logs and convert them into actionable skill candidates, reuse opportunities, or existing skill updates."
+    },
+    {
+      "name": "tmux-agent-lane-orchestrator",
+      "source": "./skills/tmux-agent-lane-orchestrator",
+      "skills": "./",
+      "description": "Turn a tmux window of coding-agent workers into a visible, auditable lane with clear state and next actions."
+    },
+    {
+      "name": "tmux-lane-orchestrator",
+      "source": "./skills/tmux-lane-orchestrator",
+      "skills": "./",
+      "description": "Act as the manager for one tmux worker lane. Keep visibility over the lane's panes, infer what each worker is doing from tmux and Codex logs, surface blockers, and give the operator short status summaries with concrete next actions."
     }
   ]
 }
