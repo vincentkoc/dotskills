@@ -48,13 +48,16 @@ Find recurring pain points from local agent logs and convert them into actionabl
    - If no overlap, propose **new skill**.
 5. Emit ranking output
    - Provide `impact`, `frequency`, `confidence`, `skill-fit`, and first-apply command set.
-6. Produce minimal first-iteration artifacts for high-priority candidates
+6. Produce minimal first-iteration output for high-priority candidates
    - Candidate title + scope
    - Trigger phrase examples
    - Required inputs
    - Suggested workflow summary
    - Evidence snippets (line/file-level)
    - Suggested dependencies/tools (e.g., `jq`, `rg`, shell utilities, MCP resources)
+   - Return this through chat/stdout by default. Create a persistent artifact
+     root only when the user selects one or another required workflow declares
+     it, with file/byte budgets and source/input identity.
 7. Optional extension to personal-signal sources
    - Only after explicit approval to read personal channels.
    - If MCP is available and user has granted access, run MCP resource discovery and include message-signal-derived patterns.
@@ -67,6 +70,9 @@ Find recurring pain points from local agent logs and convert them into actionabl
 - Prefer deterministic commands and small scripts over ad-hoc manual parsing.
 - Always avoid proposing skills with unresolved operational context (credentials, environment, private URLs).
 - If evidence is ambiguous, return `confidence: low` and request one more session sample.
+- Reuse one canonical identity-matched inventory instead of materializing
+  duplicate large extracts. Apply the `$operations-worktree` task artifact
+  contract when retention or resumable phase state is required.
 
 ## Outputs
 

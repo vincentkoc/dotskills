@@ -78,7 +78,7 @@ This workflow is designed for high-velocity maintainers and external contributor
 - `merge_tool_pref` (optional): `auto`, `gh`, `merge-skill`, or `land-skill`; default `auto`.
 - `dry_run` (optional): `0|1` to force non-mutating mode.
 - `output_mode` (optional): `compact|detailed`; default `detailed`.
-- `triage_report` (optional): path to a triage report file (like `/Users/vincentkoc/Desktop/triage_report.md`) to seed initial cluster candidates.
+- `triage_report` (optional): path to a triage report file (like `/path/to/triage-report.md`) to seed initial cluster candidates.
 - `search_limit` (optional): max similar items per item from GH search; default `12`.
 - `search_queries` (optional): explicit query terms (space-separated).
 

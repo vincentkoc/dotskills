@@ -1,4 +1,4 @@
-.PHONY: list validate validate-spec sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry marketplace releases-index check-generated changed-skills ci publish-skill release
+.PHONY: list validate validate-spec test sync sync-copy precommit-install precommit-run import-anthropic import-anthropic-dry import-huggingface-dry marketplace releases-index check-generated changed-skills ci publish-skill release
 
 list:
 	./bin/agent-skills list
@@ -8,6 +8,14 @@ validate:
 
 validate-spec:
 	./scripts/validate_spec.py
+
+test:
+	node --test skills/openclaw-pr-batch-sweep/scripts/*.test.mjs
+	node --test skills/semantic-slicing/scripts/*.test.mjs
+	python3 skills/codex-goal-mining/scripts/codex-goal-report-test.py
+	python3 skills/tmux-agent-lane-orchestrator/scripts/lane_snapshot_test.py
+	python3 skills/org-branch-cleanup/scripts/test_org_branch_cleanup.py
+	python3 -m unittest discover -s tests -p '*_test.py'
 
 sync:
 	./bin/agent-skills sync --profile codex,cursor --mode symlink
@@ -42,7 +50,7 @@ check-generated:
 changed-skills:
 	./scripts/changed_skills.sh $(BASE) $(HEAD)
 
-ci: marketplace releases-index validate precommit-run check-generated
+ci: marketplace releases-index validate test precommit-run check-generated
 
 publish-skill:
 	./scripts/publish_skill.sh $(SKILL) $(TAG) $(REPO)
