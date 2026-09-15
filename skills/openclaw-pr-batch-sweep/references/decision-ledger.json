@@ -52,6 +52,30 @@
   ],
   "landed": [
     {
+      "number": 145764,
+      "reason": "Landed by native squash 82a9bef596011a6145d7f639d9773ff5e7267f7d on 2026-09-14 from exact head 5d983bd3449a39c0492f6480d116e03720373405. The four-file binary patch is byte-identical to original contributor head 114e0967c9977e22afba6f64181511a09524e817 (SHA256 c2db3afbcf5afca7278d0f60c446fc58d30c2dcf310159495e053ad8b42b1d83); contributor ancestry and author email/account are preserved, with no agent trailers. Original-head deterministic loopback production-flow proof passed 10 cases after two intended parent-caller overlay failures, plus 43 focused cases; fresh scoped autoreview was clean. Exact-head CI 34837172055 attempt 2 passed 148 jobs with 17 skips after one reviewed failed-only hosted recovery; 144 prior successes were retained, and required app-15368 gate 103984697164 passed. Historical failures and limited isolated phase proofs remain documented without a root-cause or flake claim. Native HTTP504 prepare-metadata recovery resumed only the failed gates surface; no extra CI rerun or source change. Merge and source verified on remote main; completion comment 5664799827 posted. Receipt 5218da568546a6897b0ffd092cc944fd830f1da2 is confirmed/commented, not complete: exact-head fork branch deletion was permission-denied and was not retried. Native worktree/local PR branches removed; optional ops worktree retained clean, detached at verified main 82a9bef596011a6145d7f639d9773ff5e7267f7d because holder visibility was incomplete. All proof leases and owned commands joined/released; proof and native receipt refs retained. 2026-09-15 checkpoint: A fresh GitHub check confirmed that the PR remained MERGED at 82a9bef596011a6145d7f639d9773ff5e7267f7d, fork ZengWen-DT/openclaw viewerPermission READ, and fix/model-json-prefixes still at 5d983bd3449a39c0492f6480d116e03720373405; receipt 5218da568546a6897b0ffd092cc944fd830f1da2 remains commented. The exact operations-worktree finish-status returned retained (not-enrolled). Current operations-worktree SKILL.md:97 requires retention without retroactive enrollment; installed helper release/removal is unavailable. Holder visibility was not retested; no active-holder or absence claim is made. Ops retention under policy and unfinished native completion because the fork branch remains present are independent conditions. New permission, remote absence, or supported owner-release evidence permits reassessment only of the affected condition, not automatic deletion/completion. The native worktree remains absent; no fork-delete retry, merge-complete, or replay. 2026-09-15 operator-directed removal: Explicit operator approval superseded default ops retention. On the task host, fresh directory/.git identities, detached 82a9bef5, clean tracked/untracked/ignored state, registration and locks matched; The task holder audit was accepted without claiming unreadable processes absent. One ordinary nonforce gwt rm of the task-owned operations worktree joined exit 0; path and registration absence were verified at 07:44:41Z. The canonical checkout, dependency directory, other registrations, task branch, native receipt and all external proof entries were preserved. Historical retention remains recorded. Native fork cleanup is still pending; no permission change is claimed, and no remote check/delete retry, merge-complete, finish enrollment or managed release was performed."
+    },
+    {
+      "number": 141218,
+      "reason": "Discord reconnect presence cache seeding landed natively by squash as 96006252820e8a90e93dbe879d30d9b988779643 on 2026-09-09 after source review, 235 focused tests, dispatcher-to-memberInfo red/green, type proof, adjudicated AutoReview and exact-head CI. Remote main and all three reviewed file blobs verified; linked issue 141054 closed. Contributor fork branch retained after permission-denied cleanup."
+    },
+    {
+      "number": 127031,
+      "reason": "Memory-flush missing-writer diagnostic landed natively by squash as 90366ea89b096597aa24de26474c325b23c19a9d on 2026-09-09 after source review, 15 focused tests, six factory boundary cases with identical authorized toolsets and intended red/green, 28 selected checks, clean AutoReview and exact-head CI. Dated unrelated registry failure retained, not suppressed. Landed source preserves main reviewTranscript forwarding and requester-yield filtering. Issue 126906 remains open as a partial diagnostic mitigation; contributor fork branch retained after permission-denied cleanup."
+    },
+    {
+      "number": 137892,
+      "reason": "ClawHub pinned-release diagnostic landed natively by squash as 895bdee99ed94c0f4d1014faecc2c0bf79b0db1f on 2026-09-09. Literal install selectors and matching-tag precedence preserved; current-main integration retained. Exact-head9a CI and fresh ClawSweeper passed, scoped autoreview clean, isolated73 plus canonical formatting-overlay proof retained with 245 owner tests, eight tag cases and 29 selected checks; earlier synthetic-registry CLI and selector proof separately bound. All six landed file blobs verified identical to reviewed head; issue137624 closed by this PR. Contributor fork branch retained after permission-denied cleanup."
+    },
+    {
+      "number": 138819,
+      "reason": "WhatsApp inbound/outbound prefix owner repair landed natively by squash as 4a63aadafc4dd8d11223f7b4955ff013477674bb on 2026-09-09. Two intended boundary failures then two passes at 56f8 plus canonical fixture, 62 unique sibling tests, 24 selected checks and scoped-clean autoreview accepted; inherited SDK registry expiry retained, not waived. Fixture-only signed descendant ecef3419 passed exact-head CI run 34374968535 and fresh ClawSweeper. Eight of nine landed paths match reviewed head; existing main debounce test delta preserved. Issue 138779 closed by this PR. Contributor fork branch retained after permission-denied cleanup."
+    },
+    {
+      "number": 140249,
+      "reason": "Prepared compaction bootstrap-truncation notice repair landed natively by squash as f551ccc6fcf499e5d7711d91aa80cb053b6443d9 on 2026-09-11 from unchanged head 2c8adac1ca198df796169a09ababdc9c1c7f2bb0. Retained five-case boundary proof, 255 focused tests, 28 selected checks and scoped-clean autoreview accepted; dated unrelated registry failure preserved. Explicitly authorized one-time close/reopen admitted fresh CI run 34580510180; exact-head required CI and fresh ClawSweeper Revision 14 passed. All three landed patch IDs match the reviewed delta; newer main cleanup and bootstrap accounting remain intact. Remote main/source and contributor credit verified; issue 127528 closed. Related PR 133372 remains open because it also contains separate Sessions UI changes. Contributor fork branch retained after permission-denied cleanup."
+    },
+    {
       "number": 85296,
       "reason": "canonical bounded runtime fix after repair"
     },
@@ -513,6 +537,10 @@
     }
   ],
   "handledMerged": [
+    {
+      "number": 148129,
+      "reason": "Separate one-line Docker ClawHub sweep fixture prerequisite landed as-is by native squash abbdd5287afc59899721285bca79fdfd8e6d289d on 2026-09-14 from head 7d485aa2e89af7fdbd09e8ed0489b06d250b07e3. Exact-head CI run 34827490911 attempt 1 passed, including required app-15368 gate job 103945241527 and all 356 changed-file cases without filtering or skips; no CI retry was used. Parent and independent scope review plus fresh ClawSweeper Revision 2 found no actionable issue. Native pre-dispatch snapshot instability was investigated and recovered without an invented intent or blind POST retry. Receipt 92e18b418b1edde9fbd5076bac0802649109570f is complete; remote main and exact one-line landed source verified, Peter Steinberger credit and his external body update preserved. Native and ops worktrees removed after evidence preservation; ops branch and receipt refs retained. This does not repair PR145764's unrelated database or Bash timeouts. This operator-selected fixture prerequisite is a historical completion, not a default batch selection precedent."
+    },
     84288,
     89886,
     90537,
@@ -1923,6 +1951,38 @@
     }
   ],
   "rejected": [
+    {
+      "number": 146009,
+      "reason": "local selection exclusion at observed head f5d2c39e5bfef33b244fd0ca7912eade34da4a7a: 9 production-line patch below the default value/size threshold"
+    },
+    {
+      "number": 146339,
+      "reason": "local selection exclusion at observed head 0d66d0f83058609cdd3592a0cf31039a722bec54: exact-head CI gate failed"
+    },
+    {
+      "number": 146076,
+      "reason": "local selection exclusion at observed head 97a0796469ad807725516232f94dba01577a8236: broad serialization fallback plus test-only export and Knip exemption"
+    },
+    {
+      "number": 145775,
+      "reason": "local selection exclusion at observed head 051fc006d2fff58bfcd29b132a892eda9113001a: dirty/conflicting despite green CI"
+    },
+    {
+      "number": 146132,
+      "reason": "local selection exclusion at observed head 100b53f0d08755cf2c97d2ddca0b2af75641d644: exact-head CI gate failed"
+    },
+    {
+      "number": 145989,
+      "reason": "local selection exclusion at observed head 7470871de39f37bc23c6ca7031fb31204ab10796: backup/restore record framing outside persistence scope; mechanism not independently verified"
+    },
+    {
+      "number": 145758,
+      "reason": "local selection exclusion at observed head c2f1c562000754490c9a22bd3017885aa92a1294: 9-line proactive pagination guard, no qualifying linked defect"
+    },
+    {
+      "number": 146188,
+      "reason": "local selection exclusion at observed head 99ff5dec20aceb3210372594591ee5da5e955c7e: 6 production-line micro-fix, no qualifying exception"
+    },
     {
       "number": 98992,
       "reason": "feature-shaped public diagnostics and telemetry contract with competing implementations"
