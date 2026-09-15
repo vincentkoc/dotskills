@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import hashlib
+import json
 import os
 import pathlib
 import shutil
@@ -95,6 +96,20 @@ class AgentSkillsSyncTests(unittest.TestCase):
                 self.assertNotEqual(self.sync(check=False).returncode, 0)
                 self.assertEqual(SYNC.content_digest(self.destination), before)
 
+    def test_valid_marker_for_another_source_preserves_the_complete_copy(self):
+        self.sync()
+        marker = self.destination / SYNC.DIRECTORY_MARKER
+        payload = json.loads(marker.read_text())
+        payload["source"] = str(self.root / "other-source")
+        marker.write_text(json.dumps(payload) + "\n")
+        before = SYNC.content_digest(self.destination)
+
+        result = self.sync(check=False)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("managed marker does not match", result.stderr)
+        self.assertEqual(SYNC.content_digest(self.destination), before)
+
     def test_unmarked_exact_copy_can_migrate_but_different_copy_cannot(self):
         shutil.copytree(self.skill, self.destination)
         self.sync()
@@ -170,6 +185,23 @@ class AgentSkillsSyncTests(unittest.TestCase):
             with self.assertRaisesRegex(SYNC.SyncError, "destination appeared"):
                 SYNC.install(self.skill, self.destination, kind="directory", mode="copy")
         self.assertEqual((self.destination / "foreign").read_text(), "keep")
+
+    def test_prompt_marker_appearing_before_first_publish_is_preserved(self):
+        destination = self.codex / "prompts/owned.md"
+        marker = SYNC.marker_for(destination, "file")
+        original = SYNC.rename_noreplace
+
+        def raced(source, target):
+            if source.name == "new-marker":
+                target.write_text("foreign marker\n")
+            return original(source, target)
+
+        with mock.patch.object(SYNC, "rename_noreplace", side_effect=raced):
+            with self.assertRaisesRegex(SYNC.SyncError, "destination appeared"):
+                SYNC.install(self.command, destination, kind="file", mode="copy")
+        self.assertEqual(marker.read_text(), "foreign marker\n")
+        self.assertFalse(os.path.lexists(destination))
+        self.assertFalse(list(destination.parent.glob(".agent-skills-stage-*")))
 
     def test_publication_conflict_keeps_foreign_destination_and_old_copy(self):
         self.sync()
