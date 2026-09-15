@@ -615,7 +615,214 @@
     102819,
     102382,
     103727,
-    104094
+    104094,
+    {
+      "number": 114278,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: state-database corruption recovery landed as 08c80f5a0c3d80b67dba9742556edb8a9fef4fa9 after identity-safe read and write handle eviction, 93 exact-head focused and stress tests, Testbox changed-gate proof, fresh clean AutoReview, and 83 successful hosted checks"
+    },
+    {
+      "number": 115083,
+      "reason": "Non-precedent completion (beta update-channel/backport record; compatibility eligibility not requalified). Historical record: beta official-plugin bulk update channel repair landed on main as 8ffc5670758c4d8c24859021f18b0ed4795aed98 after live beta.5 registry proof, 37 exact-head focused tests plus broader 98-test coverage, path-scoped checks, fresh clean AutoReview, and 81 successful hosted checks; exact backport PR 115620 then landed on release/2026.7.2 as 8cd8f502103163de91632265761ae1365fed203d after 98 focused tests, full Testbox checks, clean AutoReview, and 82 hosted checks"
+    },
+    {
+      "number": 115260,
+      "reason": "Non-precedent completion (privileged-action authorization and security). Historical record: Discord privileged-action trusted-requester predicate registration landed as 75ee9b81bae9d609d2ccbdac1fb9d81a76c3deb3 after sanitized direct AWS Crabbox passed 104 focused adapter and dispatcher security tests, fresh AutoReview was clean, and 46 hosted checks passed"
+    },
+    {
+      "number": 115631,
+      "reason": "Non-precedent completion (database migration and managed-service recovery). Historical record: managed gateway recovery after typed agent-database media migration blocks landed as f6e874835c603e7e20d3da9bc49c51657cf6bb6f and closed issue 115072; exact merge-tree proof against current main was conflict-free, 237 touched tests passed under isolated temp state, Blacksmith Testbox run 30446698894 passed check:changed, the original head had clean AutoReview and full hosted CI, and runtime still fails closed while doctor alone repairs migration state and restores the managed service"
+    },
+    {
+      "number": 114911,
+      "reason": "Non-precedent completion (sandbox capability and pathname-safety policy). Historical record: atomic no-clobber Add File and non-self Move to handling landed as edf4aca7bc275541e226fc5c8725d93bfb2f42be with contributor credit; the final contract intentionally diverges from current Codex overwrite behavior, keeps explicit Delete then Add replacement, fails closed when an optional sandbox capability is absent, and documents same-UID content mutation outside the pathname-safety boundary; focused collision, symlink, contention, backend, and provenance tests passed, Blacksmith Testbox run 30447510045 passed the full changed gate, fresh AutoReview was clean, hosted CI run 30448272524 passed on failed-job retry after one logless lint runner cancellation, and the final main-delta audit found zero touched-file overlap or merge conflicts"
+    },
+    {
+      "number": 115741,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: nested provider schema-keyword traversal landed as 6ec3dbd92dbec2e682c3ac99c9a62b66ac09e242 after completing the JSON Schema container taxonomy, 9 focused tests, 534 provider tests, core and core-test type checks, targeted lint and format proof, provider projection smoke, clean exact-head AutoReview at 0.98, exact-head ClawSweeper with no findings, and successful hosted CI run 30462191653 including the merge-tree max-lines ratchet"
+    },
+    {
+      "number": 115582,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: OpenAI GPT-Live transport error completion repair landed as aef33cfef74832404dcf803f9c6a091bed5418d6 after 56 focused transport and mapper tests, a 620-test OpenAI extension run with one unrelated timing flake that passed three focused reruns, full changed checks, clean AutoReview at 0.97, and successful hosted merge gates"
+    },
+    {
+      "number": 115997,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: Codex large-session JSONL streaming landed as d4436e9a1709b5598556c0882cd88519e9988ea0 after current-main four-file merge proof, repeated focused reader and startup timing tests, exact-head package build and tarball inspection, full extension changed checks, clean AutoReview at 0.96, 55 successful hosted checks, and a behavior-neutral relay constant rename that repaired the red env-var ratchet without raising its budget"
+    },
+    {
+      "number": 115919,
+      "reason": "Non-precedent completion (model-visible guidance record; production-runtime eligibility not requalified). Historical record: bundled Diffs model-visible guidance repair landed as 1225aa822f21cd948501b024bab07f3f1e2231d8 with the reviewed five-file patch byte-identical to the prepared tree; focused 31-test and full 150-test Diffs proof, targeted format and lint, path-scoped changed gates, clean AutoReview at 0.98, exact-head ClawSweeper with no findings, and all hosted checks passed"
+    },
+    {
+      "number": 116025,
+      "reason": "Non-precedent completion (explicitly accepted plugin-owned migration). Historical record: Doctor unknown-plugin channel schema repair landed as edbb1fca86c441bc21fd3eeb85fb4d385b493a75 after 218 focused tests, changed gates, clean AutoReview, exact-head hosted CI, and explicit acceptance of the plugin-owned migration boundary"
+    },
+    {
+      "number": 116068,
+      "reason": "Non-precedent completion (Android and Wear native-app resource behavior). Historical record: Android and Wear capability resource-retention repair landed as 6288a750cad48834073b892b0401600bfbd790ea after optimized Play/Wear AAB and universal APK proof retained all four capability resources, scoped tests and ktlint passed, AutoReview was clean, and exact-head CI passed"
+    },
+    {
+      "number": 116044,
+      "reason": "Non-precedent completion (settled-turn prompt-echo record; session-semantics eligibility not requalified). Historical record: Codex settled-turn finalizer exact prompt-echo repair landed as cce8a21492a562235efbc56d2d6b1d917b6ca632 after direct current and tagged Codex source inspection, a real Codex 0.146 app-server sequence, 3123 extension tests, changed gates, clean AutoReview, and exact-head hosted gates"
+    },
+    {
+      "number": 116128,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: apply_patch unchanged-context byte preservation landed as 8ce1e18d2f29afcfb5234f150558687b4f196b5d after six real-filesystem controls, 92 focused tests, changed gates, clean AutoReview, 122 accepted hosted checks, and zero touched-file overlap with moving main"
+    },
+    {
+      "number": 116057,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: Memory Core durable heading preservation landed as 772235cc55976c7f30483648ab9be2364b89ef3c after CommonMark ATX and Setext repair, real filesystem and SQLite promotion-write proof, 113 merge-result tests, changed gates, clean AutoReview, and exact-head hosted CI"
+    },
+    {
+      "number": 89419,
+      "reason": "Non-precedent completion (configured binding-precedence record; default-batch eligibility not requalified). Historical record: implicit main binding deletion and configured MAIN precedence repair landed as 2e1bf01f51f4fa65fab8b4c809e0d5b20cd5ea5d after 269 focused tests, changed gates, clean AutoReview, 82 passing exact-head checks, and refreshed ClawSweeper with no findings"
+    },
+    {
+      "number": 116162,
+      "reason": "Non-precedent completion (explicitly accepted cross-scope service ownership policy). Historical record: systemd cross-scope gateway ownership guard landed as d5e3c68632326e1768536b55d6b867fdf7966473 after 145 focused tests, full changed gates, live Linux /run system-unit proof, clean AutoReview, 196 accepted hosted checks, and explicit fail-closed maintainer policy"
+    },
+    {
+      "number": 115779,
+      "reason": "Non-precedent completion (explicitly accepted pre-upgrade catch-up compatibility). Historical record: cron schedule-activation ownership repair landed as 82af1bf7d403a07f477a39ca636675279b9d5b21 after 57 merge-result tests, full changed gates, exact-head CI, clean AutoReview, and explicit acceptance of one-time unstamped pre-upgrade catch-up behavior"
+    },
+    {
+      "number": 115932,
+      "reason": "Non-precedent completion (explicitly accepted fail-closed authorization policy). Historical record: scheduled removed-account deny-all authorization repair landed as cee6203f448bd2efb526d53425db306a73969420 after 321 focused security tests, hosted lint retry passed unchanged, clean AutoReview, zero current-main touched-path overlap, and explicit fail-closed maintainer acceptance"
+    },
+    {
+      "number": 115500,
+      "reason": "Non-precedent completion (explicitly accepted transcript-retention semantics). Historical record: compaction total-failure error propagation landed as b942db4d569b330370234e82e5ce393f4e0e1ae5 after 211 focused and adjacent tests, full changed gates, clean AutoReview, exact-head hosted checks, and explicit acceptance of harness-proven lossless transcript retention"
+    },
+    {
+      "number": 115891,
+      "reason": "Non-precedent completion (durable ingress deduplication and message-delivery ownership). Historical record: durable-ingress queue dedupe lifecycle ownership repair landed as 9c6e06b5579e126841dc58cdd4eb7606b95e5636 after 190 focused queue and ingress tests, full build and changed gates, clean AutoReview, exact-head hosted CI, and stale-owner replacement proof"
+    },
+    {
+      "number": 116174,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: Beam unread response-body retry-stall repair landed as cc48aef143551af2ce13096264335ce9954e61e6 after one-connection close proof, 33 Beam and Buzz tests, all extension package-boundary compiles, full changed gates, clean AutoReview, and exact-head hosted CI"
+    },
+    {
+      "number": 116179,
+      "reason": "Non-precedent completion (durable accepted-message retention). Historical record: WhatsApp accepted pending-message retention repair landed as 4e5bf66fb18a5f1b7767ad0e159e98d4fbde04b6 after failing-before TTL and cap proof, 61 real SQLite and production ingress tests, full changed gates, clean AutoReview, and exact-head hosted CI"
+    },
+    {
+      "number": 116178,
+      "reason": "Non-precedent completion (systemd start-limit and managed-service recovery). Historical record: systemd start-limit recovery repair landed as 5e1e70e423f14d87d7b51f649f7908a5e31bbfa4 after 129 focused tests, real managed-user systemd CLI proof, clean AutoReview, exact-head hosted CI with one unrelated media flake passing unchanged on retry, and native merge verification"
+    },
+    {
+      "number": 116222,
+      "reason": "Non-precedent completion (concurrent external security-scanner completion). Historical record: plugin security scanner every-match completeness repair landed concurrently as 2899323fe3e940a9c738a797b190a3616c136848 while the live-edge audit was in progress; exact-head CI was green and follow-up PR 116212 now requires multiplicity-aware adaptation"
+    },
+    {
+      "number": 116180,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: Memory Core mixed promotion-block ownership repair landed as d952566385210cb4dd3e566e95eb229f39407975 after 143 focused tests, clean AutoReview, exact-head hosted CI, 115 current merge-result compaction and promotion regressions, ClawSweeper review, and native merge verification"
+    },
+    {
+      "number": 116225,
+      "reason": "Non-precedent completion (assistant transcript persistence). Historical record: mixed text-and-media assistant transcript persistence repair landed as 3ffd3864ea23a899a637da691b0e5214d178d768 after preserving contributor authorship and patch identity, 394 focused tests, current-main UI baseline refresh, clean AutoReview, exact-head release-gate CI, ClawSweeper review, and native merge verification"
+    },
+    {
+      "number": 116220,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: oversized trajectory prompt-retention repair landed as bca8dd9cc1620dc680fede4348dbf8b53aafa8a0 after normal schema-v1 byte-equivalence coverage, ordered duplicate-field shedding, real persisted-event proof, 70 synthetic-merge writer/export/tail tests, clean AutoReview, exact-head CI, and fresh ClawSweeper review"
+    },
+    {
+      "number": 116216,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: OpenAI Codex WebSocket cache ownership repair landed as 834fb2e3c2cbe539274fc85a009cc625383bf085 after direct sibling Codex contract inspection, deterministic winner/loser socket proof, clean AutoReview, exact-head CI, fresh ClawSweeper review, and signed native merge verification"
+    },
+    {
+      "number": 116565,
+      "reason": "Non-precedent completion (turn-steer timeout record; availability-policy eligibility not requalified). Historical record: Codex app-server turn-steer timeout repair landed as 5e2fec29694f058aadaaea1c460065b7363082f8 after direct sibling Codex contract inspection, abort and pending-request cleanup coverage, SIGSTOP no-ack proof, clean AutoReview, exact-head secretless CI, and signed native merge verification"
+    },
+    {
+      "number": 116558,
+      "reason": "Non-precedent completion (legacy runtime-state migration and startup convergence). Historical record: legacy runtime-state startup convergence repair landed as 63c94952b3e4c8471c9a97127bb6590d35d27bb4 after COMMIT-failure retry hardening, 175 focused migration and startup tests, full changed gates, clean AutoReview, exact-head CI with classified infrastructure retries, fresh ClawSweeper review, and signed native merge verification"
+    },
+    {
+      "number": 116509,
+      "reason": "Non-precedent completion (recovered completion; default-batch eligibility not requalified). Historical record: fuzzy edit stable-boundary mapping repair landed as 5337e85f111a52bc42ada4764e245f65f3beeed1 after conservative whole-string NFKC source mapping, 80 focused host sandbox and preview tests, real write-readback and diff proof, clean AutoReview, exact-head CI, fresh ClawSweeper review, and signed native merge verification"
+    },
+    116198,
+    116212,
+    116226,
+    {
+      "number": 115447,
+      "reason": "Observed merged at 2026-08-21T04:21:29Z; not selection precedent. Historical batch rejection: P1 migration repair crosses persisted-state compatibility and upgrade behavior, an explicit hard exclusion despite a valid symptom"
+    },
+    {
+      "number": 115757,
+      "reason": "Observed merged at 2026-07-29T16:58:07Z; not selection precedent. Historical batch rejection: canonical fix in its duplicate cluster, but it changes the shipped plugin SDK compatibility surface and requires dedicated SDK review"
+    },
+    {
+      "number": 115882,
+      "reason": "Observed merged at 2026-08-26T09:37:43Z; not selection precedent. Historical batch rejection: hidden trust-boundary hardening rejects symlinks and additional filesystem states without a measured user bug or product decision"
+    },
+    {
+      "number": 115918,
+      "reason": "Observed merged at 2026-07-29T15:18:27Z; not selection precedent. Historical batch rejection: speculative Discord malformed-input hardening has no observed incident or dependency-contract evidence"
+    },
+    {
+      "number": 115906,
+      "reason": "Observed merged at 2026-07-29T15:40:22Z; not selection precedent. Historical batch rejection: tiny BOM micro-fix with red CI does not meet the batch maintainer-value threshold"
+    },
+    {
+      "number": 115743,
+      "reason": "Observed merged at 2026-08-01T09:23:09Z; not selection precedent. Historical batch rejection: synthetic transcript-newline patch repairs the wrong layer and does not establish the reported production mechanism"
+    },
+    {
+      "number": 115873,
+      "reason": "Observed merged at 2026-08-01T03:54:07Z; not selection precedent. Historical batch rejection: technically plausible Google Chat unread-body cleanup crosses auth, SSRF, transport, and response-lifecycle boundaries"
+    },
+    {
+      "number": 115738,
+      "reason": "Observed merged at 2026-07-29T14:09:43Z; not selection precedent. Historical batch rejection: sound edit-ambiguity cleanup lacks a linked incident or concrete user-visible failure sufficient to justify batch landing"
+    },
+    {
+      "number": 115465,
+      "reason": "Observed merged at 2026-08-09T01:15:40Z; not selection precedent. Historical batch rejection: defensive hardening without a concrete issue, failing-before proof, or observed production state"
+    },
+    {
+      "number": 115277,
+      "reason": "Observed merged at 2026-08-27T10:24:20Z; not selection precedent. Historical batch rejection: MCP server-name glob materialization expands config and Codex compatibility semantics without a canonical naming or collision contract"
+    },
+    {
+      "number": 115507,
+      "reason": "Observed merged at 2026-08-28T05:09:36Z; not selection precedent. Historical batch rejection: valid retry callback ambiguity changes the public plugin SDK and auth-provider compatibility contract and requires an API decision"
+    },
+    {
+      "number": 116127,
+      "reason": "Observed merged at 2026-08-02T08:24:29Z; not selection precedent. Historical batch rejection: P3 diagnostic-only hook wording polish with no material runtime or workflow failure"
+    },
+    {
+      "number": 116108,
+      "reason": "Observed merged at 2026-09-07T04:05:03Z; not selection precedent. Historical batch rejection: valid nested include persistence repair is compatibility-sensitive config ownership work requiring a dedicated owner lane"
+    },
+    {
+      "number": 114601,
+      "reason": "Observed merged at 2026-08-03T09:36:21Z; not selection precedent. Historical batch rejection: directory read diagnostic patch uses the wrong owner boundary, lacks shared backend coverage, and adds no regression tests"
+    },
+    {
+      "number": 116046,
+      "reason": "Observed merged at 2026-08-28T03:30:39Z; not selection precedent. Historical batch rejection: camera repair changes all iOS photo capture behavior, does not select the reporter's proven media subtype, and lacks hardware proof"
+    },
+    {
+      "number": 116131,
+      "reason": "Observed merged at 2026-07-31T19:01:18Z; not selection precedent. Historical batch rejection: large Codex compatibility architecture lane remains pending lint, owner, and protocol review and was not promoted into the bounded batch"
+    },
+    {
+      "number": 116042,
+      "reason": "Observed merged at 2026-07-31T23:21:42Z; not selection precedent. Historical batch rejection: valid iOS Magic Keyboard P1 is actively claimed and still needs an IME marked-text guard plus physical keyboard proof"
+    },
+    {
+      "number": 116123,
+      "reason": "Observed merged at 2026-08-15T15:56:15Z; not selection precedent. Historical batch rejection: real shared outbound sanitizer corruption, but the contributor patch and bounded repair shapes regress paired HTML, code-tag, line-break, or nested-format ordering and require a separate sanitizer refactor"
+    },
+    {
+      "number": 115984,
+      "reason": "Observed merged at 2026-08-23T16:09:12Z; not selection precedent. Historical batch rejection: valid P2 cross-agent status summary bug does not fix the linked runtime issue and includes unrelated llama-cpp type drift"
+    },
+    {
+      "number": 116146,
+      "reason": "Observed merged at 2026-07-31T21:55:45Z; not selection precedent. Historical batch rejection: P2 embeddings abort repair has red lint and lacks queued and local-provider abort guards, so it was not promoted over verified P1 targets"
+    }
   ],
   "closed": [
     {
@@ -1649,6 +1856,70 @@
     {
       "number": 104071,
       "reason": "closed as a weaker duplicate of canonical Workboard fix 104065 and landed commit b2cd0e428d82dd634d6643bdd36cb274529a5354 because moving active-claim validation ahead of scheduled and retry-budget guards changes reachable error precedence"
+    },
+    {
+      "number": 115223,
+      "reason": "closed because current main already preserves the intended compacted session state and the submitted stale-metadata repair was superseded; replacement Testbox run 30419643360 passed the focused persisted-state proof"
+    },
+    {
+      "number": 115498,
+      "reason": "closed as fixed by PR 116017 and commit 97d374b357ebe2d389a9d512d70e689fd1af85cb, which removed the retired Codex CLI parser and preserves tool summaries at the supported generic CLI runner boundary"
+    },
+    {
+      "number": 116132,
+      "reason": "closed as fixed by PR 116043 and commit 052212dc9763aeb7ad682f18e37edc2a07039f90, which resets sequence state per replacement WebSocket generation"
+    },
+    {
+      "number": 116138,
+      "reason": "closed as superseded by canonical PR 116128 and commit 8ce1e18d2f29afcfb5234f150558687b4f196b5d; submitted equality-based context inference was conflicting, testless, and ambiguous for duplicate lines"
+    },
+    {
+      "number": 115889,
+      "reason": "closed as superseded by canonical PR 116089 and commit daaaef95f093a28563c8db3610b5a757ae0aa6f9, which only re-arms health recovery after genuine recovery"
+    },
+    {
+      "number": 116151,
+      "reason": "closed as a wrong-layer duplicate of canonical PR 115500; its per-chunk throw discarded earlier valid staged summaries"
+    },
+    {
+      "number": 116169,
+      "reason": "closed as superseded by merged PR 116128 and commit 8ce1e18d2f29afcfb5234f150558687b4f196b5d"
+    },
+    {
+      "number": 116140,
+      "reason": "closed because a per-run one-send quota suppresses legitimate progress plus final delivery and repairs the wrong owner boundary for issue 96827"
+    },
+    {
+      "number": 116185,
+      "reason": "closed as a duplicate of landed PR 116174 after canonical Beam response-body lifecycle proof"
+    },
+    {
+      "number": 116199,
+      "reason": "closed because a short polling retry cannot repair yielded subagents whose authoritative final arrives later; canonical repair remains issue 101862 and PR 106364"
+    },
+    {
+      "number": 116192,
+      "reason": "closed as an incomplete duplicate of PR 115777 that does not carry realized QA driver evidence through unified and failure artifacts"
+    },
+    {
+      "number": 116208,
+      "reason": "closed as stale and dirty work for behavior already fixed since PR 69153; deleting explicit target context regressed shipped delivery-mode-none semantics"
+    },
+    {
+      "number": 116191,
+      "reason": "closed because inferring Signal daemon bind ownership from an independently configurable proxy URL breaks supported configurations and the submitted head did not compile"
+    },
+    {
+      "number": 116218,
+      "reason": "closed because remote catalog overlays are explicitly restart-applied; dropping negative caching creates asymmetric freshness and repeated request-time SQLite polling"
+    },
+    {
+      "number": 116531,
+      "reason": "closed because reclassifying approved remote system execution as admin-only contradicts the shipped arm-then-use operator.write trust contract; any change requires an explicit security and product policy decision"
+    },
+    {
+      "number": 116019,
+      "reason": "Metadata observed CLOSED without merge. Historical batch deferral: P2 streaming 500 repair lacks the required live failure trace and was not promoted over verified P1 targets"
     }
   ],
   "rejected": [
@@ -3555,6 +3826,54 @@
     {
       "number": 111252,
       "reason": "strict Claude cursor canonicalization is a session and transcript compatibility micro-change with no concrete wrong-page, data-loss, or user-visible failure"
+    },
+    {
+      "number": 115840,
+      "reason": "Historical batch rejection: weaker duplicate of PR 115757 in a plugin SDK compatibility cluster outside the low-risk batch"
+    },
+    {
+      "number": 114900,
+      "reason": "Historical batch rejection: valid Windows decoding symptom, but the repair changes session and subprocess compatibility behavior and needs owner-level proof"
+    },
+    {
+      "number": 115205,
+      "reason": "Historical batch rejection: Signal allowlist behavior is real but the one-sided patch changes config and access-control policy without proving sibling surfaces"
+    },
+    {
+      "number": 115334,
+      "reason": "Historical batch rejection: diagnostic-only read-tool warning duplicates canonical unsupported-image transcript handling and lacks a current-main model-bound failure"
+    },
+    {
+      "number": 116009,
+      "reason": "Historical batch rejection: unproven llama-cpp typecheck repair copies and loosens upstream dependency contracts despite green exact-base type checks"
+    },
+    {
+      "number": 115714,
+      "reason": "Historical batch rejection: real sessions_yield warning bug crosses abort, transcript, message-delivery, and availability ownership and needs a dedicated owner lane"
+    },
+    {
+      "number": 116028,
+      "reason": "Historical batch rejection: tiny Anthropic version-literal bump touches auth-provider routing, lacks proof, and does not meet the batch value threshold"
+    },
+    {
+      "number": 116093,
+      "reason": "Historical batch rejection: draft required-plugin-tool repair drops full-profile wildcard discovery and regresses optional plugin tools"
+    },
+    {
+      "number": 116016,
+      "reason": "Historical batch rejection: new Telnyx provider surface is not a regression and carries unresolved token-cap, proxied credential, dependency, security, and documentation risks"
+    },
+    {
+      "number": 116111,
+      "reason": "Historical batch rejection: Android full-screen takeover and DND bypass is feature and product-policy work outside the regression batch"
+    },
+    {
+      "number": 116182,
+      "reason": "Historical batch rejection: weaker Signal port-repair duplicate that keeps the same runtime inference and migration-boundary error as PR 116181"
+    },
+    {
+      "number": 116149,
+      "reason": "Historical batch rejection: valid P2 Telegram edit/send chat-kind mismatch, but the one-sided repair leaves sibling callback behavior inconsistent and needs a dedicated channel lane"
     }
   ],
   "ignored": [
