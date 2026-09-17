@@ -34,8 +34,9 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Never independently index `~/GIT/_Synthetic` or repositories marked by `.git/gwt-synthetic.json`. This indexing rule grants no cleanup authority.
    - Missing, invalid, bare, ambiguous, ownerless, reserved-owner, or NUL-containing repositories fail closed.
 3. Prefer exposed MCP graph tools for discovery.
+   - If the tool is absent, the service times out/closes its transport, or no usable project exists, report that surface once and continue ordinary code work with bounded `rg` and direct reads. Do not retry without changed service evidence. Graph availability is not a prerequisite for ordinary inspection or repair.
    - Installer or client configuration must separately disable the MCP `index_repository` tool because it cannot enforce the canonical indexing boundary. For Codex installs, render the private `disabled_tools` configuration accordingly.
-   - When a graph is missing, run `scripts/codebase-memory-graph.sh index --repo "$(git rev-parse --show-toplevel)" --mode full`.
+   - When indexing is requested and the graph is missing, run `scripts/codebase-memory-graph.sh index --repo "$(git rev-parse --show-toplevel)" --mode full`. Do not start indexing or daemon repair as an incidental prerequisite to another task.
    - Use `search_graph`, `trace_path`, and `get_code_snippet` before broad text scans.
 4. Use the helper for CLI indexing.
    - `scripts/codebase-memory-graph.sh init --repo "$(git rev-parse --show-toplevel)" --mode full`
@@ -106,7 +107,9 @@ stateDiagram-v2
     GuardedIndex --> QueryGraph: index succeeds
     GuardedIndex --> ReportBlocked: index fails
     QueryGraph --> ReportProof: schema and focused query pass
-    QueryGraph --> ReportBlocked: verification fails
+    QueryGraph --> BoundedSourceSearch: graph unavailable during code work
+    BoundedSourceSearch --> ReportProof: direct source findings with graph limitation
+    QueryGraph --> ReportBlocked: requested graph repair remains unverified
     AuditManifest --> ReviewAndDryRun
     ReviewAndDryRun --> ReportProof: audit or dry-run only
     ReviewAndDryRun --> ApplyThroughCLI: apply requested and every precondition passes

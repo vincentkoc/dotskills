@@ -127,7 +127,7 @@ Compose the repository skills instead of duplicating them:
    - Squash contributor PRs unless the operator says otherwise.
    - The coordinator serializes GitHub comments, closes, pushes, and merges to avoid duplicated actions.
    - Use `$operations-worktree` for terminal current-task closeout after verifying the PR outcome and finishing current-task proof and remote leases. `gwt finish` applies only to trees created with `--finish-managed`; existing and repository-native PR worktrees keep their own lifecycle.
-   - `gwt finish` records actual local job sign-off. The current helper is report-only: managed owner release and removal are unavailable. Preserve the checkout; finish does not authorize cleanup or bypass a refusal.
+   - Follow the installed `$operations-worktree` completion and release contract; do not assume a fixed helper capability here. Recording completion, releasing this owner's future use, and removing the checkout are separate outcomes. Retention alone does not keep the PR or batch active.
    - Retain blocked or carried worktrees and trees needed by stacked PRs, proof, handoff, or recovery. Record or pin the dependency. Closing a PR or ending a process is not merge or owner-release proof. Never force removal, clear locks, or remove another session’s checkout.
 
 8. Close the batch with a ledger.
