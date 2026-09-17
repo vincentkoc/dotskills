@@ -83,6 +83,14 @@ Give each task checkout an explicit outcome:
 - `unknown`: preserve an incomplete removal result; reconcile its exact intent read-only before recovery.
 
 Task completion alone is not owner release or removal authorization.
+Checkout retention does not keep a completed task active. Record the retained
+path and its concrete remaining condition once, then finish the requested work.
+Optional proof or profiling must not become a new closeout requirement.
+For superseded, cancelled or already-applied work without a matching PR, use
+`gwt cancel --reason <text>` only when the installed helper advertises it.
+This ends the current owner's work and retains the checkout, branch and pins;
+it does not grant release or removal. Otherwise report that disposition in
+chat without inventing PR proof or repeating the failed finish command.
 Ordinary and repository-native checkouts keep their existing authorized lifecycle:
 removal requires fresh ownership and recovery proof and the repository's approved non-force procedure.
 
@@ -166,8 +174,11 @@ stateDiagram-v2
     CreateWithWrapper --> ReportBlocked: wrapper refuses
     ReuseOwnedCheckout --> VerifyCheckoutAndDependencies
     VerifyCheckoutAndDependencies --> DoTask: qualified
-    VerifyCheckoutAndDependencies --> ReportBlocked: missing proof
-    DoTask --> RecordFinish: enrolled managed checkout and owner work complete
+    VerifyCheckoutAndDependencies --> DoTask: code-only work can proceed
+    VerifyCheckoutAndDependencies --> ReportBlocked: required execution unavailable
+    DoTask --> RecordFinish: enrolled checkout and matching PR work complete
+    DoTask --> CancelOwner: superseded or cancelled without matching PR
+    CancelOwner --> ReportRetained: supported cancel or chat disposition
     RecordFinish --> ReportRetained: no release or report-only enrollment
     RecordFinish --> SignOffOwner: release supported and no future owner use
     RecordFinish --> EvaluateRelease: existing release remains valid
