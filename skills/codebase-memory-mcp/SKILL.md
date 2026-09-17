@@ -101,7 +101,7 @@ stateDiagram-v2
     ResolveCanonicalOwner --> SelectTask: valid owning checkout
     state SelectTask <<choice>>
     SelectTask --> QueryGraph: discovery
-    SelectTask --> GuardedIndex: index requested or graph missing
+    SelectTask --> GuardedIndex: indexing explicitly requested
     SelectTask --> AuditManifest: cache maintenance
     SelectTask --> ReportBlocked: UI startup requested
     GuardedIndex --> QueryGraph: index succeeds
