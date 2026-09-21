@@ -17,7 +17,11 @@ Create and manage worktrees safely and consistently across projects while avoidi
 - You need to avoid branching from stale local `main` or local `HEAD`.
 
 ## Workflow
-1. Resolve the repository identity, canonical owning checkout, Git common directory, and existing worktree registrations.
+1. Identify the producer: shell GWT, a repository-native wrapper, or an application
+   that owns sessions or sandbox projections. Resolve the repository identity,
+   canonical owning checkout, Git common directory, and existing worktree registrations.
+   A `.git` entry does not make an application-owned workspace a personal GWT task;
+   preserve its native allocation, relocation and retention lifecycle.
    Preserve dirty owner state.
    Read the repository's worktree and dependency rules.
 2. Inspect existing worktrees before creating another checkout.
@@ -31,6 +35,13 @@ Create and manage worktrees safely and consistently across projects while avoidi
 4. Use `gwt help` for discovery and `gwt root` to resolve the configured managed root.
    Keep new worktrees under that root or a repository-native managed root.
    Do not place new checkouts in arbitrary sibling or temporary directories.
+   For server placement policy, use the existing account-specific
+   `DOTFILES_WORKTREES_ROOT` setting; preserve unrelated workstation defaults.
+   Check the host policy, actual account homes, physical path, mount and permissions
+   separately: `gwt root` reports a value, not an access boundary.
+   Changing this setting neither relocates existing work nor controls application
+   allocators. Use the native owner to update registrations and persisted references;
+   do not substitute shell GWT for an application's workspace lifecycle.
 5. Verify the download policy before any fetch.
    Task-required additive fetch or unshallow is not GC, repacking, pruning, or owner consolidation.
    Recheck current state; do not repeat completed repair or ask again for an already authorized step.
