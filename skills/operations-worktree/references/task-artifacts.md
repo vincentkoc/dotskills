@@ -13,10 +13,20 @@ retained.
   selected.
 - Preserve the original owner, failure, exit status, and user-owned paths when
   checkpoint or artifact delivery fails.
+- Once required validation and delivery are complete, or the owner explicitly
+  cancels or supersedes the task, routine logs, receipts, test captures, proof
+  archives, build output, and checkpoints are disposable. Normal owner closeout
+  removes them without a new cleanup approval, archive, copy, or publication,
+  unless the user asked to keep them. Explicit user discard overrides an
+  earlier task-local keep choice.
+- Protect unfinished source/recovery, live owners, credentials, other-owner
+  data, shared dependencies, and actual release/customer deliverables. A file
+  named evidence or recovery does not establish an ongoing obligation.
 
 ## Declared Retention
 
-Before expensive work, declare:
+Only when an actual deliverable or continuation need requires retained output,
+declare before expensive work:
 
 - artifact root and owner;
 - source and input identity;
@@ -24,6 +34,12 @@ Before expensive work, declare:
 - maximum retained files and bytes;
 - retention or pin intent;
 - approved publication destination, when one exists.
+
+Routine maintainer validation needs its proof before finalization, not a
+permanent artifact store. Do not add an artifact budget, destination, manifest,
+or handoff as a prerequisite to ordinary validation or finalized task cleanup.
+End retention when the named need ends; use the existing task result channel
+instead of creating a second cleanup ledger.
 
 Keep temporary scratch separate from retained evidence. Refuse the optional
 stage before work when its declared budget or destination is invalid. Report
@@ -42,7 +58,7 @@ download.
   their source/input identity still matches.
 - Keep one canonical large output and use compatible references or derived
   views. Do not duplicate bytes or share mutable hard links across runs.
-- Publish required release, security, hardware, or canonical worker evidence
+- Publish explicitly required release, security, hardware, or customer deliverables
   before optional profiling, long handover, or lease expiry.
 - Verify checksum and retrieval from the already approved destination before
   treating publication as complete.

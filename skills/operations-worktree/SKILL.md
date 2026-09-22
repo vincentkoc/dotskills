@@ -93,17 +93,43 @@ Give each task checkout an explicit outcome:
 - `removed`: report only after authorized removal verifies path and registration absence.
 - `unknown`: preserve an incomplete removal result; reconcile its exact intent read-only before recovery.
 
-Task completion alone is not owner release or removal authorization.
+Normal owner finalization includes disposing of routine task output and closing
+its exclusive checkout when no unfinished work or shared consumer needs it,
+unless the user asked to keep it. Do not request a new cleanup approval for
+that closeout. Use the native owner release/removal route; task completion
+does not permit bypassing its guards or touching another owner's workspace.
 Checkout retention does not keep a completed task active. Record the retained
 path and its concrete remaining condition once, then finish the requested work.
 Optional proof or profiling must not become a new closeout requirement.
+After required validation and delivery, or explicit cancellation/supersession,
+routine task logs, receipts, test captures, proof archives, build output, and
+checkpoints are disposable by default. Include them in authorized task cleanup;
+do not require an archive, external publication, retained copy, or another
+discard approval. Explicit user discard overrides earlier task-local retention.
+Required validation before finalization remains unchanged.
+
+For a known finite task, one execution owner checks current path/registration,
+Git state, owners/holders/locks, and shared dependencies, uses the installed
+native closeout route, then verifies the outcome. Use chat for the result;
+do not impose fleet delegation, a typed host audit, or a new cleanup manifest.
+Keep unfinished or unknown source, live owners, credentials, other-owner data,
+shared dependencies, and actual release/customer deliverables protected. Known
+obsolete amend/rebase/reflog versions of finalized work need no archival refs;
+this does not authorize shared-store expiry or pruning.
+
 For superseded, cancelled or already-applied work without a matching PR, use
 `gwt cancel --reason <text>` only when the installed helper advertises it.
-This ends the current owner's work and retains the checkout, branch and pins;
-it does not grant release or removal. Otherwise report that disposition in
-chat without inventing PR proof or repeating the failed finish command.
+Cancellation records the disposition; it need not invent PR proof. Continue
+through the installed finalized-task closeout route when available. If that
+route is unavailable, report the concrete native limitation once rather than
+repeating finish or creating another recovery archive.
 Ordinary and repository-native checkouts keep their existing authorized lifecycle:
-removal requires fresh ownership and recovery proof and the repository's approved non-force procedure.
+removal requires current ownership and live-use checks, protection of unfinished
+work, and the repository's approved non-force procedure.
+
+For a finalized checkout with no remaining use, prefer the advertised manual
+finalized closeout below. Finish/release remains useful for retained or queued
+work; it is not an extra gate before manual finalized closeout.
 
 Personal GWT completion applies only to explicitly enrolled `--finish-managed`
 worktrees. Record the current owner's completed work promptly with
@@ -146,12 +172,21 @@ does not activate deletion or prove removal readiness.
 The wrapper parks only its own shell; checkout/admin CWD, FD or mapped holders
 still block removal. Preserve native guard failures and their exact reasons.
 
-If finish reports `not-enrolled`, retain the checkout; enrollment was required
-at creation. Existing report-only enrollments remain report-only. Do not retrofit
-enrollment, recreate a checkout to obtain release capability, or bypass a refusal.
+If finish reports `not-enrolled`, use the ordinary authorized closeout route;
+do not retrofit enrollment or recreate a checkout for release capability.
+Existing report-only enrollments remain report-only. Respect the installed
+native manual closeout contract without bypassing a refusal.
+When `gwt help` advertises finalized manual removal, use
+`gwt rm <literal-path> --finalized` for an explicitly finalized enrolled task.
+Unenrolled tasks use ordinary `gwt rm`. Name only
+known disposable ignored roots with repeated `--discard-ignored <relative-root>`
+when needed. This owner-managed route is separate from automatic host
+qualification; never manually unlock or edit its lifecycle state.
 
-Dirty state, active owners, unknown commits, locks, pins, ignored recovery content
-or incomplete proof require retention. Native non-force removal preserves branches.
+Unfinished or unknown source, active owners, unknown commits, locks, active
+recovery pins, or unresolved ownership require retention. Routine finalized
+task artifacts do not, even when ignored or untracked. Native non-force removal
+preserves branches unless its explicitly authorized contract says otherwise.
 Do not start broad maintenance, clear locks, or remove other sessions' checkouts.
 Never retry an uncertain removal automatically or label an unknown result retained.
 
@@ -189,7 +224,8 @@ stateDiagram-v2
     VerifyCheckoutAndDependencies --> ReportBlocked: required execution unavailable
     DoTask --> RecordFinish: enrolled checkout and matching PR work complete
     DoTask --> CancelOwner: superseded or cancelled without matching PR
-    CancelOwner --> ReportRetained: supported cancel or chat disposition
+    CancelOwner --> NativeCloseout: finalized manual route available
+    CancelOwner --> ReportRetained: native closeout unavailable or concrete blocker
     RecordFinish --> ReportRetained: no release or report-only enrollment
     RecordFinish --> SignOffOwner: release supported and no future owner use
     RecordFinish --> EvaluateRelease: existing release remains valid
@@ -197,9 +233,10 @@ stateDiagram-v2
     EvaluateRelease --> ReportRetained: pending proof, owners, pins or native guard
     EvaluateRelease --> ReportRemoved: qualified native removal verified
     EvaluateRelease --> ReportUnknown: incomplete removal or missing readback
-    DoTask --> ReportRetained: personal finish reports not-enrolled
-    DoTask --> NativeCloseout: ordinary or repository-native checkout
-    NativeCloseout --> ReportCheckout: existing authorized lifecycle and fresh proof
+    RecordFinish --> NativeCloseout: explicit finalized manual closeout
+    DoTask --> NativeCloseout: not enrolled, ordinary closeout
+    DoTask --> NativeCloseout: authorized finalized task, including disposable artifacts
+    NativeCloseout --> ReportCheckout: native lifecycle and current ownership checks
     ReportBlocked --> [*]
     ReportRetained --> [*]
     ReportCheckout --> [*]
