@@ -50,12 +50,14 @@ Create and manage worktrees safely and consistently across projects while avoidi
    Cached refs do not prove the latest head.
    When freshness cannot be verified, report that gap rather than silently substituting a stale base.
 6. Choose the creation command for the intended completion lifecycle:
-   - For new personal GWT task worktrees, use finish tracking when `gwt help`
+   - When selecting finish tracking for a new personal GWT task, and `gwt help`
      advertises `--finish-managed`: `gwt new <branch> <start-point> --finish-managed`.
      The start-point is optional. Keep the runtime `CODEX_THREAD_ID`; outside Codex,
      set a stable task-specific `GWT_OWNER_ID` before creation.
    - Other or repository-native wrappers use their documented creation and closeout commands.
-   Enrollment is creation-only. It records ownership and does not authorize removal.
+   Finish enrollment is optional and creation-only. It records ownership and does
+   not authorize removal. It is not a prerequisite for development, maintainer work,
+   or ordinary authorized cleanup; keep repository-native lifecycles independent.
    Stop creation if the wrapper is unavailable or still refuses the repaired owner.
    Do not substitute an unrestricted raw-Git creation route.
 7. Verify the returned path, managed root, registration, owner, branch, and HEAD.
@@ -172,8 +174,14 @@ does not activate deletion or prove removal readiness.
 The wrapper parks only its own shell; checkout/admin CWD, FD or mapped holders
 still block removal. Preserve native guard failures and their exact reasons.
 
-If finish reports `not-enrolled`, use the ordinary authorized closeout route;
-do not retrofit enrollment or recreate a checkout for release capability.
+If finish reports `not-enrolled`, it has no finish enrollment to manage; this is
+not a retention requirement or a failed cleanup safety check. Stop using finish
+for that checkout and continue through its ordinary authorized closeout route.
+Verify the exact path and registration, task ownership, clean Git state, no live
+users or locks, and that source and required recovery content remain available
+before native non-force removal. Retain only for a concrete unresolved condition,
+not missing enrollment alone; existing cleanup authorization still applies.
+Do not retrofit enrollment or recreate a checkout for release capability.
 Existing report-only enrollments remain report-only. Respect the installed
 native manual closeout contract without bypassing a refusal.
 When `gwt help` advertises finalized manual removal, use
@@ -212,7 +220,7 @@ stateDiagram-v2
     RepairSameOwner --> QualifyOwner: repair changes evidence
     QualifyOwner --> ReportBlocked: no qualified owner or unresolved refusal
     QualifyOwner --> ChooseLifecycle: healthy owner and verified base
-    ChooseLifecycle --> CreateEnrolledWorktree: new personal GWT and finish supported
+    ChooseLifecycle --> CreateEnrolledWorktree: personal finish selected and supported
     ChooseLifecycle --> CreateWithWrapper: other or repository-native lifecycle
     CreateEnrolledWorktree --> VerifyCheckoutAndDependencies: enrollment recorded
     CreateEnrolledWorktree --> ReportBlocked: creation or enrollment refuses
@@ -234,7 +242,7 @@ stateDiagram-v2
     EvaluateRelease --> ReportRemoved: qualified native removal verified
     EvaluateRelease --> ReportUnknown: incomplete removal or missing readback
     RecordFinish --> NativeCloseout: explicit finalized manual closeout
-    DoTask --> NativeCloseout: not enrolled, ordinary closeout
+    DoTask --> NativeCloseout: not-enrolled routes to ordinary authorized closeout
     DoTask --> NativeCloseout: authorized finalized task, including disposable artifacts
     NativeCloseout --> ReportCheckout: native lifecycle and current ownership checks
     ReportBlocked --> [*]
