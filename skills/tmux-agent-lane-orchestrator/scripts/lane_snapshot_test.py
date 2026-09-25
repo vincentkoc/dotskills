@@ -4,6 +4,7 @@ import json
 import pathlib
 import tempfile
 import unittest
+from unittest import mock
 
 
 SCRIPT = pathlib.Path(__file__).with_name("lane_snapshot.py")
@@ -72,6 +73,192 @@ class LaneSnapshotTest(unittest.TestCase):
         self.assertEqual(records, [])
         self.assertEqual(receipt["bytes_read"], 8192)
         self.assertTrue(receipt["partial_record"])
+
+    def test_incremental_cursor_reaches_completion_after_oversized_record(self):
+        limit = 262_144
+        started = event("2026-09-08T00:00:00Z", "event_msg", "task_started", id="turn-1")
+        done = event("2026-09-08T00:01:00Z", "event_msg", "task_complete")
+        oversized = {"type": "compacted", "payload": {"message": "x" * (limit * 3)}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "rollout.jsonl"
+            path.write_text(json.dumps(started) + "\n")
+            records, receipt = MODULE.read_log(path, limit, None)
+            summary = MODULE.summarize_records(records)
+            with path.open("a") as handle:
+                handle.write(json.dumps(oversized) + "\n" + json.dumps(done) + "\n")
+
+            discarded = False
+            for _ in range(5):
+                previous_offset = receipt["offset"]
+                records, receipt = MODULE.read_log(path, limit, receipt)
+                self.assertLessEqual(receipt["bytes_read"], limit)
+                self.assertGreater(receipt["offset"], previous_offset)
+                discarded |= receipt["discarding_record"]
+                summary = MODULE.summarize_records(records, summary)
+                if receipt["offset"] == path.stat().st_size:
+                    break
+
+        self.assertTrue(discarded)
+        self.assertFalse(receipt["discarding_record"])
+        self.assertEqual(summary["state"], "completed")
+        self.assertEqual(summary["turn_id"], "turn-1")
+        self.assertEqual(summary["events"], 2)
+
+    def test_discarded_tail_waits_for_newline_across_saved_cursor(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "rollout.jsonl"
+            cursor_path = pathlib.Path(directory) / "cursor.json"
+            path.write_text('{"message":"' + "x" * 4096)
+            records, receipt = MODULE.read_log(path, 512, None)
+            MODULE.save_cursor(cursor_path, {"version": 1, "files": {str(path): receipt}}, 1)
+            receipt = MODULE.load_cursor(cursor_path)["files"][str(path)]
+            self.assertEqual(records, [])
+            self.assertTrue(receipt["discarding_record"])
+
+            records, receipt = MODULE.read_log(path, 512, receipt)
+            self.assertEqual(records, [])
+            self.assertEqual(receipt["bytes_read"], 0)
+            self.assertTrue(receipt["discarding_record"])
+            with path.open("a") as handle:
+                handle.write('more text"}')
+            records, receipt = MODULE.read_log(path, 512, receipt)
+            self.assertEqual(records, [])
+            self.assertTrue(receipt["discarding_record"])
+
+            done = event("2026-09-08T00:01:00Z", "event_msg", "task_complete")
+            with path.open("a") as handle:
+                handle.write("\n" + json.dumps(done) + "\n")
+            records, receipt = MODULE.read_log(path, 512, receipt)
+        self.assertEqual(records, [done])
+        self.assertFalse(receipt["discarding_record"])
+
+    def test_incremental_partial_utf8_record_is_retried_without_loss(self):
+        prefix = event("2026-09-08T00:00:00Z", "event_msg", "token_count")
+        message = event("2026-09-08T00:01:00Z", "event_msg", "agent_message", message="snowman ☃")
+        prefix_bytes = json.dumps(prefix).encode() + b"\n"
+        message_bytes = json.dumps(message, ensure_ascii=False).encode() + b"\n"
+        limit = len(prefix_bytes) + message_bytes.index("☃".encode()) + 1
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "rollout.jsonl"
+            path.write_bytes(b"")
+            _, receipt = MODULE.read_log(path, limit, None)
+            path.write_bytes(prefix_bytes + message_bytes)
+            first, receipt = MODULE.read_log(path, limit, receipt)
+            self.assertEqual(first, [prefix])
+            self.assertTrue(receipt["partial_record"])
+            self.assertFalse(receipt["discarding_record"])
+            second, receipt = MODULE.read_log(path, limit, receipt)
+        self.assertEqual(second, [message])
+        self.assertFalse(receipt["partial_record"])
+
+    def test_complete_record_at_budget_boundary_is_not_discarded(self):
+        done = event("2026-09-08T00:01:00Z", "event_msg", "task_complete")
+        data = json.dumps(done).encode()
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "rollout.jsonl"
+            path.write_bytes(b"")
+            _, receipt = MODULE.read_log(path, len(data), None)
+            path.write_bytes(data + b"\n")
+            records, receipt = MODULE.read_log(path, len(data), receipt)
+        self.assertEqual(records, [done])
+        self.assertFalse(receipt["discarding_record"])
+
+    def test_exhausted_budget_preserves_incremental_offset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "rollout.jsonl"
+            path.write_bytes(b"")
+            _, receipt = MODULE.read_log(path, 512, None)
+            done = event("2026-09-08T00:01:00Z", "event_msg", "task_complete")
+            path.write_text(json.dumps(done) + "\n")
+            _, empty = MODULE.read_log(path, 0, None)
+            records, first = MODULE.read_log(path, 512, empty)
+            self.assertEqual(records, [done])
+            self.assertEqual(first["mode"], "tail")
+            records, receipt = MODULE.read_log(path, 0, receipt)
+            self.assertEqual(records, [])
+            self.assertEqual(receipt["offset"], 0)
+            records, receipt = MODULE.read_log(path, 512, receipt)
+        self.assertEqual(records, [done])
+
+    def test_shared_budget_preserves_records_and_bounds_oversized_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = [pathlib.Path(directory) / f"rollout-{index}.jsonl" for index in range(2)]
+            cursor_path = pathlib.Path(directory) / "cursor.json"
+            cursor = {"version": 1, "files": {}}
+            panes = []
+            identities = {}
+            for index, path in enumerate(paths):
+                path.write_bytes(b"")
+                _, cursor["files"][str(path)] = MODULE.read_log(path, 512, None)
+                pane = f"L1.{index}"
+                panes.append({"pane": pane, "pane_id": f"%{index}", "pid": "0", "cwd": "", "title": ""})
+                identities[pane] = {"status": "exact", "rollout_path": str(path)}
+            MODULE.save_cursor(cursor_path, cursor, 2)
+            first_data = json.dumps(event("2026-09-08T00:00:00Z", "event_msg", "token_count")) + "\n"
+            paths[0].write_text(first_data)
+            paths[1].write_text(json.dumps(event("2026-09-08T00:01:00Z", "event_msg", "task_complete")) + "\n")
+            args = MODULE.build_parser().parse_args([
+                "--session", "test", "--lane", "1", "--cursor-file", str(cursor_path),
+                "--log-bytes", "512", "--total-log-bytes", str(len(first_data.encode()) + 10),
+            ])
+            with (
+                mock.patch.object(MODULE, "list_lane_panes", return_value=panes),
+                mock.patch.object(MODULE, "process_table", return_value={}),
+                mock.patch.object(MODULE, "find_state_database", return_value=None),
+                mock.patch.object(MODULE, "capture_pane", return_value=""),
+                mock.patch.object(MODULE, "resolve_pane_identity", side_effect=lambda pane, *_: identities[pane["pane"]]),
+            ):
+                first, cursor = MODULE.build_snapshot(args)
+                self.assertEqual(first["panes"][1]["log"]["bytes_read"], 10)
+                self.assertFalse(first["panes"][1]["log"]["discarding_record"])
+                self.assertEqual(cursor["files"][str(paths[1])]["offset"], 0)
+                MODULE.save_cursor(cursor_path, cursor, 2)
+                second, cursor = MODULE.build_snapshot(args)
+                self.assertEqual(second["panes"][1]["state"], "completed")
+                self.assertLess(args.total_log_bytes, args.log_bytes)
+                with paths[1].open("a") as handle:
+                    handle.write(json.dumps({"type": "compacted", "payload": {"message": "x" * 300}}) + "\n")
+                    handle.write(json.dumps(event("2026-09-08T00:02:00Z", "event_msg", "task_complete")) + "\n")
+                for _ in range(5):
+                    previous_offset = cursor["files"][str(paths[1])]["offset"]
+                    MODULE.save_cursor(cursor_path, cursor, 2)
+                    second, cursor = MODULE.build_snapshot(args)
+                    self.assertGreater(cursor["files"][str(paths[1])]["offset"], previous_offset)
+                    if cursor["files"][str(paths[1])]["offset"] == paths[1].stat().st_size:
+                        break
+        self.assertEqual(second["panes"][1]["state"], "completed")
+        self.assertEqual(second["panes"][1]["activity"]["events"], 2)
+
+    def test_discarded_record_newline_at_budget_boundary(self):
+        limit = 256
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "rollout.jsonl"
+            path.write_bytes(b"")
+            _, receipt = MODULE.read_log(path, limit, None)
+            done = event("2026-09-08T00:01:00Z", "event_msg", "task_complete")
+            path.write_bytes(b"x" * (limit * 2 - 1) + b"\n" + json.dumps(done).encode())
+            _, receipt = MODULE.read_log(path, limit, receipt)
+            self.assertTrue(receipt["discarding_record"])
+            records, receipt = MODULE.read_log(path, limit, receipt)
+            self.assertEqual(records, [])
+            self.assertFalse(receipt["discarding_record"])
+            records, receipt = MODULE.read_log(path, limit, receipt)
+        self.assertEqual(records, [done])
+
+    def test_rotation_and_truncation_reset_discard_state(self):
+        for rotate in (True, False):
+            with self.subTest(rotate=rotate), tempfile.TemporaryDirectory() as directory:
+                path = pathlib.Path(directory) / "rollout.jsonl"
+                path.write_bytes(b"x" * 1024)
+                _, receipt = MODULE.read_log(path, 256, None)
+                self.assertTrue(receipt["discarding_record"])
+                if rotate:
+                    path.replace(path.with_suffix(".old"))
+                done = event("2026-09-08T00:01:00Z", "event_msg", "task_complete")
+                path.write_text(json.dumps(done))
+                records, receipt = MODULE.read_log(path, 256, receipt)
+                self.assertEqual(records, [done])
+                self.assertFalse(receipt["discarding_record"])
 
     def test_rotation_and_unicode_tail_are_bounded(self):
         with tempfile.TemporaryDirectory() as directory:
