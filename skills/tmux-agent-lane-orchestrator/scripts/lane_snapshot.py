@@ -252,6 +252,8 @@ def read_log(
     path: Path,
     byte_limit: int,
     cursor_entry: dict[str, Any] | None,
+    *,
+    record_limit: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     try:
         stat = path.stat()
@@ -262,6 +264,14 @@ def read_log(
     same_file = previous.get("device") == stat.st_dev and previous.get("inode") == stat.st_ino
     previous_offset = int(previous.get("offset") or 0)
     incremental = same_file and 0 <= previous_offset <= stat.st_size
+    if byte_limit == 0:
+        return [], {
+            **previous,
+            "path": str(path),
+            "bytes_read": 0,
+            "mode": "budget-exhausted",
+            "truncated": True,
+        }
     if incremental:
         start = previous_offset
         requested = min(byte_limit, stat.st_size - start)
@@ -278,37 +288,38 @@ def read_log(
     except OSError as error:
         return [], {"path": str(path), "error": str(error), "bytes_read": 0, "truncated": False}
 
-    discarded_prefix = False
+    bytes_read = len(data)
+    discarding_record = (
+        bool(previous.get("discarding_record")) if incremental else start > 0
+    )
+    discarded_prefix = discarding_record and bool(data)
     parse_start = start
-    if mode == "tail" and start > 0 and data:
+    if discarding_record:
         newline = data.find(b"\n")
-        if newline < 0:
-            return [], {
-                "path": str(path),
-                "bytes_read": len(data),
-                "file_size": stat.st_size,
-                "mode": mode,
-                "truncated": True,
-                "partial_record": True,
-                "device": stat.st_dev,
-                "inode": stat.st_ino,
-                "offset": stat.st_size,
-            }
-        parse_start += newline + 1
-        data = data[newline + 1 :]
-        discarded_prefix = True
+        prefix_length = newline + 1 if newline >= 0 else len(data)
+        parse_start += prefix_length
+        data = data[prefix_length:]
+        discarding_record = newline < 0
 
     records, next_offset, partial = _json_records(data, parse_start, parse_start + len(data) == stat.st_size)
-    if mode == "unchanged":
-        next_offset = stat.st_size
-    truncated = discarded_prefix or start + requested < stat.st_size or partial
+    if record_limit is None:
+        record_limit = byte_limit
+    if partial and next_offset == parse_start and len(data) == record_limit:
+        # Only the configured cap proves a record cannot be retried intact; a
+        # smaller shared budget must leave it for the next poll. Skip oversized
+        # records through their newline so suffixes cannot become events.
+        next_offset += len(data)
+        discarding_record = True
+    partial = partial or discarding_record
+    truncated = discarded_prefix or start + bytes_read < stat.st_size or partial
     return records, {
         "path": str(path),
-        "bytes_read": requested,
+        "bytes_read": bytes_read,
         "file_size": stat.st_size,
         "mode": mode,
         "truncated": truncated,
         "partial_record": partial,
+        "discarding_record": discarding_record,
         "device": stat.st_dev,
         "inode": stat.st_ino,
         "offset": next_offset,
@@ -528,7 +539,10 @@ def build_snapshot(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, 
             path = Path(identity["rollout_path"])
             previous_entry = cursor["files"].get(str(path), {})
             byte_limit = min(args.log_bytes, remaining)
-            records, io = read_log(path, byte_limit, previous_entry if args.cursor_file else None)
+            records, io = read_log(
+                path, byte_limit, previous_entry if args.cursor_file else None,
+                record_limit=min(args.log_bytes, args.total_log_bytes),
+            )
             remaining -= io["bytes_read"]
             total_bytes += io["bytes_read"]
             summary = summarize_records(records, previous_entry.get("summary"))
