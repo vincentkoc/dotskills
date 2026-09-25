@@ -63,6 +63,12 @@
       "description": "Maintain `graincrawl`, the Go CLI that archives Granola notes, transcripts,"
     },
     {
+      "name": "openclaw-bun-upgrade",
+      "source": "./skills/openclaw-bun-upgrade",
+      "skills": "./",
+      "description": "Move an authorized Linux OpenClaw service to one verified Bun artifact while preserving"
+    },
+    {
       "name": "openclaw-github-dedupe",
       "source": "./skills/openclaw-github-dedupe",
       "skills": "./",

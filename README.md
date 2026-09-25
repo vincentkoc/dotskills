@@ -57,6 +57,7 @@ second configuration generator competing with those owners.
 | `graincrawl` | Maintain and release the local-first Granola archive CLI. | `npx skills add vincentkoc/dotskills --skill graincrawl -y` |
 | `github-airplane-mode` | Switch an already-installed compatible local Git/GitHub download guard. | `npx skills add vincentkoc/dotskills --skill github-airplane-mode -y` |
 | `ghcrawl-cluster-operator` | Operate ghcrawl local sync, clustering, and cluster inspection from the CLI. | `npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y` |
+| `openclaw-bun-upgrade` | Qualify and promote pinned Bun fork builds through the existing service owner. | `npx skills add vincentkoc/dotskills --skill openclaw-bun-upgrade -y` |
 | `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
 | `openclaw-pr-batch-sweep` | Select and land bounded batches of low-risk OpenClaw contributor pull requests. | `npx skills add vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y` |
 | `org-branch-cleanup` | Audit and safely prune stale merged branches across a GitHub organization. | `npx skills add vincentkoc/dotskills --skill org-branch-cleanup -y` |
@@ -95,6 +96,7 @@ npx skills add vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y
 npx skills add vincentkoc/dotskills --skill org-branch-cleanup -y
 npx skills add vincentkoc/dotskills --skill opik-integrations-auditor -y
 npx skills add vincentkoc/dotskills --skill opik-optimizer -y
+npx skills add vincentkoc/dotskills --skill openclaw-bun-upgrade -y
 npx skills add vincentkoc/dotskills --skill operations-worktree -y
 npx skills add vincentkoc/dotskills --skill crawlkit -y
 npx skills add vincentkoc/dotskills --skill graincrawl -y
