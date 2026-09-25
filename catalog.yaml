@@ -207,3 +207,10 @@ skills:
     source: local
     tags: [semantic-slicing, security, review, visualization, gitcrawl, discrawl]
     version: 0.1.0
+
+  - id: openclaw-bun-upgrade
+    name: OpenClaw Bun Upgrade
+    path: skills/openclaw-bun-upgrade
+    source: local
+    tags: [openclaw, bun, runtime, deployment]
+    version: 0.1.0

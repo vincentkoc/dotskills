@@ -1,0 +1,7 @@
+interface:
+  display_name: "OpenClaw Bun Upgrade"
+  short_description: "Qualify and promote a pinned Bun fork runtime"
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Use $openclaw-bun-upgrade to qualify a pinned Bun fork build and promote it through the existing service owner."
