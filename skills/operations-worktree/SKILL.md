@@ -146,13 +146,37 @@ does not activate deletion or prove removal readiness.
 The wrapper parks only its own shell; checkout/admin CWD, FD or mapped holders
 still block removal. Preserve native guard failures and their exact reasons.
 
-If finish reports `not-enrolled`, retain the checkout; enrollment was required
-at creation. Existing report-only enrollments remain report-only. Do not retrofit
-enrollment, recreate a checkout to obtain release capability, or bypass a refusal.
+If finish reports `not-enrolled`, retain the checkout unless the exact approved
+creation-lock recovery below applies; enrollment was required at creation.
+Existing report-only enrollments remain report-only. Do not retrofit enrollment,
+recreate a checkout to obtain release capability, or bypass other refusals.
 
-Dirty state, active owners, unknown commits, locks, pins, ignored recovery content
+For a stranded GWT creation-only lock, prefer the native owner's recovery command.
+If none exists, explicit user approval for that exact lock permits one
+`git -C <owner> worktree unlock <literal-path>` followed by ordinary non-force
+`gwt rm <literal-path>`, only after current proof establishes all of the following:
+
+- Current `gwt finish-status` confirms `not-enrolled`; the task-owned checkout
+  is finalized, its source is clean and merged or superseded, and no unfinished
+  work or shared consumer needs it.
+- The canonical owner, registration, and exact lock identity match the known
+  GWT creation operation. `not-enrolled` alone does not prove this.
+- No active creator, lifecycle operation, checkout/admin holder, or recovery pin
+  remains.
+
+Recheck the exact lock reason/identity and holder visibility immediately before
+unlock; changed identity/reason, live activity, or incomplete visibility retains
+the checkout.
+Existing approval for that exact recovery remains valid across turns; do not ask
+again unless the target or approved scope changes. Verify checkout and admin
+registration absence plus preservation of the owner and other worktrees after
+removal. A refusal retains the checkout; an uncertain removal
+stays `unknown` and must not be retried automatically. This exception permits no
+manual lockfile/ledger edits, force removal, adoption, or blanket unlocks.
+
+Dirty state, active owners, unknown commits, other locks, pins, ignored recovery content
 or incomplete proof require retention. Native non-force removal preserves branches.
-Do not start broad maintenance, clear locks, or remove other sessions' checkouts.
+Do not start broad maintenance, clear other locks, or remove other sessions' checkouts.
 Never retry an uncertain removal automatically or label an unknown result retained.
 
 ## Inputs
@@ -197,7 +221,11 @@ stateDiagram-v2
     EvaluateRelease --> ReportRetained: pending proof, owners, pins or native guard
     EvaluateRelease --> ReportRemoved: qualified native removal verified
     EvaluateRelease --> ReportUnknown: incomplete removal or missing readback
-    DoTask --> ReportRetained: personal finish reports not-enrolled
+    DoTask --> ReportRetained: not enrolled, recovery gates unmet
+    DoTask --> RecoverCreationLock: unenrolled creation lock, exact approval and proof
+    RecoverCreationLock --> ReportRemoved: recovery and non-force removal verified
+    RecoverCreationLock --> ReportRetained: unsafe lock or concrete refusal
+    RecoverCreationLock --> ReportUnknown: incomplete removal
     DoTask --> NativeCloseout: ordinary or repository-native checkout
     NativeCloseout --> ReportCheckout: existing authorized lifecycle and fresh proof
     ReportBlocked --> [*]
