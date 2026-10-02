@@ -22,6 +22,8 @@ retained.
 - Protect unfinished source/recovery, live owners, credentials, other-owner
   data, shared dependencies, and actual release/customer deliverables. A file
   named evidence or recovery does not establish an ongoing obligation.
+- Satisfy genuinely required evidence and deliverable contracts before disposal.
+  Retain output only for a named requirement or unfinished consumer, with an owner and release condition.
 
 ## Declared Retention
 
@@ -32,7 +34,7 @@ declare before expensive work:
 - source and input identity;
 - output kind and required or optional status;
 - maximum retained files and bytes;
-- retention or pin intent;
+- named consumer or requirement, responsible owner, and release condition;
 - approved publication destination, when one exists.
 
 Routine maintainer validation needs its proof before finalization, not a

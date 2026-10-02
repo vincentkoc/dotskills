@@ -49,15 +49,18 @@ Create and manage worktrees safely and consistently across projects while avoidi
    Distinguish a verified current remote base from a cached local ref.
    Cached refs do not prove the latest head.
    When freshness cannot be verified, report that gap rather than silently substituting a stale base.
-6. Choose the creation command for the intended completion lifecycle:
-   - When selecting finish tracking for a new personal GWT task, and `gwt help`
-     advertises `--finish-managed`: `gwt new <branch> <start-point> --finish-managed`.
-     The start-point is optional. Keep the runtime `CODEX_THREAD_ID`; outside Codex,
-     set a stable task-specific `GWT_OWNER_ID` before creation.
-   - Other or repository-native wrappers use their documented creation and closeout commands.
+6. Before creation, choose the repository-prescribed, documented closeout route supported on this host.
+   - Use `gwt new <branch> <start-point> --finish-managed` when required, requested, or supported by a qualified closeout route.
+     An advertised flag alone does not qualify that route.
+     The start-point is optional. Keep the runtime `CODEX_THREAD_ID`.
+     Outside Codex, set a stable task-specific `GWT_OWNER_ID` before creation.
+   - Where repository policy permits, use ordinary `gwt new <branch> <start-point>` from the verified owner and configured root.
+     Preserve its normal ownership, recovery, and non-force removal guards.
+   - Repository-native wrappers use their documented creation and closeout commands.
    Finish enrollment is optional and creation-only. It records ownership and does
    not authorize removal. It is not a prerequisite for development, maintainer work,
    or ordinary authorized cleanup; keep repository-native lifecycles independent.
+   Never unenroll, recreate, relocate, or adopt an existing managed tree to bypass its record.
    Stop creation if the wrapper is unavailable or still refuses the repaired owner.
    Do not substitute an unrestricted raw-Git creation route.
 7. Verify the returned path, managed root, registration, owner, branch, and HEAD.
@@ -96,7 +99,7 @@ Give each task checkout an explicit outcome:
 - `unknown`: preserve an incomplete removal result; reconcile its exact intent read-only before recovery.
 
 Normal owner finalization includes disposing of routine task output and closing
-its exclusive checkout when no unfinished work or shared consumer needs it,
+its exclusive checkout when no unfinished work, required evidence or shared consumer needs it,
 unless the user asked to keep it. Do not request a new cleanup approval for
 that closeout. Use the native owner release/removal route; task completion
 does not permit bypassing its guards or touching another owner's workspace.
@@ -108,12 +111,14 @@ routine task logs, receipts, test captures, proof archives, build output, and
 checkpoints are disposable by default. Include them in authorized task cleanup;
 do not require an archive, external publication, retained copy, or another
 discard approval. Explicit user discard overrides earlier task-local retention.
-Required validation before finalization remains unchanged.
+Required validation and deliverable contracts remain unchanged.
 
 For a known finite task, one execution owner checks current path/registration,
 Git state, owners/holders/locks, and shared dependencies, uses the installed
 native closeout route, then verifies the outcome. Use chat for the result;
 do not impose fleet delegation, a typed host audit, or a new cleanup manifest.
+Use the installed wrapper or an explicitly reviewed coherent source bundle.
+Source availability alone does not qualify removal or change the installed tool.
 Keep unfinished or unknown source, live owners, credentials, other-owner data,
 shared dependencies, and actual release/customer deliverables protected. Known
 obsolete amend/rebase/reflog versions of finalized work need no archival refs;
@@ -139,6 +144,7 @@ worktrees. Record the current owner's completed work promptly with
 Plain finish grants no new release and does not cancel an earlier sign-off.
 Treat generic Codex Stop as turn-scoped attention only, never completion or release.
 
+The following requirements apply to the automatic finish/release route.
 When the installed wrapper advertises `finish --release` and this new enrollment
 supports release, use `gwt finish --pr <full URL> --release` once this owner's
 job is complete and it relinquishes future checkout use. Use `gwt release`
@@ -174,9 +180,9 @@ does not activate deletion or prove removal readiness.
 The wrapper parks only its own shell; checkout/admin CWD, FD or mapped holders
 still block removal. Preserve native guard failures and their exact reasons.
 
-If finish reports `not-enrolled`, it has no finish enrollment to manage; this is
-not a retention requirement or a failed cleanup safety check. Stop using finish
-for that checkout and continue through its ordinary authorized closeout route.
+If a checkout expected to be finish-managed reports `not-enrolled`, retain it and diagnose the discrepancy.
+Do not call managed finish on ordinary or repository-native checkouts or retrofit enrollment.
+Missing enrollment alone does not block their ordinary authorized closeout.
 Verify the exact path and registration, task ownership, clean Git state, no live
 users or locks, and that source and required recovery content remain available
 before native non-force removal. Retain only for a concrete unresolved condition,
@@ -184,7 +190,7 @@ not missing enrollment alone; existing cleanup authorization still applies.
 Do not retrofit enrollment or recreate a checkout for release capability.
 Existing report-only enrollments remain report-only. Respect the installed
 native manual closeout contract without bypassing a refusal.
-When `gwt help` advertises finalized manual removal, use
+When the qualified wrapper advertises finalized manual removal, use
 `gwt rm <literal-path> --finalized` for an explicitly finalized enrolled task.
 Unenrolled tasks use ordinary `gwt rm`. Name only
 known disposable ignored roots with repeated `--discard-ignored <relative-root>`
@@ -220,8 +226,8 @@ stateDiagram-v2
     RepairSameOwner --> QualifyOwner: repair changes evidence
     QualifyOwner --> ReportBlocked: no qualified owner or unresolved refusal
     QualifyOwner --> ChooseLifecycle: healthy owner and verified base
-    ChooseLifecycle --> CreateEnrolledWorktree: personal finish selected and supported
-    ChooseLifecycle --> CreateWithWrapper: other or repository-native lifecycle
+    ChooseLifecycle --> CreateEnrolledWorktree: required, requested or qualified finish route
+    ChooseLifecycle --> CreateWithWrapper: ordinary permitted or repository-native lifecycle
     CreateEnrolledWorktree --> VerifyCheckoutAndDependencies: enrollment recorded
     CreateEnrolledWorktree --> ReportBlocked: creation or enrollment refuses
     CreateWithWrapper --> VerifyCheckoutAndDependencies
@@ -242,9 +248,12 @@ stateDiagram-v2
     EvaluateRelease --> ReportRemoved: qualified native removal verified
     EvaluateRelease --> ReportUnknown: incomplete removal or missing readback
     RecordFinish --> NativeCloseout: explicit finalized manual closeout
-    DoTask --> NativeCloseout: not-enrolled routes to ordinary authorized closeout
+    DoTask --> ReportRetained: expected finish enrollment missing
+    DoTask --> NativeCloseout: ordinary or repository-native checkout
     DoTask --> NativeCloseout: authorized finalized task, including disposable artifacts
     NativeCloseout --> ReportCheckout: native lifecycle and current ownership checks
+    NativeCloseout --> ReportRetained: concrete native admission blocker
+    NativeCloseout --> ReportUnknown: incomplete removal or missing readback
     ReportBlocked --> [*]
     ReportRetained --> [*]
     ReportCheckout --> [*]
