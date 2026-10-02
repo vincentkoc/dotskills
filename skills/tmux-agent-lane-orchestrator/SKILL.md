@@ -33,6 +33,9 @@ Turn a tmux window of coding-agent workers into a visible, auditable lane with c
    - Add `--json` for machine-readable output.
    - Add `--cursor-file <path>` only when bounded incremental state is wanted;
      the helper writes no persistent state by default.
+   - Records larger than the smaller of `--log-bytes` and `--total-log-bytes`
+     are skipped through their next newline.
+     The cursor reports `discarding_record` while skipping; later events resume.
 3. Cross-check panes and logs.
    - Pane titles alone are weak evidence.
    - Resolve pane ID to shell PID, descendant Codex PID, exact thread ID, the
