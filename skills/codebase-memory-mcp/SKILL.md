@@ -1,6 +1,6 @@
 ---
 name: codebase-memory-mcp
-description: Resolve canonical Git checkouts, index and verify codebase-memory-mcp graphs through the guarded CLI, and safely audit duplicate worktree caches. Use when a user mentions codebase memory MCP, search_graph, trace_path, index_repository, worktree indexes, or oversized graph caches.
+description: Resolve canonical Git checkouts, index and verify codebase-memory-mcp graphs through the guarded CLI, open its browser viewer on request, and safely audit duplicate worktree caches. Use when a user mentions codebase memory MCP, dependency graphs, search_graph, trace_path, index_repository, worktree indexes, or oversized graph caches.
 license: MIT
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
@@ -17,6 +17,7 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
 - Initialize, re-index, refresh, or troubleshoot a repository graph.
 - Use `search_graph`, `trace_path`, `get_code_snippet`, or `query_graph`.
 - Verify that a repository is indexed before graph-backed exploration.
+- Open the existing dependency graph in a browser when requested.
 - Audit or prune duplicate linked-worktree indexes without deleting cache files directly.
 
 ## Workflow
@@ -45,14 +46,17 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Installer integrations render `scripts/codebase-memory-gateway.py.tmpl` with an approved pinned backend path. Replace `@@PYTHON_PATH_SHEBANG@@` with the raw absolute interpreter path and replace `@@PYTHON_PATH_JSON@@`, `@@BACKEND_PATH_JSON@@`, and `@@RESOLVER_PATH_JSON@@` with JSON string literals containing the exact absolute interpreter, backend, and `codebase_memory_cache.py` paths. The rendered gateway has no upgrade logic and uses `execve` for pass-through.
    - The gateway guards raw CLI calls only. Zero-argument MCP stdio startup intentionally passes through to the approved backend, so the gateway is not an MCP tool-filtering proxy and does not replace the separate `disabled_tools` control.
    - The public CLI accepts a tool name and at most one JSON object. It normalizes `--json` and `--progress` before checking `index_repository`; index calls always require an explicit JSON `repo_path`. File, stdin, worker, prefixed-command, and vendor-installer forms fail closed. Default output and explicit `--json` output keep their upstream formats.
-   - Before activating a daemon-capable backend, verify `auto_index=false`, `auto_watch=false`, and UI disabled. Ordinary MCP clients can share one session-managed daemon. The gateway denies `daemon start` because version 0.10.8 enables the UI on a cold start; it permits only `daemon status`.
+   - Installation defaults are `auto_index=false`, `auto_watch=false`, and `ui_enabled=false`. Ordinary MCP/CLI calls do not enable the viewer or reset an operator's explicit setting. Initialize the UI default with `codebase-memory-mcp config set ui_enabled false`; `ui` is not a supported backend config key.
+   - Ordinary MCP clients share one session-managed daemon. Bare `daemon start` remains denied because it implicitly enables the UI. The explicit browser command `daemon start --open [--port=N]` is allowed; `daemon status` remains read-only.
 5. Verify the graph.
    - `codebase-memory-mcp cli list_projects`
    - `scripts/codebase-memory-graph.sh schema --repo "$(git rev-parse --show-toplevel)"`
    - Run one focused graph query before declaring success.
-6. Treat the UI as unavailable.
-   - `start-ui` and `keepalive` fail closed before configuration or process mutation.
-   - UI startup remains disabled until upstream `/api/index` canonicalization can enforce the same boundary. `status` may report an already-running grandfathered listener.
+6. Open the viewer only when requested.
+   - `scripts/codebase-memory-graph.sh start-ui --repo "$(git rev-parse --show-toplevel)"` resolves the owner, enables the viewer, and uses native `daemon start --open`. It does not index or create tmux sessions.
+   - The preference is shared and persists across daemon restarts. Ordinary loading leaves it unchanged, so another agent cannot close an explicitly opened viewer. A fresh installation starts with it off.
+   - `scripts/codebase-memory-graph.sh stop-ui` restores `ui_enabled=false` without stopping the shared daemon or other sessions. Closing a browser tab alone does not disable the listener.
+   - Use the guarded CLI helper for indexing; the browser's indexing endpoint does not enforce this skill's Git-owner/worktree policy. Opening an existing graph does not authorize indexing additional roots.
 7. Audit cache cleanup before applying it.
    - Freeze a host-specific manifest:
      `scripts/codebase-memory-graph.sh cache-audit --manifest /secure/path/cbm-cache.json`
@@ -75,7 +79,7 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
 8. Report exact proof.
    - Indexed project name.
    - Node and edge counts when available.
-   - Any grandfathered UI listener reported by `status`.
+   - Browser URL and verified listener state when the viewer was requested.
    - For cleanup: manifest path and digest, manifest/eligible/preflighted candidate totals, runtime protected names/reasons/bytes, required operational preconditions, before/after project and byte totals, deleted project names, and any stop condition.
    - Missing binaries, unavailable MCP tools, or incomplete proof.
 
@@ -83,12 +87,13 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
 
 - Repository path.
 - Index mode: `fast`, `moderate`, `full`, or `cross-repo-intelligence`.
-- Optional status listener port; default `9749`.
+- Optional browser/status listener port; default `9749`.
 - For cache maintenance: a host-local manifest path, optional explicit ephemeral prefixes, and optional exact runtime protected candidate names.
 
 ## Outputs
 
 - Indexed and queryable repository graph.
+- Explicitly opened browser viewer, or disabled viewer with agent sessions preserved.
 - A dry-run cache manifest or guarded CLI-only deletion report.
 - Exact status, schema, and proof summary.
 
@@ -103,7 +108,11 @@ stateDiagram-v2
     SelectTask --> QueryGraph: discovery
     SelectTask --> GuardedIndex: indexing explicitly requested
     SelectTask --> AuditManifest: cache maintenance
-    SelectTask --> ReportBlocked: UI startup requested
+    SelectTask --> OpenViewer: UI startup requested
+    SelectTask --> DisableViewer: UI stop requested
+    OpenViewer --> ReportProof: browser and listener verified
+    OpenViewer --> ReportBlocked: native startup or readiness fails
+    DisableViewer --> ReportProof: UI disabled, shared daemon preserved
     GuardedIndex --> QueryGraph: index succeeds
     GuardedIndex --> ReportBlocked: index fails
     QueryGraph --> ReportProof: schema and focused query pass
