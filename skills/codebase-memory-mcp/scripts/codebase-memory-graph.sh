@@ -9,15 +9,14 @@ Commands:
   init       Index the canonical repo and run a schema smoke check
   index      Index the repo
   canonical  Print the canonical owning checkout used for indexing
-  start-ui   Fail closed while upstream UI indexing is unsafe
-  stop-ui    Stop the tmux keepalive session for the repo
-  status     Show config, projects, and any grandfathered UI listener state
+  start-ui   Explicitly enable the graph viewer and open it in the browser
+  stop-ui    Disable the viewer without stopping shared agent sessions
+  status     Show config, projects, daemon, and UI listener state
   schema     Print graph schema for the repo's indexed project
   cache-audit
              Write a guarded duplicate/dead-root cache manifest without deleting
   cache-prune
              Validate a cache manifest; add --apply to delete through the CLI
-  keepalive  Disabled internal UI command
 
 Options:
   --repo PATH     Repository root. Defaults to git root or current directory.
@@ -190,23 +189,6 @@ else:
 PY
 }
 
-session_for_repo() {
-  local root base safe
-  root="$1"
-  base="$(basename "$root")"
-  safe="$(printf '%s' "$base" | tr -cs 'A-Za-z0-9_-' '-')"
-  printf 'cbm-%s-ui\n' "${safe:-repo}"
-}
-
-ui_unavailable() {
-  printf 'codebase-memory-mcp UI startup is disabled until upstream /api/index canonicalization is available\n' >&2
-  exit 2
-}
-
-cmd_keepalive() {
-  ui_unavailable
-}
-
 cmd_index() {
   local root payload
   need codebase-memory-mcp
@@ -270,20 +252,15 @@ cmd_cache_prune() {
 }
 
 cmd_start_ui() {
-  ui_unavailable
+  local root
+  need codebase-memory-mcp
+  root="$(resolve_repo)"
+  (cd "$root" && codebase-memory-mcp daemon start --open "--port=$port")
 }
 
 cmd_stop_ui() {
-  local root session
-  need tmux
-  root="$(resolve_repo)"
-  session="$(session_for_repo "$root")"
-  if tmux has-session -t "$session" 2>/dev/null; then
-    tmux kill-session -t "$session"
-    printf 'stopped=%s\n' "$session"
-  else
-    printf 'not_running=%s\n' "$session"
-  fi
+  need codebase-memory-mcp
+  codebase-memory-mcp config set ui_enabled false
 }
 
 cmd_schema() {
@@ -297,17 +274,13 @@ cmd_schema() {
 }
 
 cmd_status() {
-  local root session
+  local root
   need codebase-memory-mcp
   root="$(resolve_repo)"
-  session="$(session_for_repo "$root")"
   printf 'repo=%s\n' "$root"
-  printf 'tmux_session=%s\n' "$session"
   codebase-memory-mcp config list
   codebase-memory-mcp cli list_projects
-  if command -v tmux >/dev/null 2>&1; then
-    tmux has-session -t "$session" 2>/dev/null && printf 'ui_keepalive=running\n' || printf 'ui_keepalive=stopped\n'
-  fi
+  codebase-memory-mcp daemon status || true
   if command -v lsof >/dev/null 2>&1; then
     lsof -nP -iTCP:"$port" -sTCP:LISTEN || true
   fi
@@ -332,7 +305,6 @@ case "$command" in
   schema) cmd_schema ;;
   cache-audit) cmd_cache_audit ;;
   cache-prune) cmd_cache_prune ;;
-  keepalive) cmd_keepalive ;;
   -h|--help|"") usage ;;
   *)
     printf 'unknown command: %s\n' "$command" >&2

@@ -16,7 +16,7 @@ RESOLVER_TIMEOUT_SECONDS = 60
 SAFE_CONFIG_SET = {
     ("config", "set", "auto_index", "false"),
     ("config", "set", "auto_watch", "false"),
-    ("config", "set", "ui", "false"),
+    ("config", "set", "ui_enabled", "false"),
 }
 
 
@@ -70,6 +70,14 @@ def public_args(args: list[str]) -> tuple[list[str], list[str]]:
         return args, []
     if args in (["config", "list"], ["daemon", "status"]):
         return args, []
+    if args[:3] == ["daemon", "start", "--open"]:
+        if len(args) == 3:
+            return args, []
+        if len(args) == 4 and args[3].startswith("--port="):
+            port = args[3].removeprefix("--port=")
+            if port.isascii() and port.isdecimal() and 1 <= int(port) <= 65535:
+                return args, []
+        raise GatewayError("browser mode accepts only daemon start --open [--port=1..65535]")
     if tuple(args) in SAFE_CONFIG_SET:
         return args, []
     if len(args) == 3 and args[:2] == ["config", "get"]:
@@ -144,6 +152,21 @@ def main() -> int:
     backend_path = rendered_path(BACKEND_PATH, "backend", executable=True)
     resolver_path = rendered_path(RESOLVER_PATH, "resolver", executable=False)
     args, presentation_flags = public_args(sys.argv[1:])
+
+    if args[:3] == ["daemon", "start", "--open"]:
+        # An already-running headless daemon will not enable its UI on start.
+        # Only this explicit browser request may change the shared preference.
+        try:
+            enabled = subprocess.run(
+                [backend_path, "config", "set", "ui_enabled", "true"],
+                check=False,
+                stdout=sys.stderr,
+                timeout=RESOLVER_TIMEOUT_SECONDS,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise GatewayError(f"could not enable browser mode: {error}") from error
+        if enabled.returncode != 0:
+            raise GatewayError("could not enable browser mode; daemon start was not attempted")
 
     if args[:2] == ["cli", "index_repository"]:
         if len(args) != 3:

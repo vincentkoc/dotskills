@@ -195,6 +195,45 @@ print(json.dumps({"canonical_root": os.environ["FAKE_CANONICAL"]}))
         self.assertEqual(response["argv"], [str(self.backend)])
         self.assertFalse(self.resolver_log.exists())
 
+    def test_browser_opt_in_enables_existing_daemon_before_native_open(self) -> None:
+        for suffix in ([], ["--port=9749"]):
+            with self.subTest(suffix=suffix):
+                self.reset_logs()
+                result = self.run_gateway("daemon", "start", "--open", *suffix)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                events = self.read_json_lines(self.backend_log)
+                self.assertEqual(
+                    [event["argv"][1:] for event in events],
+                    [
+                        ["config", "set", "ui_enabled", "true"],
+                        ["daemon", "start", "--open", *suffix],
+                    ],
+                )
+                self.assertFalse(self.resolver_log.exists())
+
+    def test_failed_enable_does_not_start_daemon(self) -> None:
+        result = self.run_gateway(
+            "daemon", "start", "--open",
+            env={**self.environment, "FAKE_BACKEND_EXIT": "7"},
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("daemon start was not attempted", result.stderr)
+        events = self.read_json_lines(self.backend_log)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["argv"][1:], ["config", "set", "ui_enabled", "true"])
+
+    def test_invalid_browser_options_do_not_change_configuration(self) -> None:
+        for suffix in (
+            ["--port=0"], ["--port=65536"], ["--port=abc"], ["--port=1x"],
+            ["--port=９７４９"], ["--port=9749", "--open"], ["--ui=true"],
+            ["cli", "index_repository", '{"repo_path":"/fixture"}'],
+        ):
+            with self.subTest(suffix=suffix):
+                self.reset_logs()
+                result = self.run_gateway("daemon", "start", "--open", *suffix)
+                self.assertEqual(result.returncode, 2)
+                self.assertFalse(self.backend_log.exists())
+
     def test_non_index_passthrough_uses_exact_exec_pid_exit_and_signal(
         self,
     ) -> None:
@@ -242,6 +281,8 @@ print(json.dumps({"canonical_root": os.environ["FAKE_CANONICAL"]}))
             ("config", "reset"),
             ("config", "reset", "--yes"),
             ("config", "set", "ui", "true"),
+            ("config", "set", "ui_enabled", "true"),
+            ("config", "set", "ui", "false"),
             ("config", "set", "ui", "1"),
             ("config", "set", "auto_index", "true"),
             ("config", "set", "port", "9749"),
@@ -256,7 +297,7 @@ print(json.dumps({"canonical_root": os.environ["FAKE_CANONICAL"]}))
                 self.assertFalse(self.resolver_log.exists())
 
         for args in (
-            ("config", "set", "ui", "false"),
+            ("config", "set", "ui_enabled", "false"),
             ("config", "set", "auto_index", "false"),
         ):
             with self.subTest(args=args):
@@ -313,7 +354,7 @@ print(json.dumps({"canonical_root": os.environ["FAKE_CANONICAL"]}))
             [], ["--version"], ["daemon", "status"], ["config", "list"],
             ["config", "set", "auto_watch", "false"],
             ["config", "set", "auto_index", "false"],
-            ["config", "set", "ui", "false"],
+            ["config", "set", "ui_enabled", "false"],
             ["cli", "list_projects"], ["cli", "--json", "list_projects"],
             ["cli", "get_graph_schema", '{"project":"fixture"}'],
         ):
@@ -324,7 +365,7 @@ print(json.dumps({"canonical_root": os.environ["FAKE_CANONICAL"]}))
 
 
 class GraphUiBoundaryTests(unittest.TestCase):
-    def test_ui_commands_fail_before_external_processes(self) -> None:
+    def test_retired_keepalive_fails_before_external_processes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             temp = pathlib.Path(directory)
             calls = temp / "calls"
@@ -343,10 +384,10 @@ class GraphUiBoundaryTests(unittest.TestCase):
                 "PATH": f"{bin_dir}:/usr/bin:/bin",
             }
 
-            for command in ("start-ui", "keepalive"):
+            for command in ("keepalive",):
                 with self.subTest(command=command):
                     result = subprocess.run(
-                        [str(GRAPH_SCRIPT), command],
+                        ["/bin/bash", str(GRAPH_SCRIPT), command],
                         check=False,
                         capture_output=True,
                         text=True,
@@ -354,12 +395,12 @@ class GraphUiBoundaryTests(unittest.TestCase):
                     )
                     self.assertEqual(result.returncode, 2)
                     self.assertIn(
-                        "/api/index canonicalization",
+                        "unknown command: keepalive",
                         result.stderr,
                     )
                     self.assertFalse(calls.exists())
 
-    def test_init_does_not_enable_or_start_ui(self) -> None:
+    def test_index_and_browser_lifecycles_are_independent(self) -> None:
         with tempfile.TemporaryDirectory(dir=pathlib.Path.home()) as directory:
             temp = pathlib.Path(directory)
             repo = temp / "repo"
@@ -381,8 +422,11 @@ import sys
 
 log = pathlib.Path(os.environ["CALLS"])
 with log.open("a") as handle:
-    handle.write(json.dumps({{"program": "codebase-memory-mcp", "args": sys.argv[1:]}}) + "\\n")
+    handle.write(json.dumps({{"program": "codebase-memory-mcp", "args": sys.argv[1:], "cwd": os.getcwd()}}) + "\\n")
 args = sys.argv[1:]
+if args == ["daemon", "status"]:
+    print("daemon: not running")
+    raise SystemExit(1)
 if args == ["cli", "list_projects"]:
     print(json.dumps({{"projects": [{{
         "name": "fixture",
@@ -412,7 +456,7 @@ exit 1
                 "PATH": f"{bin_dir}:/usr/bin:/bin",
             }
             result = subprocess.run(
-                [str(GRAPH_SCRIPT), "init", "--repo", str(repo)],
+                ["/bin/bash", str(GRAPH_SCRIPT), "init", "--repo", str(repo)],
                 check=False,
                 capture_output=True,
                 text=True,
@@ -427,6 +471,38 @@ exit 1
             self.assertFalse(
                 any(event["program"] == "node" for event in events)
             )
+
+            calls.unlink()
+            opened = subprocess.run(
+                ["/bin/bash", str(GRAPH_SCRIPT), "start-ui", "--repo", str(repo)],
+                check=False, capture_output=True, text=True, env=environment,
+            )
+            self.assertEqual(opened.returncode, 0, opened.stderr)
+            self.assertEqual(self.read_events(calls), [{
+                "program": "codebase-memory-mcp",
+                "args": ["daemon", "start", "--open", "--port=9749"],
+                "cwd": str(repo.resolve()),
+            }])
+
+            calls.unlink()
+            closed = subprocess.run(
+                ["/bin/bash", str(GRAPH_SCRIPT), "stop-ui"],
+                check=False, capture_output=True, text=True, env=environment,
+            )
+            self.assertEqual(closed.returncode, 0, closed.stderr)
+            self.assertEqual(
+                [event["args"] for event in self.read_events(calls)],
+                [["config", "set", "ui_enabled", "false"]],
+            )
+
+            calls.unlink()
+            with tempfile.TemporaryDirectory() as reserved:
+                denied = subprocess.run(
+                    ["/bin/bash", str(GRAPH_SCRIPT), "start-ui", "--repo", reserved],
+                    check=False, capture_output=True, text=True, env=environment,
+                )
+            self.assertNotEqual(denied.returncode, 0)
+            self.assertFalse(calls.exists())
 
     @staticmethod
     def read_events(path: pathlib.Path) -> list[dict[str, object]]:
