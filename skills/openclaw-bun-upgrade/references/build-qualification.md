@@ -51,10 +51,18 @@ from any thread that owns the relay host.
 
 ## Consumer proof
 
-Choose tests from the actual changed surfaces. The parser/Dirent incident needed
-release-profile parser regression proof (including its large-input case), the
-canonical HTTP/module-resolution suites and real directory consumers. A skipped
-stress case must be reported rather than counted as executed.
+Choose tests from the actual changed surfaces and retain the original regression
+cases for fork fixes still carried by the candidate. Inspect the daily workflow's
+commands, file/name filters, skips and result counts: a green job proves only the
+selected tests ran. Parser, directory and worker fixes need their corresponding
+regressions and real consumers; an omitted large-input or stress case remains a
+qualification gap, even when the surrounding suite passed.
+
+Read unexpected annotations together with the producing step's logs and exit
+status. Distinguish expected test output, harness/build infrastructure failures
+and candidate runtime failures. A passing job does not explain an error annotation,
+and an annotation alone does not prove a Bun defect. Resolve relevant unexplained
+diagnostics before treating that run as promotion proof.
 
 For OpenClaw worker/CodeMode paths, record the exact Bun identity from inside the
 real worker. Exercise allowed nested calls, policy denial, rightful wait/continuation
