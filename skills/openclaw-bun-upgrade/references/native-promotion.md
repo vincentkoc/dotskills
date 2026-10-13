@@ -26,12 +26,28 @@ service-owned cwd. Run Git as the checkout owner; do not add a global
 
 ## Preserve a real Node runtime
 
-A Bun Gateway can still need a genuine Node executable for PTY or other native
-subprocesses. Inspect the deployed Node resolver and child environment. A Bun
-directory on service PATH does not imply the prior Node directory remains there.
-Keep the existing pinned Node available by the owner's supported PATH or an
-explicitly reviewed link in the versioned runtime prefix. Verify resolution and
-actual PTY behavior as the service account. Never disguise Bun as `node`.
+A Bun Gateway still needs the Node required by the selected OpenClaw revision
+for its updater and CLI, and may use Node for PTY or other native subprocesses.
+Read that revision's `engines.node`, Node resolver and native SQLite requirements;
+a previously qualified Node version is not a permanent pin. Qualify the genuine
+Node executable, engine range and required native SQLite operation in the
+updater's actual execution account and service environment, including PATH and
+intentional Node options. Verify affected subprocess behavior as its service
+account. An interactive shell's shim or a successful Bun version probe does not
+establish Node discovery. Never disguise Bun as `node`.
+
+A Bun directory on service PATH does not imply the prior Node directory remains
+there. Preserve a compatible Node through the existing runtime/package owner's
+supported route. When preflight reports `preflight-node-runtime-incompatible`,
+inspect the failed phase and Node selection before attributing the failure to
+Bun. Do not force a global symlink or replace the admitted Bun Gateway executable
+to make Node preflight pass.
+
+After a prerequisite correction, recheck that failed prerequisite and, if the
+application update is authorized, resume through its owning updater. Record Node
+discovery, the update's terminal outcome and the loaded Gateway executable/version
+separately. A successful Node probe proves neither an application update nor
+continued Bun operation.
 
 ## Atomic publication and authority
 
