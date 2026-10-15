@@ -33,6 +33,13 @@ Freeze the full commit and tree, then record:
 - Actual ELF interpreter, required GLIBC/GLIBCXX/CXXABI versions and CPU features.
 - Test commands, exit results, skipped cases and limitations.
 
+Qualify source-glob inventories against the frozen Git tree, not only literal
+`git ls-files` paths. Follow symlinks only when every traversed link is tracked and
+its target text matches the frozen tree. Require the resolved source file to remain
+inside the qualified checkout, be tracked, and match its frozen content. Reject
+untracked aliases and ignored or untracked source inputs. Account separately for
+generated and dependency inputs through their declared build steps.
+
 Use the repository's build wrapper and inspect its generated flags. Merely
 setting a sysroot variable or naming an artifact `baseline` does not prove the
 compiler/linker consumed it. For heterogeneous x64 hosts, select a baseline no
