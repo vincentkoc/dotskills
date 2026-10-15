@@ -153,6 +153,12 @@ catalog.yaml                 # Skill metadata catalog
 releases/skills.json
 ```
 
+## OpenClaw runtime and authentication
+
+See [runtime and search-auth troubleshooting](docs/openclaw-runtime-auth.md)
+for separating saved settings from active runtimes, checking managed
+authentication, and handling operator-scope denials without bypassing them.
+
 ## Validation
 
 `make validate` now runs:
