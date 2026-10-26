@@ -33,6 +33,22 @@ Freeze the full commit and tree, then record:
 - Actual ELF interpreter, required GLIBC/GLIBCXX/CXXABI versions and CPU features.
 - Test commands, exit results, skipped cases and limitations.
 
+Keep checkout commit/tree, the executable's embedded revision and digest, engine
+inputs, CI head/attempt and deployed executable identity separate. A rebuilt
+harness or changed checkout does not prove the executable was rebuilt; a passed
+CI head does not identify the runtime loaded by a service.
+
+Before credentialed CI, remove raw environment enumeration from shared build/test
+logging producers. Log masking or redacting the final report does not prevent the
+original producer from exposing credentials in retained output.
+
+Rustup commands and proxies can install a selected missing toolchain while
+resolving a project override. Inspect static configuration first; use
+`RUSTUP_AUTO_INSTALL=0` per diagnostic invocation to disable automatic installation.
+This does not disable explicit install/repair commands or authorize toolchain
+changes. See the
+[rustup environment contract](https://rust-lang.github.io/rustup/devel/environment-variables.html).
+
 Qualify source-glob inventories against the frozen Git tree, not only literal
 `git ls-files` paths. Follow symlinks only when every traversed link is tracked and
 its target text matches the frozen tree. Require the resolved source file to remain
@@ -49,12 +65,18 @@ target service account.
 
 Prefer the existing isolated build service and its native lease lifecycle.
 Separate trusted reviewed-source execution from secretless fork execution.
+Before expensive work, budget artifact/proof transfer, verification and cleanup
+against lease expiry, including measured throughput and artifact size.
 Release the builder after the artifact and required proof have been retrieved;
 do not retain a paid builder merely because deployment is waiting for admission.
 Transfer one verified artifact, without credentials or private fleet checkouts.
 If resuming a partial transfer, bind and verify the prefix and final digest.
 A relay uses verified host keys and no agent forwarding; it also needs release
 from any thread that owns the relay host.
+
+Bind the artifact URL, actual compression format, byte count and digest to the
+same selected asset before extraction. Verify archive and extracted binary hashes
+separately; a filename suffix or reused URL is not proof of archive format.
 
 ## Consumer proof
 
@@ -64,6 +86,19 @@ commands, file/name filters, skips and result counts: a green job proves only th
 selected tests ran. Parser, directory and worker fixes need their corresponding
 regressions and real consumers; an omitted large-input or stress case remains a
 qualification gap, even when the surrounding suite passed.
+
+Report released/reference and patched runs separately: selected, passed, failed,
+skipped and expected-failure counts, with identical filters and execution order
+for differential proof. An expected failure is not a repaired pass. Exit zero
+with required tests or Rust cross-check targets skipped is incomplete; enumerate
+which targets actually compiled and which remain unqualified.
+
+Preserve a GC regression's original factory, creation/execution order, assertions,
+collection budget and collection context. Moving collection to another job or
+stack depth changes the oracle. Attribute the actual retaining owner before a
+fixture correction; a rootless heap graph alone does not prove conservative-stack
+retention. A scanner claim needs the retaining word and owning frame, not merely
+a passing reordered test or a production counterfactual.
 
 Read unexpected annotations together with the producing step's logs and exit
 status. Distinguish expected test output, harness/build infrastructure failures
