@@ -42,6 +42,7 @@ Recover crashed, detached, or confusing agent sessions while preserving the best
    - Never kill broad Codex, Claude, tmux, or terminal processes from name matches alone.
    - Restrict cleanup to the exact pane, PID, process group, or current-task resource.
    - For cockpit recovery, prepare the native RGB palette, saved pane markers and native agent launch environment before starting any Codex process. Restore the native three-column, two-row six-pane layout and verify rendered colors, not only live PIDs.
+   - Preserve the original goals feature setting and each thread's goal lifecycle, objective, budget and usage. Do not add `--disable goals`, pause/clear goals, or issue blanket resume commands as part of restoration. Preserve native continuation of active goals; leave paused and terminal goals in their existing states.
 6. Stay narrow for session-ID requests.
    - Return the concrete ID and `codex resume <id>` first.
    - Add the broader recovery method only when requested.
@@ -72,7 +73,8 @@ stateDiagram-v2
     ShowExactPlan --> ReportPlan: preview only or mutation not authorized
     ShowExactPlan --> TargetedRecovery: exact mutation authorized
     TargetedRecovery --> PrepareNativeAppearance: tt cockpit
-    PrepareNativeAppearance --> LaunchExactSessions
+    PrepareNativeAppearance --> PreserveThreadGoals
+    PreserveThreadGoals --> LaunchExactSessions
     LaunchExactSessions --> VerifyTarget
     TargetedRecovery --> VerifyTarget: other recovery
     VerifyTarget --> ReportResult

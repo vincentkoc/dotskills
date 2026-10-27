@@ -32,7 +32,7 @@ route. Do not source the `tt` executable as a function library.
   one-pane repair or ask again for unchanged scope. It does not cover unrelated
   sessions or processes.
 - Match native preview to the saved topology. Some `tt recover` versions pad
-  windows to six panes; some restore helpers normalize away `--disable goals`.
+  windows to six panes or change saved launch options.
   When a reviewed exact route is needed, retain the native theme, marker and
   agent-command contracts rather than reproducing only panes and UUIDs.
 - Six-pane studio windows have **three columns and two rows**, ordered down
@@ -66,7 +66,7 @@ route. Do not source the `tt` executable as a function library.
    options before starting agents. A failed bootstrap is a stop condition,
    not permission to launch agents and apply their palette later.
 5. Launch every exact saved UUID through the native `agent_pane_command`
-   contract, retaining saved options, `--no-alt-screen`, `--disable goals` and
+   contract, retaining original options, `--no-alt-screen` and
    the login-shell fallback. The current color prefix unsets `NO_COLOR` and
    `TERMINFO`, sets `CLICOLOR=1`, `CLICOLOR_FORCE=1`, `FORCE_COLOR=3` and
    `COLORTERM=truecolor`, and supplies native `TERMINFO_DIRS`. Global tmux
@@ -76,6 +76,28 @@ Codex probes its foreground/background during startup and can cache a failed
 probe. Applying `tt colorfix` or attaching a terminal afterward does not repair
 that process's cached input shading. A native environment prefix alone also
 does not replace the pre-launch palette. Both must be in place first.
+
+## Preserve goals through recovery
+
+- Preserve the thread's original goals feature configuration. Never add
+  `--disable goals` or `features.goals=false` as a recovery precaution. A flag
+  introduced by a faulty restore is not an original user preference; remove it
+  from the corrected launch plan. Preserve an intentional user override.
+- Goals are persisted thread state. Before replacing an owner, inspect its
+  native goal state read-only when available. Preserve the goal ID, objective,
+  lifecycle, token/time budgets and consumed usage. Missing state is unknown,
+  not permission to recreate an objective or reset a budget.
+- Preserve native continuation for active goals. Leave paused, blocked,
+  complete, cancelled and budget-limited goals in their saved states. Do not
+  send blanket `/goal resume`, pause or clear commands, mutate goal databases,
+  or synthesize new goals. Follow any explicit user-requested lifecycle change
+  separately from restoring the cockpit.
+- Interrupting a turn can pause a goal. Do not interrupt a busy owner just to
+  fix launch flags. If the current CLI cannot enable goals in place, report the
+  affected exact owners and obtain current scoped restart authority before
+  replacing them. A previously completed restore does not authorize another
+  restart cycle. Preserve existing safety notices; recovery must not retry a
+  request stopped by one.
 
 ## Verify and finish
 
@@ -94,8 +116,12 @@ does not replace the pre-launch palette. Both must be in place first.
 - Inspect prompts in context. A directory-choice dialog can contain an input
   glyph without opening the conversation. If it offers the saved session's old
   directory versus the audited snapshot CWD, choose the snapshot CWD only when
-  that exact choice is covered by the restore map. Do not send task text or
-  continue saved goals.
+  that exact choice is covered by the restore map. Do not send new task text or
+  change goal lifecycle; allow the restored thread's normal native continuation.
+- Verify goal capability, unchanged budgets and no reset or recovery-induced
+  lifecycle change after launch. Native progress can increase usage, complete
+  the goal or reach its budget. A live process with the right UUID is
+  insufficient when a recovery-added override prevents loading its goal.
 - Return the client to its mapped pane, remove only the task-owned holding
   session, and restore native menus/autosave. Preserve the immutable source
   snapshot and outside processes. A full recreation must prove the old Codex
