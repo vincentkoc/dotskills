@@ -31,6 +31,7 @@ Recover crashed, detached, or confusing agent sessions while preserving the best
    - Inspect relevant key bindings before re-sourcing tmux configuration.
 3. Inspect available recovery sources.
    - Prefer the operator's snapshot/history helper when installed.
+   - For `tt` cockpit restoration, read [tt recovery](references/tt-recovery.md) and the snapshot directory's `AGENTS.md` before choosing a restore route. Install missing guidance from its dotfiles source; do not run a full bootstrap for this.
    - Inspect recent `~/.codex/sessions/YYYY/MM/DD/*.jsonl` metadata for session IDs and working directories.
    - Cross-check pane PIDs, cwd, and recent logs before selecting a session.
 4. Produce a dry-run plan first.
@@ -40,6 +41,7 @@ Recover crashed, detached, or confusing agent sessions while preserving the best
    - Require explicit intent before restore commands that mutate tmux state.
    - Never kill broad Codex, Claude, tmux, or terminal processes from name matches alone.
    - Restrict cleanup to the exact pane, PID, process group, or current-task resource.
+   - For cockpit recovery, prepare the native RGB palette, saved pane markers and native agent launch environment before starting any Codex process. Restore the native three-column, two-row six-pane layout and verify rendered colors, not only live PIDs.
 6. Stay narrow for session-ID requests.
    - Return the concrete ID and `codex resume <id>` first.
    - Add the broader recovery method only when requested.
@@ -69,7 +71,10 @@ stateDiagram-v2
     MatchSourceAndTarget --> ShowExactPlan: preview or recovery
     ShowExactPlan --> ReportPlan: preview only or mutation not authorized
     ShowExactPlan --> TargetedRecovery: exact mutation authorized
-    TargetedRecovery --> VerifyTarget
+    TargetedRecovery --> PrepareNativeAppearance: tt cockpit
+    PrepareNativeAppearance --> LaunchExactSessions
+    LaunchExactSessions --> VerifyTarget
+    TargetedRecovery --> VerifyTarget: other recovery
     VerifyTarget --> ReportResult
     ReportUnknown --> [*]
     ReturnResumeID --> [*]
