@@ -24,9 +24,17 @@ route. Do not source the `tt` executable as a function library.
 
 - Inspect `tt status`, `tt snapshot-history codex-cockpit` and a preview of the
   explicit selected snapshot. Freeze its hash, exact UUID/CWD/title mapping,
-  shell targets, window counts and persisted marker records. Snapshots may lack
-  layout or marker columns; use the native layout and persisted marker files
-  rather than assuming these features do not exist.
+  shell targets, window counts and marker assignments. Updated Codex snapshots
+  include a versioned `# pane-markers` record bound to each row's kind, UUID and
+  CWD, including explicit default/cleared markers. Confirm the selected file
+  contains that record; an RGB palette is not a saved marker map.
+- For older snapshots, inventory the native `pane-markers/*.md` records and
+  bounded earlier recovery previews/logs before declaring colors restored.
+  Persisted files are keyed by window/pane position and can be incomplete or
+  stale. Join historical agent colors by exact UUID **and CWD**, not title,
+  current pane number or a shared directory. Preserve newer conflicting markers;
+  skip absent UUIDs, CWD drift and unresolved owners. Missing evidence remains a
+  reported gap, never permission to guess a color.
 - Check for live owners and outside controllers. Existing authorization for a
   full close and re-restore covers the named cockpit; do not substitute another
   one-pane repair or ask again for unchanged scope. It does not cover unrelated
@@ -42,9 +50,35 @@ route. Do not source the `tt` executable as a function library.
   four panes and a vertical pair for two. Report this as a fallback, not recovered
   historical geometry.
 
+## Repair an already-live cockpit
+
+If exact saved sessions are already running, attach to them. For missing colors,
+use only a reviewed marker repair; do not run `tt colorfix`, broad `tt recover`,
+`tt sync all`, respawn or a new snapshot as a substitute for marker evidence.
+
+When the installed revision supports it, run
+`tt marker restore <session> <snapshot>` for a read-only plan, then append
+`--execute` for the authorized repair. It fills missing colors by exact live
+UUID/CWD, handles moved windows, preserves current nonempty colors and skips
+unmatched owners. Shells require the original server and physical process proof.
+Legacy snapshots without marker metadata are refused: audit the older map first,
+then use `tt marker set <stable-pane-id> <color>` only for verified entries.
+Preserve a known newer clear as well as a newer color; absent metadata alone
+cannot establish whether a clear occurred.
+
+Verify native active/inactive styles, persisted colors and unchanged pane/agent
+PIDs. Stop without restarting agents or changing their goals. The command does
+not reconstruct colors that were never captured, and `tt restore` remains the
+layout helper rather than a session or marker restore.
+
 ## Prepare before launching agents
 
-1. With an existing server, disable native autosave before changing topology.
+1. Prefer the installed, verified native cold-recovery route when it preserves
+   exact counts, launch options and marker metadata through its frozen input.
+   Its snapshot lock protects the scaffold without changing other sessions'
+   autosave. Do not invoke a legacy padded restore because its name looks right.
+   For a reviewed custom route with an existing server, suspend only the audited
+   autosave writer before changing topology.
    For a cold start, bootstrap only a shell with the native recovery config's
    hooks/autosave absent, then disable native autosave before scaffold changes
    or setup helpers. Do not require `tt autosave off` to succeed before a server
@@ -59,8 +93,9 @@ route. Do not source the `tt` executable as a function library.
    explicit foreground/background defaults, saved titles and pane marker
    styles **before the first Codex launch**, including unmarked panes. Verify
    that these settings took effect before continuing.
-4. Feed `tt recovery-config` to an existing server with `tmux source-file -`.
-   Do not rely on `tmux -f /dev/stdin new-session`: the detached server can start
+4. Do not source global recovery configuration into an existing server that
+   contains unrelated sessions. Use the verified native scoped setup instead.
+   Do not rely on `tmux -f /dev/stdin new-session`: a detached server can start
    with default indices and no color configuration. If a fresh server requires
    a real configuration file, use one temporary file and verify the loaded
    options before starting agents. A failed bootstrap is a stop condition,
@@ -103,7 +138,9 @@ does not replace the pre-launch palette. Both must be in place first.
 
 - Match every restored target to its UUID, CWD, title and live process. Inspect
   actual pane coordinates for three columns and two rows, and native active and
-  inactive marker styles against persisted records.
+  inactive marker styles against the audited map and persisted records. Report
+  expected and restored counts by color; a handful of surviving amber files is
+  not proof that the green, blue, violet or dim assignments survived.
 - Restore native automatic window sizing after any temporary scaffold
   `resize-window` calls: they create a local `window-size manual` override even
   when the global setting is `latest`. Remove only task-created overrides with

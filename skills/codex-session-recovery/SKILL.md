@@ -34,9 +34,11 @@ Recover crashed, detached, or confusing agent sessions while preserving the best
    - For `tt` cockpit restoration, read [tt recovery](references/tt-recovery.md) and the snapshot directory's `AGENTS.md` before choosing a restore route. Install missing guidance from its dotfiles source; do not run a full bootstrap for this.
    - Inspect recent `~/.codex/sessions/YYYY/MM/DD/*.jsonl` metadata for session IDs and working directories.
    - Cross-check pane PIDs, cwd, and recent logs before selecting a session.
+   - Inventory pane markers separately from terminal RGB support. A working palette does not prove the saved amber, green or other pane assignments survived. Match historical colors by exact session UUID and CWD when window numbers changed.
 4. Produce a dry-run plan first.
    - Prefer one-pane or one-window restore over whole-session restore.
    - Show the snapshot or session ID, target pane, and exact command.
+   - If the exact owners are already live, attach or repair only missing markers. Preview `tt marker restore <session> <snapshot>` when supported; preserve current conflicting markers. Do not rebuild or restart agents for missing pane colors.
 5. Execute only with clear intent.
    - Require explicit intent before restore commands that mutate tmux state.
    - Never kill broad Codex, Claude, tmux, or terminal processes from name matches alone.
@@ -59,6 +61,7 @@ Recover crashed, detached, or confusing agent sessions while preserving the best
 - Exact resume command when available.
 - Selected restore source and target.
 - Dry-run restore plan before execution.
+- Verified marker assignments and active/inactive styles, or an explicit missing-color evidence gap. PID counts alone do not establish a complete cockpit restore.
 - Concise blocker when evidence is insufficient.
 
 ## Flow
