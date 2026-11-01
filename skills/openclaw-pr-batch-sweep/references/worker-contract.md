@@ -98,7 +98,8 @@ GitHub mutations performed:
 - Keep qualification read-only.
 - Serialize comments, branch pushes, closes, and merges.
 - For terminal current-task PR closeout, follow the applicable `$operations-worktree` or repository-native lifecycle.
-  Plain `gwt finish` records completion only for opted-in finish-managed jobs, not owner release.
+  Current `gwt finish` includes owner release for native finish-managed jobs;
+  older installed helpers may still require their supported `--release` option.
   Supported manual finalized closeout uses its own native guards, not the automatic backend's qualification.
 - Retention needs a named unfinished consumer, requirement, or native blocker, with a responsible owner and release condition.
   Preserve active stack, handoff, proof-consumer, and recovery dependencies. Routine finalized proof needs no archive.

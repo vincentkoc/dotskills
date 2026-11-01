@@ -103,8 +103,10 @@ its exclusive checkout when no unfinished work, required evidence or shared cons
 unless the user asked to keep it. Do not request a new cleanup approval for
 that closeout. Use the native owner release/removal route; task completion
 does not permit bypassing its guards or touching another owner's workspace.
-Checkout retention does not keep a completed task active. Record the retained
-path and its concrete remaining condition once, then finish the requested work.
+If native closeout defers removal, record the exact retry command, responsible
+owner, and the condition that must clear. Claim automatic retry only when an
+installed consumer actually owns it. Report that disposition once; do not keep
+the task running merely because a checkout remains.
 Optional proof or profiling must not become a new closeout requirement.
 After required validation and delivery, or explicit cancellation/supersession,
 routine task logs, receipts, test captures, proof archives, build output, and
@@ -134,21 +136,22 @@ Ordinary and repository-native checkouts keep their existing authorized lifecycl
 removal requires current ownership and live-use checks, protection of unfinished
 work, and the repository's approved non-force procedure.
 
-For a finalized checkout with no remaining use, prefer the advertised manual
-finalized closeout below. Finish/release remains useful for retained or queued
-work; it is not an extra gate before manual finalized closeout.
+For a finalized checkout with no remaining use, complete its native foreground
+closeout. The manual finalized route below remains available for cancelled,
+superseded, or no-PR work and for explicitly disposable artifacts. Finish/release
+is not an extra gate before that manual route.
 
 Personal GWT completion applies only to explicitly enrolled `--finish-managed`
 worktrees. Record the current owner's completed work promptly with
 `gwt finish --pr <full URL>`, even if the PR has not merged.
-Plain finish grants no new release and does not cancel an earlier sign-off.
+Current helpers include owner release in plain finish. If the installed helper
+still documents completion alone, include its supported `--release` option.
 Treat generic Codex Stop as turn-scoped attention only, never completion or release.
 
-The following requirements apply to the automatic finish/release route.
-When the installed wrapper advertises `finish --release` and this new enrollment
-supports release, use `gwt finish --pr <full URL> --release` once this owner's
-job is complete and it relinquishes future checkout use. Use `gwt release`
-for an already completed owner. This is explicit local job sign-off.
+Foreground completion uses the native task-closeout owner; it does not require
+unattended-worker activation. Use `gwt release` for an already completed owner
+when supported, or the advertised finalized manual route. Keep a recovery pin
+while another task still needs the checkout.
 Every enrolled owner, including the creator, must complete and release against
 the same proof. A finished fix or feature can be removed as soon as its exact
 PR head has merged into the final target and native admission passes; age adds no delay.
@@ -179,6 +182,9 @@ pending merges and departure. Installing source or reporting release capability
 does not activate deletion or prove removal readiness.
 The wrapper parks only its own shell; checkout/admin CWD, FD or mapped holders
 still block removal. Preserve native guard failures and their exact reasons.
+Until a pending consumer is installed, retry the scoped native closeout from
+the owning checkout after the merge or holder condition clears; do not describe
+that retry as scheduled.
 
 If a checkout expected to be finish-managed reports `not-enrolled`, retain it and diagnose the discrepancy.
 Do not call managed finish on ordinary or repository-native checkouts or retrofit enrollment.
@@ -240,10 +246,10 @@ stateDiagram-v2
     DoTask --> CancelOwner: superseded or cancelled without matching PR
     CancelOwner --> NativeCloseout: finalized manual route available
     CancelOwner --> ReportRetained: native closeout unavailable or concrete blocker
-    RecordFinish --> ReportRetained: no release or report-only enrollment
-    RecordFinish --> SignOffOwner: release supported and no future owner use
-    RecordFinish --> EvaluateRelease: existing release remains valid
-    SignOffOwner --> EvaluateRelease: finish --release or release
+    RecordFinish --> ReportRetained: report-only enrollment or concrete blocker
+    RecordFinish --> SignOffOwner: older helper requires explicit release
+    RecordFinish --> EvaluateRelease: completion includes owner signoff
+    SignOffOwner --> EvaluateRelease: supported explicit release
     EvaluateRelease --> ReportRetained: pending proof, owners, pins or native guard
     EvaluateRelease --> ReportRemoved: qualified native removal verified
     EvaluateRelease --> ReportUnknown: incomplete removal or missing readback
