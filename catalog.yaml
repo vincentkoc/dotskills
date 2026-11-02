@@ -159,13 +159,6 @@ skills:
     tags: [tmux, codex, agents, orchestration, openclaw]
     version: 0.1.8
 
-  - id: opik-integrations-auditor
-    name: Opik Integrations Auditor
-    path: skills/opik-integrations-auditor
-    source: local
-    tags: [opik, integrations, audit, sdk]
-    version: 0.1.0
-
   - id: openclaw-github-dedupe
     name: Issue/PR Cluster Deduper
     path: skills/openclaw-github-dedupe

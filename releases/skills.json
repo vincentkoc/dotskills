@@ -80,12 +80,6 @@
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill operations-worktree -y"
     },
     {
-      "name": "opik-integrations-auditor",
-      "source": "./skills/opik-integrations-auditor",
-      "description": "Audit, compare, and document Opik integrations across Python, TypeScript, and backend OTEL/API surfaces with a repeatable evidence-first workflow.",
-      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill opik-integrations-auditor -y"
-    },
-    {
       "name": "org-branch-cleanup",
       "source": "./skills/org-branch-cleanup",
       "description": "Remove organization branch clutter without guessing which refs are safe to delete.",
