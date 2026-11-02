@@ -86,12 +86,6 @@
       "install": "npx skills add https://github.com/vincentkoc/dotskills --skill opik-integrations-auditor -y"
     },
     {
-      "name": "opik-optimizer",
-      "source": "./skills/opik-optimizer",
-      "description": "Design, run, and interpret Opik Optimizer workflows for prompts, tools, and model parameters with consistent dataset/metric wiring and reproducible evaluation.",
-      "install": "npx skills add https://github.com/vincentkoc/dotskills --skill opik-optimizer -y"
-    },
-    {
       "name": "org-branch-cleanup",
       "source": "./skills/org-branch-cleanup",
       "description": "Remove organization branch clutter without guessing which refs are safe to delete.",

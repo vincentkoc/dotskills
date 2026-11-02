@@ -93,12 +93,6 @@
       "description": "Audit, compare, and document Opik integrations across Python, TypeScript, and backend OTEL/API surfaces with a repeatable evidence-first workflow."
     },
     {
-      "name": "opik-optimizer",
-      "source": "./skills/opik-optimizer",
-      "skills": "./",
-      "description": "Design, run, and interpret Opik Optimizer workflows for prompts, tools, and model parameters with consistent dataset/metric wiring and reproducible evaluation."
-    },
-    {
       "name": "org-branch-cleanup",
       "source": "./skills/org-branch-cleanup",
       "skills": "./",

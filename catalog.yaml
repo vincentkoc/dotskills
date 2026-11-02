@@ -159,13 +159,6 @@ skills:
     tags: [tmux, codex, agents, orchestration, openclaw]
     version: 0.1.8
 
-  - id: opik-optimizer
-    name: Opik Optimizer
-    path: skills/opik-optimizer
-    source: local
-    tags: [opik, optimization, prompts, agents]
-    version: 0.1.0
-
   - id: opik-integrations-auditor
     name: Opik Integrations Auditor
     path: skills/opik-integrations-auditor
