@@ -3,7 +3,6 @@ name: codex-goal-mining
 description: Mine structured Codex /goal history locally or across a configured machine fleet, measure active goal time and resumed thread spans, identify unfinished and recurring semantic runs, and turn them into stable copy-paste rerun suites. Use when the user asks to inspect goal history, summarize goal commands, find repeated goals, recover large beta campaigns, compare goal duration or token usage, or prepare reusable /goal prompts and privacy-scrubbed reports.
 license: MIT
 metadata:
-  workflow-exemption: "Ordered collection, coverage accounting, analysis, and reporting; no separate action-routing lifecycle."
   source: "https://github.com/vincentkoc/dotskills"
 ---
 
@@ -33,6 +32,22 @@ Recover structured Codex goal history and convert free-form runs into evidence-b
      and returns nonzero instead of silently reporting success.
    - Use `--one-attempt` for a single configured/first interpreter attempt per
      host. Policy entries may declare `python` and `wsl_python`.
+   - Remote collection requires `fleet-credentials ssh-target TARGET`. Its
+     token-free reply selects the registered helper or an unregistered native
+     SSH alias. A missing helper, unsupported query, or invalid reply stops that
+     target; it never authorizes native SSH.
+   - Set `transport: "fleet-credentials"` for a helper-owned target, and
+     `wsl_transport` separately for a WSL target. Removing its registration then
+     remains an error. Omitted transport or `"ssh"` performs automatic lookup
+     before each native interpreter attempt; it does not remember past ownership.
+   - Registered targets use one helper invocation with the configured interpreter
+     or `python3`. Helper refusals never retry another interpreter or use raw SSH.
+     The helper needs its own enrolled context and Python 3.11+; the reporter
+     remains compatible with Python 3.9. Local-only collection needs no helper.
+   - A registered collection has a 180-second observation bound. On timeout,
+     cancellation or pipe I/O failure, signal only its owned helper with TERM and allow ten seconds
+     for cleanup. Stop the fleet pass, retain unresolved custody, and report
+     remaining targets as unattempted. Local reaping does not prove remote exit.
    - Start fleet configuration from `references/fleet-policy.example.json`; never commit a real private inventory.
 2. Treat the data sources correctly.
    - Prefer `goals_1.sqlite` for objective, status, tokens, and Codex-recorded active goal time.
@@ -75,3 +90,25 @@ Recover structured Codex goal history and convert free-form runs into evidence-b
 - Ranked active, paused, blocked, and long-running goals.
 - Semantic campaign summary with timing and reachability caveats.
 - Stable copy-paste `/goal` suite prompts and rerun priority order.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Select
+    Select --> Local: local only
+    Select --> Lookup: remote target
+    Lookup --> Helper: registered
+    Lookup --> Native: unregistered and automatic mode
+    Lookup --> Blocked: unknown or required registration absent
+    Lookup --> StopFleet: timeout or cancellation
+    Helper --> Report: completed or refused
+    Helper --> StopFleet: timeout cancellation or I/O failure
+    Native --> Report: completed or terminal refusal
+    Native --> Lookup: interpreter failed and retry allowed
+    Native --> StopFleet: timeout or cancellation
+    Local --> Report
+    Blocked --> Report
+    StopFleet --> Report: include unattempted targets
+    Report --> [*]
+```
