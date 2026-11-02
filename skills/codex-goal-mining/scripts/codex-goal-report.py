@@ -31,6 +31,12 @@ def default_policy_path() -> pathlib.Path | None:
 
 
 DEFAULT_POLICY = default_policy_path()
+HELPER_LOOKUP_TIMEOUT = 5
+HELPER_TIMEOUT = 180
+HELPER_REAP_TIMEOUT = 10
+# Keep an unreaped owned handle available to the caller; never kill a process
+# group or claim that a local SSH exit proves remote collector cleanup.
+UNREAPED_HELPERS: list[subprocess.Popen] = []
 GOAL_EVENT_MARKER = '"type":"event_msg","payload":{"type":"thread_goal_updated"'
 GOAL_EVENT_PATTERN = r'^\{"timestamp":"[^"]+","type":"event_msg","payload":\{"type":"thread_goal_updated"'
 TIMESTAMP_PATTERN = re.compile(r'^\{"timestamp":"([^"]+)"')
@@ -410,6 +416,7 @@ def fleet_targets(policy_path: pathlib.Path, selected: set[str] | None = None) -
                     "machine": alias,
                     "ssh_target": system.get("ssh_target"),
                     "interpreter": system.get("python"),
+                    "transport": system.get("transport", "ssh"),
                 }
             )
         wsl_target = system.get("wsl_target")
@@ -419,9 +426,99 @@ def fleet_targets(policy_path: pathlib.Path, selected: set[str] | None = None) -
                     "machine": wsl_alias,
                     "ssh_target": wsl_target,
                     "interpreter": system.get("wsl_python"),
+                    "transport": system.get("wsl_transport", "ssh"),
                 }
             )
     return targets
+
+
+def unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("duplicate JSON key")
+        value[key] = item
+    return value
+
+
+def registered_target(helper: str, target: str) -> bool:
+    """Only a complete helper-owned negative answer permits native SSH."""
+    try:
+        result = subprocess.run(
+            [helper, "ssh-target", target], stdin=subprocess.DEVNULL,
+            capture_output=True, timeout=HELPER_LOOKUP_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        raise ValueError("route_lookup_timeout") from None
+    except KeyboardInterrupt:
+        raise ValueError("route_lookup_cancelled") from None
+    except OSError:
+        raise ValueError("route_lookup_unavailable") from None
+    if result.returncode or result.stderr or len(result.stdout) > 1024:
+        raise ValueError("route_lookup_failed")
+    try:
+        reply = json.loads(result.stdout, object_pairs_hook=unique_json_object)
+    except (ValueError, UnicodeDecodeError):
+        raise ValueError("route_lookup_invalid") from None
+    if (not isinstance(reply, dict) or set(reply) != {"version", "registered"}
+            or type(reply["version"]) is not int or reply["version"] != 1
+            or type(reply["registered"]) is not bool):
+        raise ValueError("route_lookup_invalid")
+    return reply["registered"]
+
+
+def remote_failure(machine: str, kind: str, **details: Any) -> dict[str, Any]:
+    # Helper diagnostics can contain private references and paths. Keep their
+    # literal output out of the report, including on malformed JSON.
+    return {"machine": machine, "error": kind, "goals": [], **details}
+
+
+def collector_result(data: bytes, machine: str) -> dict[str, Any]:
+    value = json.loads(data)
+    if not isinstance(value, dict) or value.get("machine") != machine or not isinstance(value.get("goals"), list):
+        raise ValueError("collector schema")
+    return value
+
+
+def collect_registered(
+    helper: str, target: str, interpreter: str, arguments: list[str], script: bytes, machine: str,
+) -> dict[str, Any]:
+    try:
+        command = [helper, "ssh", target, "--", *shlex.split(interpreter), "-", *arguments]
+        child = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except (OSError, ValueError):
+        return remote_failure(machine, "registered_transport_unavailable")
+    try:
+        out, _err = child.communicate(input=script, timeout=HELPER_TIMEOUT)
+    except (subprocess.TimeoutExpired, KeyboardInterrupt, OSError) as error:
+        # The helper owns its temporary agent and transport children. Let its
+        # installed SIGTERM/finally cleanup run; do not SIGKILL or signal peers.
+        try:
+            if child.poll() is None:
+                child.terminate()
+            child.communicate(timeout=HELPER_REAP_TIMEOUT)
+            custody = "reaped"
+        except (subprocess.TimeoutExpired, KeyboardInterrupt, OSError):
+            custody = "unknown"
+            UNREAPED_HELPERS.append(child)
+        kind = "registered_transport_timeout"
+        if isinstance(error, KeyboardInterrupt):
+            kind = "registered_transport_cancelled"
+        elif isinstance(error, OSError):
+            kind = "registered_transport_io_error"
+        return remote_failure(
+            machine, kind,
+            stop_fleet=True, local_helper_custody=custody,
+            remote_collector_custody="unknown", owned_helper_pid=child.pid,
+        )
+    if child.returncode:
+        return remote_failure(machine, "registered_transport_failed", exit_code=child.returncode,
+                              local_helper_custody="reaped", remote_collector_custody="unknown")
+    try:
+        return collector_result(out, machine)
+    except (ValueError, UnicodeDecodeError):
+        return remote_failure(machine, "registered_collector_invalid", local_helper_custody="reaped",
+                              remote_collector_custody="unknown")
 
 
 def collect_remote(
@@ -434,7 +531,19 @@ def collect_remote(
     timeout: int,
     interpreter: str | None = None,
     one_attempt: bool = False,
+    transport: str = "ssh",
 ) -> dict[str, Any]:
+    if transport not in ("ssh", "fleet-credentials"):
+        return remote_failure(machine, "unsupported_transport")
+    if interpreter is not None:
+        try:
+            if not isinstance(interpreter, str) or not shlex.split(interpreter) or "\0" in interpreter:
+                raise ValueError("invalid interpreter")
+        except ValueError:
+            return remote_failure(machine, "invalid_interpreter")
+    helper = shutil.which("fleet-credentials")
+    if helper is None:
+        return remote_failure(machine, "route_lookup_unavailable")
     arguments = ["--collect-local", "--machine-name", machine, "--json"]
     if since:
         arguments.extend(["--since", since])
@@ -447,6 +556,14 @@ def collect_remote(
     if one_attempt:
         interpreters = interpreters[:1]
     for selected_interpreter in interpreters:
+        try:
+            registered = registered_target(helper, ssh_target)
+        except ValueError as error:
+            return remote_failure(machine, str(error), stop_fleet=str(error) in {"route_lookup_timeout", "route_lookup_cancelled"})
+        if registered:
+            return collect_registered(helper, ssh_target, interpreter or "python3", arguments, script, machine)
+        if transport == "fleet-credentials":
+            return remote_failure(machine, "required_helper_target_unregistered")
         command = [
             "ssh",
             "-o", "BatchMode=yes",
@@ -459,12 +576,17 @@ def collect_remote(
         try:
             result = subprocess.run(command, input=script, capture_output=True, timeout=timeout + 20)
         except subprocess.TimeoutExpired:
-            failures.append(f"{selected_interpreter}: timed out")
-            continue
+            return remote_failure(machine, "native_transport_timeout", stop_fleet=True,
+                                  remote_collector_custody="unknown")
+        except KeyboardInterrupt:
+            return remote_failure(machine, "native_transport_cancelled", stop_fleet=True,
+                                  remote_collector_custody="unknown")
+        except OSError:
+            return remote_failure(machine, "native_transport_unavailable")
         if result.returncode == 0:
             try:
-                return json.loads(result.stdout.decode())
-            except json.JSONDecodeError as error:
+                return collector_result(result.stdout, machine)
+            except (ValueError, UnicodeDecodeError) as error:
                 failures.append(f"{selected_interpreter}: invalid JSON ({error})")
                 continue
         detail = result.stderr.decode(errors="replace").strip() or result.stdout.decode(errors="replace").strip()
@@ -486,10 +608,16 @@ def collect_fleet(
 ) -> dict[str, Any]:
     script = pathlib.Path(__file__).read_bytes()
     machines = []
-    for target in fleet_targets(policy_path, selected):
+    targets = fleet_targets(policy_path, selected)
+    for index, target in enumerate(targets):
         machine = str(target["machine"])
         ssh_target = target["ssh_target"]
-        if ssh_target:
+        transport = target["transport"]
+        if transport not in ("ssh", "fleet-credentials"):
+            machines.append(remote_failure(machine, "unsupported_transport"))
+        elif transport == "fleet-credentials" and not ssh_target:
+            machines.append(remote_failure(machine, "required_helper_target_missing"))
+        elif ssh_target:
             machines.append(
                 collect_remote(
                     script,
@@ -501,6 +629,7 @@ def collect_fleet(
                     timeout,
                     target.get("interpreter"),
                     one_attempt,
+                    transport,
                 )
             )
         else:
@@ -513,6 +642,10 @@ def collect_fleet(
                     activity_overlap,
                 )
             )
+        if machines[-1].get("stop_fleet"):
+            machines.extend(remote_failure(str(item["machine"]), "not_attempted_after_transport_stop")
+                            for item in targets[index + 1:])
+            break
     failed = [machine["machine"] for machine in machines if machine.get("error")]
     reached = [machine["machine"] for machine in machines if not machine.get("error")]
     return {
