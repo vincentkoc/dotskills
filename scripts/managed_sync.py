@@ -256,20 +256,33 @@ def publish(
         raise
 
 
-def install(source: pathlib.Path, destination: pathlib.Path, *, kind: str, mode: str) -> None:
+def install(source: pathlib.Path, destination: pathlib.Path, *, kind: str, mode: str,
+            previous_source: pathlib.Path | None = None) -> None:
     if sys.platform != "darwin" and not sys.platform.startswith("linux"):
         raise SyncError("managed sync requires macOS or Linux no-replace rename")
+    if previous_source is not None and (kind != "directory" or mode != "copy"):
+        raise SyncError("source transitions support only managed directory copies")
     source = source.resolve(strict=True)
+    existing_source = source
+    if previous_source is not None:
+        existing_source = previous_source.resolve(strict=True)
+        if not existing_source.is_dir() or existing_source == source:
+            raise SyncError("previous source must be a different existing directory")
     destination = pathlib.Path(os.path.abspath(destination))
     destination = destination.parent.resolve() / destination.name
     if not (source.is_dir() if kind == "directory" else source.is_file()):
         raise SyncError(f"invalid {kind} source: {source}")
-    if (destination == source or destination in source.parents
-            or source in destination.parents):
-        raise SyncError("destination overlaps the source")
+    for bound_source in (source, existing_source):
+        if (destination == bound_source or destination in bound_source.parents
+                or bound_source in destination.parents):
+            raise SyncError("destination overlaps the source")
     with pinned_parent(destination.parent) as check_parent:
         target = pathlib.Path(destination.name)
-        expected = validate_existing(source, target, kind=kind)
+        expected = validate_existing(existing_source, target, kind=kind)
+        if previous_source is not None and (
+            expected["state"] != "copy" or expected["marker"] is None
+        ):
+            raise SyncError("source transition requires an unchanged marked directory copy")
         if expected["state"] == "symlink" and mode == "symlink":
             return
         # Python 3.12 returns an absolute mkdtemp path even for dir=".".
@@ -292,7 +305,7 @@ def install(source: pathlib.Path, destination: pathlib.Path, *, kind: str, mode:
         staged_marker = None
         try:
             staged, staged_marker = stage_install(source, stage, kind=kind, mode=mode)
-            publish(source, target, stage, staged, staged_marker, expected,
+            publish(existing_source, target, stage, staged, staged_marker, expected,
                     kind=kind, check_parent=check_boundaries)
         except BaseException as error:
             # A backup's presence is custody, regardless of exception type.
@@ -310,7 +323,16 @@ def install(source: pathlib.Path, destination: pathlib.Path, *, kind: str, mode:
                 ) from error
             raise
         else:
-            cleanup()
+            if previous_source is not None:
+                # Writers can still hold descriptors into the old directory
+                # after the final validation. Keep its inodes under recovery
+                # custody; another digest check cannot make deletion safe.
+                print(
+                    "agent-skills: source transition complete; recovery retained in "
+                    f"{destination.parent / stage}", file=sys.stderr,
+                )
+            else:
+                cleanup()
 
 
 def main() -> int:
@@ -319,11 +341,15 @@ def main() -> int:
     parser.add_argument("--source", required=True, type=pathlib.Path)
     parser.add_argument("--destination", required=True, type=pathlib.Path)
     parser.add_argument("--mode", choices=("copy", "symlink"), required=True)
+    parser.add_argument(
+        "--previous-source", type=pathlib.Path,
+        help="explicit old source binding; only unchanged managed directory copies",
+    )
     args = parser.parse_args()
     try:
         install(args.source, args.destination,
                 kind="directory" if args.command == "install-directory" else "file",
-                mode=args.mode)
+                mode=args.mode, previous_source=args.previous_source)
     except (OSError, SyncError) as error:
         parser.exit(1, f"agent-skills: {error}\n")
     return 0

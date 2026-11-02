@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import contextlib
 import hashlib
+import io
 import json
 import os
 import pathlib
@@ -121,6 +123,213 @@ class AgentSkillsSyncTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("reconcile before syncing", result.stderr)
         self.assertEqual((self.destination / "private.txt").read_text(), "keep")
+
+    def replacement_skill(self):
+        replacement = self.root / "next-release/owned"
+        replacement.mkdir(parents=True)
+        (replacement / "SKILL.md").write_text("See [guide](references/guide.md).\n")
+        (replacement / "references").mkdir()
+        (replacement / "references/guide.md").write_text("current policy\n")
+        return replacement
+
+    def test_explicit_source_transition_installs_complete_skill_and_new_binding(self):
+        self.sync()
+        replacement = self.replacement_skill()
+        sibling = self.destination.with_name("local-skill")
+        sibling.mkdir()
+        (sibling / "SKILL.md").write_text("local policy\n")
+        before = SYNC.content_digest(self.destination)
+        result = subprocess.run(
+            ["python3", str(ROOT / "scripts/managed_sync.py"), "install-directory",
+             "--source", str(replacement), "--destination", str(self.destination),
+             "--mode", "copy", "--previous-source", str(self.skill)],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.destination / "references/guide.md").read_text(), "current policy\n")
+        marker = self.destination / SYNC.DIRECTORY_MARKER
+        self.assertEqual(json.loads(marker.read_text()), SYNC.metadata(
+            replacement, "directory", SYNC.content_digest(replacement),
+        ))
+        self.assertEqual((self.skill / "SKILL.md").read_text(), "one\n")
+        self.assertEqual((sibling / "SKILL.md").read_text(), "local policy\n")
+        stages = list(self.destination.parent.glob(".agent-skills-stage-*"))
+        self.assertEqual(len(stages), 1)
+        self.assertIn(str(stages[0]), result.stderr)
+        self.assertEqual(SYNC.content_digest(stages[0] / "previous"), before)
+        SYNC.install(replacement, self.destination, kind="directory", mode="copy")
+        installed = SYNC.content_digest(self.destination)
+        with self.assertRaisesRegex(SYNC.SyncError, "managed marker does not match"):
+            SYNC.install(replacement, self.destination, kind="directory", mode="copy",
+                         previous_source=self.skill)
+        self.assertEqual(SYNC.content_digest(self.destination), installed)
+        self.assertEqual(list(self.destination.parent.glob(".agent-skills-stage-*")), stages)
+        self.assertEqual(SYNC.content_digest(stages[0] / "previous"), before)
+
+    def test_source_transition_requires_unchanged_marked_copy_and_exact_old_source(self):
+        replacement = self.replacement_skill()
+        for change in ("edit", "extra", "mode", "unmarked", "wrong-source", "symlink", "absent"):
+            with self.subTest(change=change):
+                if self.codex.exists():
+                    shutil.rmtree(self.codex)
+                self.sync()
+                previous = self.skill
+                if change == "edit":
+                    (self.destination / "SKILL.md").write_text("local policy\n")
+                elif change == "extra":
+                    (self.destination / "local").write_text("keep\n")
+                elif change == "mode":
+                    (self.destination / "SKILL.md").chmod(0o600)
+                elif change == "unmarked":
+                    (self.destination / SYNC.DIRECTORY_MARKER).unlink()
+                elif change == "wrong-source":
+                    previous = self.root / "foreign"
+                    shutil.copytree(self.skill, previous)
+                else:
+                    shutil.rmtree(self.destination)
+                    if change == "symlink":
+                        self.destination.symlink_to(self.skill)
+                before = (SYNC.content_digest(self.destination)
+                          if os.path.lexists(self.destination) else None)
+                with self.assertRaises(SYNC.SyncError):
+                    SYNC.install(replacement, self.destination, kind="directory", mode="copy",
+                                 previous_source=previous)
+                after = (SYNC.content_digest(self.destination)
+                         if os.path.lexists(self.destination) else None)
+                self.assertEqual(after, before)
+                self.assertFalse(list(self.destination.parent.glob(".agent-skills-stage-*")))
+
+    def test_source_transition_rejects_file_and_symlink_modes(self):
+        self.sync()
+        replacement = self.replacement_skill()
+        before = SYNC.content_digest(self.codex)
+        for kind, mode in (("file", "copy"), ("directory", "symlink")):
+            with self.subTest(kind=kind, mode=mode):
+                with self.assertRaisesRegex(SYNC.SyncError, "directory copies"):
+                    SYNC.install(replacement, self.destination, kind=kind, mode=mode,
+                                 previous_source=self.skill)
+                self.assertEqual(SYNC.content_digest(self.codex), before)
+
+    def test_source_transition_rejects_invalid_old_sources_and_overlaps(self):
+        self.sync()
+        replacement = self.replacement_skill()
+        before = SYNC.content_digest(self.root)
+        cases = ((replacement, self.destination), (self.root / "missing", self.destination),
+                 (self.command, self.destination), (self.skill, self.skill / "nested"),
+                 (self.skill, self.skill.parent), (self.skill, self.skill),
+                 (self.skill, replacement / "nested"), (self.skill, replacement.parent))
+        for previous, destination in cases:
+            with self.subTest(previous=previous, destination=destination):
+                with self.assertRaises((OSError, SYNC.SyncError)):
+                    SYNC.install(replacement, destination, kind="directory", mode="copy",
+                                 previous_source=previous)
+                self.assertEqual(SYNC.content_digest(self.root), before)
+
+    def test_source_transition_restores_old_binding_on_failed_publication(self):
+        self.sync()
+        replacement = self.replacement_skill()
+        before = SYNC.content_digest(self.destination)
+        original = SYNC.rename_noreplace
+
+        def failed(source, destination):
+            if source.name == "new":
+                raise OSError("publication unavailable")
+            return original(source, destination)
+
+        with mock.patch.object(SYNC, "rename_noreplace", side_effect=failed):
+            with self.assertRaisesRegex(OSError, "publication unavailable"):
+                SYNC.install(replacement, self.destination, kind="directory", mode="copy",
+                             previous_source=self.skill)
+        self.assertEqual(SYNC.content_digest(self.destination), before)
+        self.assertFalse(list(self.destination.parent.glob(".agent-skills-stage-*")))
+
+    def test_source_transition_preserves_late_edits_and_raced_destination(self):
+        replacement = self.replacement_skill()
+        original = SYNC.rename_noreplace
+        for race in ("edit", "foreign"):
+            with self.subTest(race=race):
+                if self.codex.exists():
+                    shutil.rmtree(self.codex)
+                self.sync()
+
+                def raced(source, destination):
+                    if race == "edit" and destination.name == "previous":
+                        (source / "SKILL.md").write_text("late edit\n")
+                    if race == "foreign" and source.name == "new":
+                        destination.mkdir()
+                        (destination / "local").write_text("keep\n")
+                    return original(source, destination)
+
+                with mock.patch.object(SYNC, "rename_noreplace", side_effect=raced):
+                    with self.assertRaises(SYNC.SyncError):
+                        SYNC.install(replacement, self.destination, kind="directory", mode="copy",
+                                     previous_source=self.skill)
+                if race == "edit":
+                    self.assertEqual((self.destination / "SKILL.md").read_text(), "late edit\n")
+                    self.assertFalse(list(self.destination.parent.glob(".agent-skills-stage-*")))
+                else:
+                    self.assertEqual((self.destination / "local").read_text(), "keep\n")
+                    stages = list(self.destination.parent.glob(".agent-skills-stage-*"))
+                    self.assertEqual(len(stages), 1)
+                    old = stages[0] / "previous"
+                    self.assertEqual((old / "SKILL.md").read_text(), "one\n")
+                    self.assertEqual(json.loads((old / SYNC.DIRECTORY_MARKER).read_text())["source"],
+                                     str(self.skill))
+
+    def test_source_transition_preserves_open_fd_edit_during_publication(self):
+        self.sync()
+        replacement = self.replacement_skill()
+        original = SYNC.rename_noreplace
+        with (self.destination / "SKILL.md").open("ab", buffering=0) as writer:
+            def raced(source, destination):
+                result = original(source, destination)
+                if source.name == "new":
+                    writer.write(b"during publication\n")
+                return result
+
+            with mock.patch.object(SYNC, "rename_noreplace", side_effect=raced):
+                with self.assertRaisesRegex(SYNC.SyncError, "recovery retained") as caught:
+                    SYNC.install(replacement, self.destination, kind="directory", mode="copy",
+                                 previous_source=self.skill)
+            stages = list(self.destination.parent.glob(".agent-skills-stage-*"))
+            self.assertEqual(len(stages), 1)
+            self.assertIn(str(stages[0]), str(caught.exception))
+            old = stages[0] / "previous/SKILL.md"
+            self.assertEqual(old.stat().st_ino, os.fstat(writer.fileno()).st_ino)
+            self.assertEqual(old.read_text(), "one\nduring publication\n")
+        self.assertEqual((self.destination / "references/guide.md").read_text(), "current policy\n")
+        SYNC.validate_existing(replacement, self.destination, kind="directory")
+
+    def test_source_transition_preserves_open_fd_edit_after_final_validation(self):
+        self.sync()
+        replacement = self.replacement_skill()
+        original = SYNC.publish
+        report = io.StringIO()
+        with (self.destination / "SKILL.md").open("ab", buffering=0) as writer:
+            def after_validation(*args, **kwargs):
+                result = original(*args, **kwargs)
+                # publish has completed every validation, but install has not
+                # reached cleanup. The FD still addresses the old inode.
+                writer.write(b"after final validation\n")
+                return result
+
+            with mock.patch.object(SYNC, "publish", side_effect=after_validation) as publish:
+                with contextlib.redirect_stderr(report):
+                    SYNC.install(replacement, self.destination, kind="directory", mode="copy",
+                                 previous_source=self.skill)
+            publish.assert_called_once()
+            self.assertEqual(os.fstat(writer.fileno()).st_nlink, 1)
+            stages = list(self.destination.parent.glob(".agent-skills-stage-*"))
+            self.assertEqual(len(stages), 1)
+            self.assertIn(str(stages[0]), report.getvalue())
+            old = stages[0] / "previous/SKILL.md"
+            self.assertEqual(old.stat().st_ino, os.fstat(writer.fileno()).st_ino)
+            self.assertEqual(old.read_text(), "one\nafter final validation\n")
+            writer.write(b"after return\n")
+        self.assertEqual(old.read_text(), "one\nafter final validation\nafter return\n")
+        self.assertEqual((self.skill / "SKILL.md").read_text(), "one\n")
+        self.assertEqual((self.destination / "references/guide.md").read_text(), "current policy\n")
+        SYNC.validate_existing(replacement, self.destination, kind="directory")
 
     def test_file_payload_cannot_impersonate_an_extra_tree_entry(self):
         source, destination = self.root / "source", self.root / "destination"

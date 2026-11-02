@@ -127,6 +127,42 @@ extra local files, and foreign links require reconciliation before sync. Failed
 publication never overwrites an intervening destination; the error names any
 retained recovery directory that needs review before retrying.
 
+### Move one managed skill to a new source
+
+Ordinary sync never infers a source change from a skill name. After verifying
+both sources' ownership and revisions, transition one unchanged managed copy:
+
+```bash
+python3 scripts/managed_sync.py install-directory \
+  --source /absolute/new-source/skill \
+  --previous-source /absolute/old-source/skill \
+  --destination /absolute/installed/skill --mode copy
+```
+
+The old source must still exist and match the installed marker's binding.
+The installed content and modes must still match its recorded digest. Unmarked
+copies, symlinks, missing destinations, local edits, extra files, and wrong old
+bindings are refused. This operation copies the complete new skill, including
+relative resources, and publishes its new source binding using the same staging,
+no-replace, and recovery checks as ordinary sync. It does not alter either source
+or sibling skills. No bulk-sync option, marker reset, or trust decision is implied.
+
+On success, the command reports the retained `.agent-skills-stage-*` directory
+on stderr. Its `previous/` directory holds the old installed copy and marker.
+An open file descriptor can still write to that old copy after final validation;
+another digest check cannot make deletion safe. Only explicit source transitions
+retain successful recovery this way; ordinary sync cleanup is unchanged. Inspect
+and reconcile the retained copy through the existing recovery owner, after old
+writers have finished. Success does not authorize deleting that recovery.
+
+Record the old and new source revisions in the existing task/change record before
+running it. Keep immutable release sources intact; do not edit or repin a whole
+release to update one skill. After success, use the new source for ordinary sync;
+replaying the old binding is refused. A failed publication may also retain recovery
+as described above: inspect that recovery before any retry, never remove markers
+to force adoption. Source trust or release-ownership changes still require their
+own authorization; this explicit operation is not a bypass.
+
 ## Repository layout
 
 ```text
