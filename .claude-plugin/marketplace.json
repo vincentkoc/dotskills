@@ -87,12 +87,6 @@
       "description": "Create and manage worktrees safely and consistently across projects while avoiding stale branch bases."
     },
     {
-      "name": "opik-integrations-auditor",
-      "source": "./skills/opik-integrations-auditor",
-      "skills": "./",
-      "description": "Audit, compare, and document Opik integrations across Python, TypeScript, and backend OTEL/API surfaces with a repeatable evidence-first workflow."
-    },
-    {
       "name": "opik-optimizer",
       "source": "./skills/opik-optimizer",
       "skills": "./",
