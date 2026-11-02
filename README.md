@@ -61,7 +61,6 @@ second configuration generator competing with those owners.
 | `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
 | `openclaw-pr-batch-sweep` | Select and land bounded batches of low-risk OpenClaw contributor pull requests. | `npx skills add vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y` |
 | `org-branch-cleanup` | Audit and safely prune stale merged branches across a GitHub organization. | `npx skills add vincentkoc/dotskills --skill org-branch-cleanup -y` |
-| `opik-optimizer` | Optimize prompts, tools, agents, and parameters through Opik workflows. | `npx skills add vincentkoc/dotskills --skill opik-optimizer -y` |
 | `operations-worktree` | Create safe git worktrees from fresh remote defaults instead of stale local branches. | `npx skills add vincentkoc/dotskills --skill operations-worktree -y` |
 | `semantic-slicing` | Build local feature, threat, issue, and support maps for focused repo review. | `npx skills add vincentkoc/dotskills --skill semantic-slicing -y` |
 | `technical-deslop` | Ship clean diffs fast: remove AI noise and keep behavior unchanged. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
@@ -93,7 +92,6 @@ npx skills add vincentkoc/dotskills --skill technical-skill-finder -y
 npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y
 npx skills add vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y
 npx skills add vincentkoc/dotskills --skill org-branch-cleanup -y
-npx skills add vincentkoc/dotskills --skill opik-optimizer -y
 npx skills add vincentkoc/dotskills --skill openclaw-bun-upgrade -y
 npx skills add vincentkoc/dotskills --skill operations-worktree -y
 npx skills add vincentkoc/dotskills --skill crawlkit -y
