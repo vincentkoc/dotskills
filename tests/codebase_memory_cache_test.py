@@ -66,6 +66,119 @@ def sqlite_file(path: pathlib.Path) -> int:
     return path.stat().st_size
 
 
+class ProjectInventoryTests(unittest.TestCase):
+    @staticmethod
+    def project(name: str) -> dict:
+        return {"name": name, "root_path": f"/repos/{name}", "size_bytes": 1,
+                "nodes": 2, "edges": 3}
+
+    @staticmethod
+    def response(payload: dict, *, envelope: bool = False):
+        if envelope:
+            payload = {"content": [{"type": "text", "text": json.dumps(payload)}]}
+        return subprocess.CompletedProcess([], 0, json.dumps(payload), "")
+
+    def test_legacy_direct_response_requests_detailed_json(self) -> None:
+        project = self.project("one")
+        with mock.patch.object(CBM, "run", return_value=self.response({"projects": [project]})) as run:
+            self.assertEqual(CBM.list_projects("backend"), [project])
+        args = run.call_args.args[0]
+        self.assertEqual(args[:3], ["backend", "cli", "list_projects"])
+        self.assertEqual(args[-1], "--json")
+        self.assertEqual(json.loads(args[3]), {
+            "format": "json", "detail": "stats", "include_details": True,
+            "limit": 100, "offset": 0,
+        })
+
+    def test_modern_envelope_paginates_before_repository_lookup(self) -> None:
+        first = {"projects": [{"name": name, "root_path": f"/repos/{name}"}
+                               for name in ("two", "one")],
+                 "total": 3, "offset": 0, "limit": 2, "returned": 2,
+                 "has_more": True, "next_offset": 2}
+        second = {"projects": [{"name": "three", "root_path": "/repos/three"}], "total": 3,
+                  "offset": 2, "limit": 2, "returned": 1, "has_more": False}
+        with mock.patch.object(CBM, "run", side_effect=[
+            self.response(first, envelope=True), self.response(second, envelope=True),
+        ]) as run:
+            self.assertEqual(CBM.project_name("backend", "/repos/three"), "three")
+        self.assertEqual([json.loads(call.args[0][3])["offset"]
+                          for call in run.call_args_list], [0, 2])
+        for call in run.call_args_list:
+            arguments = json.loads(call.args[0][3])
+            self.assertFalse(arguments["include_details"])
+            self.assertEqual(arguments["detail"], "identity")
+
+    def test_legacy_ghost_page_advances_by_limit(self) -> None:
+        first = {"projects": [], "total": 3, "offset": 0, "limit": 2,
+                 "returned": 0, "has_more": True}
+        second = {"projects": [self.project("one")], "total": 3,
+                  "offset": 2, "limit": 2, "returned": 1, "has_more": False}
+        with mock.patch.object(CBM, "run", side_effect=[
+            self.response(first), self.response(second),
+        ]) as run:
+            self.assertEqual(CBM.list_projects("backend"), [self.project("one")])
+        self.assertEqual(json.loads(run.call_args_list[1].args[0][3])["offset"], 2)
+
+    def test_invalid_or_incomplete_inventory_fails_closed(self) -> None:
+        project = self.project("one")
+        payloads = [
+            [],
+            {"content": [{"type": "text", "text": "projects: one"}]},
+            {"isError": True, "content": [{"type": "text", "text": "{}"}]},
+            {"content": [{"type": "text", "text": "{}"}, {"type": "text", "text": "{}"}]},
+            {"projects": [project], "total": 2},
+            {"projects": [project], "total": 2, "offset": 0, "limit": 1,
+             "returned": 1, "has_more": False},
+            {"projects": [project], "total": 2, "offset": 0, "limit": 1,
+             "returned": 1, "has_more": True, "next_offset": 0},
+            {"projects": [project], "total": 1, "offset": 0, "limit": 1,
+             "returned": 0, "has_more": False},
+            {"projects": [{**project, "size_bytes": True}]},
+            {"projects": [{"name": "one", "root_path": "/repos/one"}]},
+        ]
+        for payload in payloads:
+            with self.subTest(payload=payload), mock.patch.object(
+                CBM, "run", return_value=self.response(payload),
+            ), self.assertRaises(CBM.SafetyError):
+                CBM.list_projects("backend")
+
+    def test_terminal_gap_requires_the_exact_legacy_backend(self) -> None:
+        page = {"projects": [self.project("one")], "total": 2,
+                "offset": 0, "limit": 100, "returned": 1, "has_more": False}
+        for version in ("codebase-memory-mcp 0.10.8", "codebase-memory-mcp 0.12.1", "unknown"):
+            with self.subTest(version=version), mock.patch.object(CBM, "run", side_effect=[
+                self.response(page), subprocess.CompletedProcess([], 0, version + "\n", ""),
+            ]) as run:
+                if version.endswith("0.10.8"):
+                    self.assertEqual(CBM.list_projects("backend"), [self.project("one")])
+                else:
+                    with self.assertRaises(CBM.SafetyError):
+                        CBM.list_projects("backend")
+                self.assertEqual(run.call_args.args[0], ["backend", "--version"])
+
+    def test_duplicate_names_and_total_drift_fail_closed(self) -> None:
+        first = {"projects": [self.project("one")], "total": 2,
+                 "offset": 0, "limit": 1, "returned": 1,
+                 "has_more": True, "next_offset": 1}
+        second = {**first, "offset": 1, "has_more": False}
+        second.pop("next_offset")
+        for final in (second, {**second, "total": 3},
+                      {**second, "projects": [], "returned": 0}):
+            with self.subTest(final=final), mock.patch.object(CBM, "run", side_effect=[
+                self.response(first), self.response(final),
+            ]), self.assertRaises(CBM.SafetyError):
+                CBM.list_projects("backend")
+
+    def test_inventory_page_budget_is_bounded(self) -> None:
+        def page(binary, offset, *, include_stats):
+            return {"projects": [], "total": 10, "offset": offset,
+                    "limit": 1, "returned": 0, "has_more": True}
+        with mock.patch.object(CBM, "PROJECT_MAX_PAGES", 2), mock.patch.object(
+            CBM, "project_page", side_effect=page,
+        ), self.assertRaisesRegex(CBM.SafetyError, "page limit"):
+            CBM.list_projects("backend")
+
+
 class ResolverTests(unittest.TestCase):
     def test_synthetic_root_is_reserved(self) -> None:
         home = pathlib.Path("/Users/fixture")

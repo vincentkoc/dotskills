@@ -49,7 +49,8 @@ Bring up `codebase-memory-mcp` for the owning Git checkout and prove the graph i
    - Installation defaults are `auto_index=false`, `auto_watch=false`, and `ui_enabled=false`. Ordinary MCP/CLI calls do not enable the viewer or reset an operator's explicit setting. Initialize the UI default with `codebase-memory-mcp config set ui_enabled false`; `ui` is not a supported backend config key.
    - Ordinary MCP clients share one session-managed daemon. Bare `daemon start` remains denied because it implicitly enables the UI. The explicit browser command `daemon start --open [--port=N]` is allowed; `daemon status` remains read-only.
 5. Verify the graph.
-   - `codebase-memory-mcp cli list_projects`
+   - `codebase-memory-mcp cli list_projects '{"format":"json","include_details":true,"limit":100,"offset":0}'`
+   - Project inventories are paginated. The helper reads every JSON page, including the older filename-based pagination. Graph lookup requests identities only; cache audits request statistics. A compact listing or one default page is not a complete inventory.
    - `scripts/codebase-memory-graph.sh schema --repo "$(git rev-parse --show-toplevel)"`
    - Run one focused graph query before declaring success.
 6. Open the viewer only when requested.
