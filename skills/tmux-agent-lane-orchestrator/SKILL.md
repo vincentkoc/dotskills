@@ -26,10 +26,17 @@ Turn a tmux window of coding-agent workers into a visible, auditable lane with c
    - Otherwise infer it from a current tmux window named `L<number>`.
    - Do not inspect other lanes unless the operator expands scope.
 2. Capture lane state.
-   - `python3 scripts/lane_snapshot.py --lane <number>`
+   - Resolve this loaded skill's directory, then run
+     `python3 <skill-root>/scripts/lane_snapshot.py --lane <number>`.
+     Do not resolve the helper from the worker repository cwd.
    - Add `--session <name>` outside the active tmux session.
-   - If a descendant command does not contain its resumed thread ID, repeat
-     `--thread L<number>.<pane>=<thread-id>` from separately verified evidence.
+   - Linux inference requires a native Codex executable and bounded, structured
+     argv matching `codex resume UUID` or `codex exec resume UUID` exactly.
+     Other argument forms stay unknown. Flat `ps` text cannot establish identity.
+   - macOS reads executable paths only. Without a separately verified binding,
+     it reports `unknown` and the next action.
+     Pass `--thread L<number>.<pane>=<thread-id>` only from independent evidence.
+     A declaration still requires an unambiguous descendant Codex PID.
    - Add `--json` for machine-readable output.
    - Add `--cursor-file <path>` only when bounded incremental state is wanted;
      the helper writes no persistent state by default.
@@ -63,7 +70,7 @@ Read `references/factory-model.md` when designing lane responsibilities or escal
 
 - tmux session name.
 - Lane number or `L<number>` window.
-- Optional log keywords and capture depth.
+- Optional capture depth and per-rollout/total log byte limits.
 - Optional exact pane/thread declarations and bounded cursor path.
 - Optional operator-provided worker mission map.
 
