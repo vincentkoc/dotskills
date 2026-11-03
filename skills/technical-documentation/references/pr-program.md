@@ -87,7 +87,7 @@ The check that catches all three: **read the file count the runner prints and co
 Two more of the same shape, both found in a program's own instructions rather than its code:
 
 - **A linter invoked with your glob instead of its config's.** The CI script passed no glob, because the config already carried one covering `.md` *and* `.mdx`. The brief's version passed `'docs/**/*.md'` — quietly skipping every `.mdx` page, including one that was in the work list. Invoke a linter the way its CI job does, not the way its manual says you can.
-- **A baseline measured where the tools cannot run.** "Reproduce the failure at the base sha in a detached worktree" is right in spirit, but a detached worktree has no installed dependencies, so every validator exits on a dependency error — which reads as zero findings to anyone checking for output rather than exit status. The step meant to establish ground truth becomes the one most likely to invent it. Symlink the dependencies in, or measure in place.
+- **A baseline measured where the tools cannot run.** A dependency error means the validator did not establish a baseline, not that it found zero defects. Use the repository's native worktree and dependency workflow, or `$operations-worktree` where available, to qualify reuse at the base revision. If no qualified install or approved proof route is available, record the baseline as unavailable.
 
 ## What every PR contains
 

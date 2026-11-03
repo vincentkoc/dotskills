@@ -5,7 +5,8 @@ Use this execution order for behavior-preserving cleanup.
 ## 1. Capture diff scope
 
 - `git diff --cached`
-- `git diff $(git merge-base origin/main HEAD)..HEAD`
+- Resolve `BASE` from the requested PR or user-specified base. Otherwise, use the repository's verified default branch. Confirm that the local base ref exists. Do not assume `origin/main`.
+- `git diff "$BASE"...HEAD`
 - If `FILES` is provided, restrict work to those paths.
 
 ## 2. Establish local style baseline
