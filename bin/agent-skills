@@ -370,15 +370,15 @@ case "$command" in
           shift 2
           ;;
         --expected-commit)
-          expected_commit="${2:-}"
+          expected_commit="${2:?--expected-commit requires a non-empty value}"
           shift 2
           ;;
         --file)
-          file_path="${2:-}"
+          file_path="${2:?--file requires a non-empty value}"
           shift 2
           ;;
         --destination)
-          destination="${2:-}"
+          destination="${2:?--destination requires a non-empty value}"
           shift 2
           ;;
         --subdir)

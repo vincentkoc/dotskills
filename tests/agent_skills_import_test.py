@@ -98,6 +98,25 @@ class AgentSkillsImportTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn('Cloning ', result.stdout)
 
+    def test_explicit_empty_or_missing_import_selectors_stop_before_clone(self):
+        self.reference()
+        self.import_cli()
+        recovery = self.consumer / IMPORT.RECOVERY
+        paths = (self.catalog, self.consumer / 'vendor', recovery)
+        before = tuple(IMPORT.snapshot(path) for path in paths)
+        for arguments in (('--expected-commit', ''),
+                          ('--file', '', '--destination', ''),
+                          ('--file', '', '--destination', 'commands/triage.md'),
+                          ('--file', 'docs/commands/triage.md', '--destination', ''),
+                          ('--expected-commit',), ('--file',), ('--destination',)):
+            with self.subTest(arguments=arguments):
+                result = self.cli('import', '--source', 'fixture', '--repo', str(self.upstream),
+                                  *arguments, check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('requires a non-empty value', result.stderr)
+                self.assertNotIn('Cloning', result.stdout + result.stderr)
+                self.assertEqual(tuple(IMPORT.snapshot(path) for path in paths), before)
+
     def test_file_reimport_preserves_catalog_identity_annotations_and_unselected_content(self):
         reference = self.reference()
         self.import_cli()
