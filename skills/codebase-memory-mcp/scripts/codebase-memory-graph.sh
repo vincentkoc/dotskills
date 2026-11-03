@@ -171,22 +171,7 @@ PY
 }
 
 project_for_repo() {
-  local root="$1" projects
-  projects="$(codebase-memory-mcp cli list_projects)"
-  PROJECTS_JSON="$projects" python3 - "$root" <<'PY'
-import json
-import os
-import sys
-
-root = os.path.realpath(sys.argv[1])
-data = json.loads(os.environ["PROJECTS_JSON"])
-for project in data.get("projects", []):
-    if os.path.realpath(project.get("root_path", "")) == root:
-        print(project["name"])
-        break
-else:
-    sys.exit(1)
-PY
+  python3 "$(cache_helper)" project-name "$1"
 }
 
 cmd_index() {

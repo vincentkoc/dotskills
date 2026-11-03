@@ -427,7 +427,7 @@ args = sys.argv[1:]
 if args == ["daemon", "status"]:
     print("daemon: not running")
     raise SystemExit(1)
-if args == ["cli", "list_projects"]:
+if args[:2] == ["cli", "list_projects"]:
     print(json.dumps({{"projects": [{{
         "name": "fixture",
         "root_path": os.environ["FAKE_REPO_ROOT"],
