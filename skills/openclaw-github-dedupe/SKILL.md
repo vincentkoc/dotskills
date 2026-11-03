@@ -442,7 +442,7 @@ If I should rerun this split, share the exact overlap and I can do that immediat
 ### Close with comment (issues)
 - Comment first, then close:
   - `gh issue comment <id> --body "..."`
-  - `gh issue close <id> --reason not planned`
+  - `gh issue close <id> --reason "not planned"`
 
 ### Close PR
 - `gh pr close <id> --comment "..."` (preferred with canonical close message).
@@ -498,7 +498,7 @@ Prefer using `scripts/cluster-example.txt` as your starting template for reusabl
 ## Safety / anti-patterns
 
 - Do not classify duplicates from metadata alone; inspect body and diff semantics.
-- Do not use invalid GH issue-close reasons (for example `--reason duplicate`).
+- Use reason values from `gh issue close --help`. Quote multiword values.
 - Preserve source attribution when duplicate actions are taken.
 - Never auto-close when hard-stop guardrails fail.
 - Do not merge or close items while mergeability/churn/AI-review blockers are unresolved.
