@@ -70,6 +70,30 @@ make import-anthropic
 
 This records pinned metadata in `catalog.yaml`.
 
+For a reviewed revision, add `--expected-commit <full-sha>` to the import command.
+The clone's resolved commit must match before anything is published. `--ref`
+selects a branch or tag supported by `git clone --branch`.
+
+Import a standalone upstream reference at its existing vendor path with:
+
+```bash
+./bin/agent-skills import --source example --repo https://github.com/example/skills.git \
+  --ref main --expected-commit <full-sha> \
+  --file docs/commands/triage.md --destination commands/triage.md
+```
+
+`--destination` is relative to `vendor/<source>/`. The catalog ID is
+`<source>-<source-file-stem>`; an existing matching ID and path retain their
+annotations. File imports require regular files and real destination parents.
+They reject symlinks, parent traversal, Git metadata, and target type conflicts.
+Another content catalog ID cannot own or overlap the destination; webpage
+reference entries can share it. This applies to both file and skill imports.
+They use the same staged vendor/catalog transaction as skill imports.
+
+Vendored files retain exact upstream bytes, including upstream whitespace.
+Only the end-of-file and trailing-whitespace formatters exclude `vendor/`;
+security and validation hooks still check those files.
+
 Reimporting an existing skill updates its repository, ref, resolved commit, and
 entry format together with the vendored files. Existing names, tags, annotations,
 and unrelated catalog entries remain intact. The importer edits the repository's
@@ -79,7 +103,7 @@ Resolved subdirectories and selected skills must stay inside the cloned checkout
 Root skills are supported. Import discovery and copies exclude exact `.git`
 entries; tracked files such as `.gitignore`, `.github/`, and nested skills remain.
 
-Imports stage every selected skill and the catalog before replacing targets.
+Imports stage every selected item and the catalog before replacing targets.
 The catalog publishes last. A caught publication failure restores the original
 pair only when the import still owns the changed paths. Otherwise, recovery stays
 in `.agent-skills-import/`, outside skill discovery, and later commands refuse to

@@ -25,7 +25,7 @@ Prefer minimal. If you only give `ghsa` (or URL), I will derive the rest from th
 - `patched_versions`: planned fixed version (normally the version you’re about to ship next; from changelog/release prep)
 - `package`: usually `openclaw` (npm)
 - `credits`: reporter handle (example: `@akhmittra`)
-- `fix_commits`: one or more full SHAs (required once a fix is merged)
+- `fix_commits`: one or more full SHAs for internal evidence only (do not place SHAs, PRs, or fix mechanism in public text)
 - `summary`: 1-liner summary (no GHSA id)
 - `description_md`: full Markdown for advisory description (must include an “Affected Packages / Versions” section)
 
@@ -68,7 +68,7 @@ Prefer minimal. If you only give `ghsa` (or URL), I will derive the rest from th
    - write `/tmp/ghsa.desc.md` from `description_md`
    - required in `description_md`:
      - explicit versions (latest published + affected ranges)
-     - “Fix Commit(s)” section with one or more full git SHAs (or “pending” if not merged yet)
+     - fix provenance using only release version or patched-version field; no raw SHAs, PR titles/numbers, or fix-mechanism summary in public text
      - “Release Process Note”: patched version is pre-set to the planned next release; once npm release is out, just publish the advisory
    - write `/tmp/ghsa.patch.json` with `summary`, `severity`, `description`, and `vulnerabilities[]`:
      - `vulnerable_version_range` uses latest published npm version (usually `<=<npmVersion>`)
@@ -86,3 +86,4 @@ Prefer minimal. If you only give `ghsa` (or URL), I will derive the rest from th
   - build JSON via `jq -n --rawfile desc /tmp/ghsa.desc.md …`
 - Advisory comments endpoint may not exist via REST; update via `description` + structured fields.
 - State transitions (accept/publish) likely UI/Publisher-only; do not attempt unless you explicitly ask.
+- For public advisory text, avoid “Fixed by” / “Fix Commit(s)” sections, raw commit hashes, PR titles/numbers, and implementation summaries. Keep exact SHAs and PRs in internal notes.

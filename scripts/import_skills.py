@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish selected vendor trees and their catalog provenance as one import."""
+"""Publish selected vendor content and its catalog provenance as one import."""
 
 from __future__ import annotations
 
@@ -25,11 +25,20 @@ def require(condition, message):
         raise sync.SyncError(message)
 
 
-def inside_checkout(checkout, path):
+def inside_checkout(checkout, path, *, file=False):
+    if file:
+        require(path.is_relative_to(checkout), 'import source resolves outside the cloned checkout')
+        relative = path.relative_to(checkout)
+        require(not {'..', '.git'}.intersection(part.casefold() for part in relative.parts),
+                'invalid import file path')
+        require(not any(parent.is_symlink() for parent in (path, *path.parents)
+                        if parent != checkout and checkout in parent.parents),
+                'import file path must not contain symlinks')
     path = path.resolve(strict=True)
     require(path == checkout or checkout in path.parents, 'import source resolves outside the cloned checkout')
     require(not GIT_METADATA.intersection(path.relative_to(checkout).parts), 'import source is Git metadata')
-    require(path.is_dir(), 'import source must be a directory')
+    require(path.is_file() if file else path.is_dir(),
+            'import file must be a regular file' if file else 'import source must be a directory')
     return path
 
 
@@ -63,6 +72,22 @@ def field(block, key, indent, value=None):
     return block[:match.start()] + ' ' * indent + key + ': ' + json.dumps(value) + comment + block[match.end():]
 
 
+def upstream_field(block):
+    require(len(re.findall(r"(?m)^    upstream:", block)) == 1, 'catalog requires one upstream field')
+    match = re.search(r"(?m)^    upstream:[ \t]*(?:#.*)?\n(?:^(?: {6}.*|[ \t]*)\n?)*", block)
+    require(match is not None, 'unsupported catalog upstream field')
+    return match
+
+
+def same_path(left, right):
+    if left == right:
+        return True
+    try:
+        return left.samefile(right)
+    except FileNotFoundError:
+        return False
+
+
 def update_catalog(text, entries, repo, ref, commit):
     # Preserve all unowned bytes, including annotations, tags, and comments.
     # Unsupported catalog layouts stop before any vendor tree is published.
@@ -82,12 +107,25 @@ def update_catalog(text, entries, repo, ref, commit):
     prefix = text[:starts[0].start()] if starts else text
     for entry in entries:
         identifier, path, format_name = entry
+        for other_id, other in blocks.items():
+            if other_id == identifier or not re.search(r"(?m)^    path:", other):
+                continue
+            other_path, target = Path(field(other, 'path', 4)), Path(path)
+            if (same_path(other_path, target)
+                    or any(same_path(other_path, parent) for parent in target.parents)
+                    or any(same_path(target, parent) for parent in other_path.parents)):
+                # Webpage references may overlap imported paths. Content owners
+                # cannot overlap: either import order would leave stale provenance.
+                require(field(other, 'source', 4) == 'upstream'
+                        and field(upstream_field(other)[0], 'type', 6) == 'webpage',
+                        f'catalog path belongs to another owner: {other_id}')
         if identifier not in blocks:
+            format_field = f"    format: {format_name}\n" if format_name is not None else ""
             blocks[identifier] = (
                 f"\n  - id: {identifier}\n"
                 f"    name: {json.dumps(path.removeprefix('vendor/'))}\n"
                 f"    path: {json.dumps(path)}\n"
-                f"    format: {format_name}\n"
+                f"{format_field}"
                 "    source: upstream\n    upstream:\n      type: git\n"
                 f"      repo: {json.dumps(repo)}\n      ref: {json.dumps(ref)}\n"
                 f"      commit: {json.dumps(commit)}\n    tags: [upstream, imported]\n\n"
@@ -96,18 +134,18 @@ def update_catalog(text, entries, repo, ref, commit):
         block = blocks[identifier]
         require(field(block, 'path', 4) == path and field(block, 'source', 4) == 'upstream',
                 f"catalog id belongs to another source: {identifier}")
-        require(len(re.findall(r"(?m)^    upstream:", block)) == 1, 'catalog requires one upstream field')
-        upstream = re.search(r"(?m)^    upstream:[ \t]*(?:#.*)?\n(?:^(?: {6}.*|[ \t]*)\n?)*", block)
-        require(upstream is not None and field(upstream[0], 'type', 6) == 'git',
+        upstream = upstream_field(block)
+        require(field(upstream[0], 'type', 6) == 'git',
                 f"catalog id is not a Git import: {identifier}")
         updated = upstream[0]
         for key, value in (('repo', repo), ('ref', ref), ('commit', commit)):
             updated = field(updated, key, 6, value)
         block = block[:upstream.start()] + updated + block[upstream.end():]
-        if re.search(r"(?m)^    format:", block):
-            block = field(block, 'format', 4, format_name)
-        else:
-            block = block[:upstream.start()] + f'    format: {format_name}\n' + block[upstream.start():]
+        if format_name is not None:
+            if re.search(r"(?m)^    format:", block):
+                block = field(block, 'format', 4, format_name)
+            else:
+                block = block[:upstream.start()] + f'    format: {format_name}\n' + block[upstream.start():]
         blocks[identifier] = block
     return prefix + ''.join(blocks.values())
 
@@ -162,21 +200,39 @@ def publish(items, stage, check):
         raise
 
 
-def import_selected(root, source, repo, ref, commit, selected, *, checkout, dry_run=False):
+def import_selected(root, source, repo, ref, commit, selected, *, checkout,
+                    dry_run=False, file_destination=None):
     require(NAME.fullmatch(source) is not None, 'invalid import source name')
     require(re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}', commit) is not None, 'invalid import commit')
     require(bool(selected), 'no selected skills')
     root = root.resolve(strict=True)
+    checkout_literal = checkout.absolute()
     checkout = checkout.resolve(strict=True)
+    file_import = file_destination is not None
+    if file_import:
+        destination = Path(file_destination)
+        require(len(selected) == 1, 'file import requires exactly one source')
+        require(not destination.is_absolute() and destination.parts
+                and not {'..', '.git'}.intersection(part.casefold() for part in destination.parts),
+                'file destination must stay inside its vendor source')
     entries, names, sources = [], set(), []
     for candidate in selected:
-        candidate = inside_checkout(checkout, candidate)
-        name = candidate.name
+        if file_import:
+            # macOS temporary roots may use /var while resolving to /private/var.
+            # Normalize that root only; retain literal child components for guards.
+            require(candidate.is_relative_to(checkout_literal),
+                    'import source resolves outside the cloned checkout')
+            candidate = checkout / candidate.relative_to(checkout_literal)
+        candidate = inside_checkout(checkout, candidate, file=file_import)
+        name = candidate.stem if file_import else candidate.name
         require(NAME.fullmatch(name) is not None and name not in names, 'invalid or duplicate imported skill name')
         names.add(name)
-        entry = next((key for key in FORMATS if (candidate / key).is_file()), None)
-        require(entry is not None, 'selected skill has no entry file')
-        entries.append((f'{source}-{name}', f'vendor/{source}/{name}', FORMATS[entry]))
+        if file_import:
+            entries.append((f'{source}-{name}', str(Path('vendor') / source / destination), None))
+        else:
+            entry = next((key for key in FORMATS if (candidate / key).is_file()), None)
+            require(entry is not None, 'selected skill has no entry file')
+            entries.append((f'{source}-{name}', f'vendor/{source}/{name}', FORMATS[entry]))
         sources.append(candidate)
     with sync.pinned_parent(root) as check_root:
         stage = Path(RECOVERY)
@@ -192,15 +248,18 @@ def import_selected(root, source, repo, ref, commit, selected, *, checkout, dry_
             updated = update_catalog(handle.read(), entries, repo, ref, commit)
         require(snapshot(catalog) == catalog_before, 'catalog changed during preparation')
         targets = [Path(entry[1]) for entry in entries]
+        parent_paths = {parent for target in targets for parent in target.parents if parent != Path('.')}
         parents = {path: sync.identity(path) if os.path.lexists(path) else None
-                   for path in (Path('vendor'), Path('vendor') / source)}
+                   for path in sorted(parent_paths, key=lambda path: (len(path.parts), str(path)))}
         require(all(value is None or stat.S_ISDIR(value[2]) for value in parents.values()),
                 'vendor parents must be real directories')
         before = [snapshot(target) for target in targets]
-        require(all(value is None or stat.S_ISDIR(value[2]) for value in before),
-                'existing skill targets must be real directories')
+        target_type = stat.S_ISREG if file_import else stat.S_ISDIR
+        require(all(value is None or target_type(value[2]) for value in before),
+                'existing file target must be regular' if file_import
+                else 'existing skill targets must be real directories')
         if dry_run:
-            print(f'[dry-run] import {len(entries)} skill(s) and update catalog provenance')
+            print(f'[dry-run] import {len(entries)} item(s) and update catalog provenance')
             return
         stage.mkdir(mode=0o700)
         stage_identity = sync.identity(stage)
@@ -215,12 +274,15 @@ def import_selected(root, source, repo, ref, commit, selected, *, checkout, dry_
         items, created = [], []
         try:
             for index, (candidate, target, expected) in enumerate(zip(sources, targets, before)):
-                inside_checkout(checkout, candidate)
+                inside_checkout(checkout, candidate, file=file_import)
                 staged = stage / f'new-{index}'
                 # Root skills include clone metadata that is not upstream content.
                 # Hash staged bytes unfiltered so an unexpected copy cannot hide.
                 digest = sync.content_digest(candidate, exclude_names=GIT_METADATA)
-                shutil.copytree(candidate, staged, symlinks=True, ignore=shutil.ignore_patterns(*GIT_METADATA))
+                if file_import:
+                    shutil.copy2(candidate, staged, follow_symlinks=False)
+                else:
+                    shutil.copytree(candidate, staged, symlinks=True, ignore=shutil.ignore_patterns(*GIT_METADATA))
                 require(sync.content_digest(staged) == digest
                         == sync.content_digest(candidate, exclude_names=GIT_METADATA),
                         'import source changed during staging')
@@ -259,7 +321,7 @@ def import_selected(root, source, repo, ref, commit, selected, *, checkout, dry_
         else:
             check()
             shutil.rmtree(stage)
-    print(f'imported {len(entries)} skill(s); catalog provenance updated to {commit}')
+    print(f'imported {len(entries)} item(s); catalog provenance updated to {commit}')
 
 
 def main():
@@ -273,6 +335,7 @@ def main():
     for option in ('root', 'source', 'repo', 'ref', 'commit'):
         publish_parser.add_argument('--' + option, required=True)
     publish_parser.add_argument('--dry-run', action='store_true')
+    publish_parser.add_argument('--file-destination')
     publish_parser.add_argument('selected', nargs='+', type=Path)
     args = parser.parse_args()
     try:
@@ -281,7 +344,8 @@ def main():
             print(inside_checkout(checkout, checkout / args.subdir))
         else:
             import_selected(Path(args.root), args.source, args.repo, args.ref, args.commit,
-                            args.selected, checkout=args.checkout, dry_run=args.dry_run)
+                            args.selected, checkout=args.checkout, dry_run=args.dry_run,
+                            file_destination=args.file_destination)
     except (OSError, ValueError, sync.SyncError) as error:
         parser.exit(1, f'agent-skills: {error}\n')
 
