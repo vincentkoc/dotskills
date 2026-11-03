@@ -14,7 +14,8 @@ Usage:
   agent-skills list
   agent-skills validate
   agent-skills sync [--profile codex,cursor] [--mode symlink|copy] [--dry-run]
-  agent-skills import --source <name> --repo <url> [--ref <git-ref>] [--subdir <path>] [--skills a,b] [--dry-run]
+  agent-skills import --source <name> --repo <url> [--ref <git-ref>] [--expected-commit <sha>] [--subdir <path>] [--skills a,b] [--dry-run]
+  agent-skills import --source <name> --repo <url> --file <path> --destination <path> [--ref <git-ref>] [--expected-commit <sha>] [--dry-run]
 
 Supported skill entry files:
   SKILL.md, AGENT.md, AGENTS.md
@@ -191,6 +192,9 @@ import_repo_skills() {
   local subdir="$4"
   local skills_csv="$5"
   local dry_run="$6"
+  local expected_commit="$7"
+  local file_path="$8"
+  local destination="$9"
 
   if [[ ! "$source_name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
     echo "Invalid import source name: use lowercase letters, digits, and hyphens" >&2
@@ -202,6 +206,25 @@ import_repo_skills() {
       return 1
       ;;
   esac
+  if [[ -n "$expected_commit" && ! "$expected_commit" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]; then
+    echo "Expected commit must be a full lowercase Git object ID" >&2
+    return 1
+  fi
+  if [[ -n "$file_path" || -n "$destination" ]]; then
+    if [[ -z "$file_path" || -z "$destination" || -n "$skills_csv" || -n "$subdir" ]]; then
+      echo "File import requires --file and --destination, without --skills or --subdir" >&2
+      return 1
+    fi
+    local import_path
+    for import_path in "$file_path" "$destination"; do
+      case "$import_path" in
+        /*|..|../*|*/../*|*/..)
+          echo "Import file paths must stay inside their source roots" >&2
+          return 1
+          ;;
+      esac
+    done
+  fi
 
   command -v git >/dev/null || {
     echo "git is required for import" >&2
@@ -217,46 +240,56 @@ import_repo_skills() {
 
   local commit
   commit="$(git -C "$tmp_dir/repo" rev-parse HEAD)"
-
-  local import_base
-  import_base="$(python3 "$ROOT_DIR/scripts/import_skills.py" resolve-base \
-    --checkout "$tmp_dir/repo" --subdir "$subdir")"
-
-  mapfile -t candidates < <(find_skill_dirs_under "$import_base")
-  if [[ "${#candidates[@]}" -eq 0 ]]; then
-    echo "No skills found under: $import_base" >&2
-    exit 1
+  if [[ -n "$expected_commit" && "$commit" != "$expected_commit" ]]; then
+    echo "Import ref resolved to $commit, expected $expected_commit; nothing published" >&2
+    return 1
   fi
 
   local selected=()
-  if [[ -n "$skills_csv" ]]; then
-    IFS=',' read -r -a wanted_skills <<< "$skills_csv"
-    for wanted in "${wanted_skills[@]}"; do
-      local matched=""
-      for candidate in "${candidates[@]}"; do
-        if [[ "$(basename "$candidate")" == "$wanted" ]]; then
-          if [[ -n "$matched" ]]; then
-            echo "Skill '$wanted' is ambiguous in repo import set" >&2
-            exit 1
-          fi
-          matched="$candidate"
-        fi
-      done
-      if [[ -z "$matched" ]]; then
-        echo "Skill '$wanted' not found in repo import set" >&2
-        exit 1
-      fi
-      selected+=("$matched")
-    done
+  local file_args=()
+  if [[ -n "$file_path" ]]; then
+    selected=("$tmp_dir/repo/$file_path")
+    file_args=(--file-destination "$destination")
   else
-    selected=("${candidates[@]}")
+    local import_base
+    import_base="$(python3 "$ROOT_DIR/scripts/import_skills.py" resolve-base \
+      --checkout "$tmp_dir/repo" --subdir "$subdir")"
+
+    mapfile -t candidates < <(find_skill_dirs_under "$import_base")
+    if [[ "${#candidates[@]}" -eq 0 ]]; then
+      echo "No skills found under: $import_base" >&2
+      exit 1
+    fi
+
+    if [[ -n "$skills_csv" ]]; then
+      IFS=',' read -r -a wanted_skills <<< "$skills_csv"
+      for wanted in "${wanted_skills[@]}"; do
+        local matched=""
+        for candidate in "${candidates[@]}"; do
+          if [[ "$(basename "$candidate")" == "$wanted" ]]; then
+            if [[ -n "$matched" ]]; then
+              echo "Skill '$wanted' is ambiguous in repo import set" >&2
+              exit 1
+            fi
+            matched="$candidate"
+          fi
+        done
+        if [[ -z "$matched" ]]; then
+          echo "Skill '$wanted' not found in repo import set" >&2
+          exit 1
+        fi
+        selected+=("$matched")
+      done
+    else
+      selected=("${candidates[@]}")
+    fi
   fi
 
   local dry_run_args=()
   [[ "$dry_run" == "false" ]] || dry_run_args+=(--dry-run)
   python3 "$ROOT_DIR/scripts/import_skills.py" publish --checkout "$tmp_dir/repo" \
     --root "$ROOT_DIR" --source "$source_name" --repo "$repo" \
-    --ref "$ref" --commit "$commit" "${dry_run_args[@]}" -- "${selected[@]}"
+    --ref "$ref" --commit "$commit" "${dry_run_args[@]}" "${file_args[@]}" -- "${selected[@]}"
 }
 
 command="${1:-}"
@@ -318,6 +351,9 @@ case "$command" in
     subdir=""
     skills_csv=""
     dry_run="false"
+    expected_commit=""
+    file_path=""
+    destination=""
 
     while [[ $# -gt 0 ]]; do
       case "$1" in
@@ -331,6 +367,18 @@ case "$command" in
           ;;
         --ref)
           ref="${2:-}"
+          shift 2
+          ;;
+        --expected-commit)
+          expected_commit="${2:-}"
+          shift 2
+          ;;
+        --file)
+          file_path="${2:-}"
+          shift 2
+          ;;
+        --destination)
+          destination="${2:-}"
           shift 2
           ;;
         --subdir)
@@ -359,7 +407,8 @@ case "$command" in
       exit 1
     fi
 
-    import_repo_skills "$source_name" "$repo" "$ref" "$subdir" "$skills_csv" "$dry_run"
+    import_repo_skills "$source_name" "$repo" "$ref" "$subdir" "$skills_csv" "$dry_run" \
+      "$expected_commit" "$file_path" "$destination"
     ;;
   *)
     usage
