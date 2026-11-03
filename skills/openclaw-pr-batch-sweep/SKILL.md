@@ -114,7 +114,7 @@ Compose the repository skills instead of duplicating them:
    - When one contributor opens related micro-fixes for sibling owners, prefer one focused contributor PR using an existing shared helper. Keep policy constants private unless callers need a public contract, preserve credit, and close the fragments after the combined PR lands.
    - Reject the PR if the clean fix becomes a product, security, migration, SDK, config, or broad architecture decision.
    - If autoreview or dependency inspection reveals that a selected low-risk fix requires terminal sanitization, trust-boundary hardening, permission changes, or a wider security sweep, stop the implementation lane and reclassify the PR out of the batch. Do not expand through adjacent untrusted fields merely to make autoreview quiet. If another maintainer later finishes it, record it as `handledMerged`, not a future selection precedent.
-   - Run all contributor-head code execution in Testbox/Crabbox. Use local repository wrappers only for coordinator-reviewed, maintainer-owned reconstructions that cannot invoke contributor-controlled setup or hooks.
+   - Select contributor-head execution through the trusted repository's source-trust and testing policy. Untrusted source requires secretless fork CI or sanitized direct AWS, never local execution or credential-hydrated Testbox. Explicit maintainer approval may authorize trusted execution under that policy.
 
 7. Review and land serially.
    - Run fresh `$autoreview` on the final head until no accepted/actionable findings remain.
@@ -123,13 +123,12 @@ Compose the repository skills instead of duplicating them:
    - If exact-head CI exposes a deterministic failure already fixed independently on current `main`, verify the touched paths do not overlap, rebase through the native wrapper, and rerun exact-head CI. Do not copy the unrelated main fix into the contributor diff.
    - If an exact-SHA release-gate fallback exposes a failure in a path byte-identical to current `main`, record it as unrelated, cancel the current-task fallback, and keep waiting for the normal path-selected exact-head CI. Do not churn the contributor patch to repair unrelated full-suite debt.
    - Keep editable-fork synchronization inside OpenClaw's native PR wrapper. If `createCommitOnBranch` exceeds GitHub's payload limit after a rebase, retry `${OPENCLAW_ROOT}/scripts/pr prepare-sync-head <PR>` with `OPENCLAW_PR_PUSH_MODE=git OPENCLAW_ALLOW_UNSIGNED_GIT_PUSH=1`; require `maintainerCanModify=true`, the wrapper's exact lease, and an already reviewed prep branch. Do not raw-push around the wrapper.
-   - A Testbox warmed from `main` does not automatically carry a contributor PR's commit ancestry. For contributor-head gates, fetch and force-checkout `pull/<PR>/head` inside the box, then overlay only the reviewed maintainer repair files. Do not restore sparse omissions from current `main` onto a stale PR head; that can create lockfile and typecheck mismatches unrelated to the PR.
+   - For an approved trusted Testbox route, a box warmed from `main` does not automatically carry a contributor PR's commit ancestry. For contributor-head gates, fetch and force-checkout `pull/<PR>/head` inside the box, then overlay only the reviewed maintainer repair files. Do not restore sparse omissions from current `main` onto a stale PR head; that can create lockfile and typecheck mismatches unrelated to the PR.
    - Squash contributor PRs unless the operator says otherwise.
    - The coordinator serializes GitHub comments, closes, pushes, and merges to avoid duplicated actions.
    - Use `$operations-worktree` for terminal current-task closeout after verifying the PR outcome and finishing current-task proof and remote leases. `gwt finish` applies only to trees created with `--finish-managed`; existing and repository-native PR worktrees keep their own lifecycle.
-   - Follow the applicable `$operations-worktree` or repository-native lifecycle, not an unconditional finish/release sequence.
-     Plain `gwt finish` records completion, not owner release.
-     Supported manual finalized closeout uses its own native guards. Do not infer capability from automatic backend qualification.
+   - Let `$operations-worktree` and the installed native helper own completion/release semantics.
+     Supported manual finalized closeout uses its own native guards.
      Retention alone does not keep the PR or batch active.
    - Retain only for a named unfinished consumer, requirement, or native blocker, with a responsible owner and release condition.
      Preserve active stack, handoff, proof-consumer, and recovery dependencies.
