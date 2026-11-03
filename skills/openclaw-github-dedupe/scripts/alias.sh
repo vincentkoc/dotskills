@@ -175,11 +175,11 @@ close_issue_duplicate() {
   fi
   if [[ "$DRY_RUN" == "1" ]]; then
     printf 'DRY-RUN: gh issue comment %s --repo "%s" --body "%s"\n' "$id" "$REPO" "$body"
-    printf 'DRY-RUN: gh issue close %s --repo "%s" --reason not planned\n' "$id" "$REPO"
+    printf 'DRY-RUN: gh issue close %s --repo "%s" --reason "not planned"\n' "$id" "$REPO"
     return 0
   fi
   gh issue comment "$id" --repo "$REPO" --body "$body"
-  gh issue close "$id" --repo "$REPO" --reason not planned
+  gh issue close "$id" --repo "$REPO" --reason "not planned"
 }
 
 close_pr_duplicate() {

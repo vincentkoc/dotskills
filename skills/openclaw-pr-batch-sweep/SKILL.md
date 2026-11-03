@@ -22,7 +22,7 @@ Read and update [references/decision-ledger.json](references/decision-ledger.jso
 Compose the repository skills instead of duplicating them:
 
 - `$openclaw-pr-maintainer` for live GitHub evidence and mutations.
-- `$openclaw-landable-bug-sweep` for proof, repair, and landing.
+- `$openclaw-repair-sweep` for campaign coordination. `$openclaw-pr-maintainer` owns item review and landing.
 - `$gitcrawl` for discovery and duplicate clusters.
 - `$openclaw-testing`, `$crabbox`, and `$autoreview` for validation.
 - `$clawsweeper` for readiness labels and exact-head review evidence.

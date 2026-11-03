@@ -20,7 +20,7 @@ Recover structured Codex goal history and convert free-form runs into evidence-b
 
 ## Workflow
 1. Collect structured data with `scripts/codex-goal-report.py`.
-   - Fleet report: `scripts/codex-goal-report.py --policy ~/.config/codex-goal-mining/fleet-policy.json --json --output ~/.codex/reports/codex-fleet-goals.json`
+   - Fleet report: `scripts/codex-goal-report.py --policy ~/.config/codex-goal-mining/fleet-policy.json --json`
    - Local only: `scripts/codex-goal-report.py --local --json`
    - Recent window: add `--since YYYY-MM-DD`.
    - Exact activity window: add `--activity-overlap --since <ISO> --until <ISO>`.
