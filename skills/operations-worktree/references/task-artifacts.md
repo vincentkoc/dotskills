@@ -8,7 +8,14 @@ retained.
 
 - Return ordinary audit and discovery results through stdout, stderr, structured
   JSON, or an existing required task-state store.
-- Use run-owned temporary scratch only when the tool needs files to execute.
+- For tasks with a managed worktree, keep reusable task scripts and required
+  restart or continuation output there through its existing source, build, or
+  proof location. Verify disposable output is ignored; eventual disposal does
+  not make platform temp suitable for task continuation.
+- Use run-owned temporary scratch for bounded one-shot payloads or native tool
+  requirements. Preserve fixture, socket/IPC, app/session, and source-capsule
+  contracts; do not redirect global `TMPDIR` to a worktree. Remove task-owned
+  scratch when its consumer finishes.
 - Create no persistent artifact root unless retention is required or explicitly
   selected.
 - Preserve the original owner, failure, exit status, and user-owned paths when
