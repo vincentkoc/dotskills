@@ -2,7 +2,7 @@
 name: tmux-lane-orchestrator
 description: Manage one tmux agent lane from its matching ops pane, inspect live pane state and Codex logs on cold start, and produce concise manager summaries for OpenClaw and adjacent project work.
 license: MIT
-compatibility: Requires tmux. Codex log inspection expects local session logs under ~/.codex/sessions.
+compatibility: Requires tmux and Python 3. Codex identity lookup uses the local state database and exact rollout paths.
 metadata:
   source: "https://github.com/vincentkoc/dotskills"
   version: "0.1.8"
@@ -44,17 +44,22 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - otherwise map current odd `ops` pane to its lane: `1 -> L1`, `3 -> L2`, `5 -> L3`;
    - if no odd-pane mapping exists, stop and ask for lane scope.
 3. Run the cold-start snapshot:
-   - `python3 skills/tmux-lane-orchestrator/scripts/lane_snapshot.py --lane <N>`
+   - resolve this loaded skill's directory, then run `python3 <skill-root>/scripts/lane_snapshot.py --lane <N>`. Do not resolve it from the worker repository cwd.
    - add `--session <name>` when not in the active tmux session.
+   - Linux inference requires a native Codex executable and bounded structured argv matching exactly `codex resume UUID` or `codex exec resume UUID`. Other forms stay unknown.
+   - macOS reads executable paths only. Without a separately verified binding, it reports `unknown` and the next action. Pass `--thread L<N>.<pane>=<thread-id>` only from independent evidence. A declaration still requires an unambiguous descendant Codex PID.
+   - flat `ps` command text, cwd, and prompt UUIDs never establish thread identity.
+   - log reads default to 256 KiB per exact rollout and 1 MiB total. Use `--log-bytes` and `--total-log-bytes` to change those bounds.
+   - no state is written by default. An optional `--cursor-file <path>` bounds repeated reads and retains at most 64 file entries.
 4. Read the operator-provided lane map and treat it as the mission source of truth. If IDs are duplicated or missing, call that out as a warning instead of silently rewriting it.
-5. For each worker pane, classify state:
-   - `active-progress`: recent output, running command, or current test/log movement.
-   - `waiting`: watching a check, waiting on Testbox/GitHub/CI capacity, or idle by design.
-   - `blocked`: error shown, local setup mismatch, auth failure, merge conflict, missing dependency, or failed check.
-   - `idle`: shell prompt and no assigned mission.
-   - `unknown`: tmux and logs disagree or evidence is too stale.
-6. Cross-check live panes against Codex logs before summarizing. Pane titles alone are weak evidence; logs often contain the real task, branch, Testbox id, run id, and latest failure.
-7. If the snapshot helper is slow or stale, do not wait on it forever. Fall back to direct `tmux capture-pane`, focused `jq` reads of recent `~/.codex/sessions/YYYY/MM/DD/*.jsonl`, and live GitHub/Testbox checks for the panes that matter.
+5. Resolve each pane through its shell PID, descendant Codex PID, thread ID, and state-database rollout path. Shared cwd, pane titles, generic keywords, and recent-file order do not prove identity. Missing or conflicting identity stays `unknown`. Never use it as a restore target.
+6. Classify the newest turn from the exact rollout:
+   - `active-progress`: current-turn agent or tool activity.
+   - `waiting`: a current-turn wait call. Confirm its actual dependency before intervention.
+   - `completed` or `failed`: the latest terminal event, without treating an old failure as the current state.
+   - `unknown`: unproven identity or insufficient current evidence. Neither silence nor a completed turn proves idle capacity.
+   Cross-check pane output and any named run before calling the worker blocked or available.
+7. If the helper cannot resolve identity, capture only the named pane and inspect its process lineage. Report the gap. Do not substitute broad session-log searches. For an already verified rollout, use bounded reads and report truncation. Do not infer a state from missing bytes.
 8. Summarize in manager style:
    - one line per pane;
    - include current mission, state, evidence, blocker, and next action;
@@ -64,31 +69,27 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - inspect logs and process state;
    - avoid killing processes unless the operator authorizes the exact process/tree;
    - do not start duplicate heavy checks;
-   - do not mutate GitHub or worker panes unless explicitly asked.
-10. When launching workers into panes:
-   - prefer creating a prompt file, then passing its contents as the Codex initial prompt argument from the target cwd;
-   - use `codex --dangerously-bypass-approvals-and-sandbox --no-alt-screen "$(cat prompt-file)"`;
-   - do not feed Codex TUI worker prompts through stdin; it can reject stdin as non-terminal after pane launch;
-   - default worker jobs to YOLO mode / no sandbox / no approval prompts unless the operator says to use a safer mode;
-   - avoid multi-line here-doc paste directly into multiple panes because tmux can interleave input and corrupt both commands;
-   - set a useful pane title before launch, then verify cwd, command, first screen, and trust prompts from scrollback;
-   - after launch, submit the staged prompt with Enter/CR if Codex has not begun responding; do not leave the prompt sitting in the input area;
-   - if Codex asks for directory trust and the target repo is intended, clear that prompt once and record it in the summary.
-11. When assigning OpenClaw work to a fresh worker, create or verify the requested `gwt` worktree first. The worker prompt must name the exact worktree path, forbid touching the main checkout, forbid `pnpm install` inside Codex worktrees, require `node_modules` symlink verification, and route broad validation through Testbox.
+   - mutate GitHub or a named worker pane only within the existing operator-authorized scope.
+10. Launch or resume a worker only within the operator's named pane, task, and execution scope. Preserve active or paused sessions and configured approval/sandbox settings. A new worker or directory trust decision needs its own authorization. Lane visibility does not grant it.
+   - pass the initial prompt as a CLI argument from the verified target cwd. Codex TUI needs a terminal, not redirected prompt stdin.
+   - create a prompt file only when the launch needs it. Do not paste large multi-line commands into several panes.
+   - verify cwd, command, first screen, and prompt delivery after an authorized launch. Submit staged input only to that new worker.
+   - do not accept a directory trust prompt automatically. Trust enables repository config, hooks, and execution policies. Report a pending decision to its operator.
+11. Before assigning repository work, resolve its native checkout owner and read its trusted instructions and invoked skills. Use that owner for worktree creation, dependency qualification, source trust, proof routing, capacity handling, review, and publication/landing. Include the exact checkout, scope, stop condition, and owner instructions in the worker prompt. Do not copy a provider or validation policy from this skill into the task.
 12. When launching a review-first worker:
-   - say explicitly that the worker must not edit code unless the operator asks after the review;
-   - allow only the external mutations required to prepare the review, usually clone/pull/fetch;
+   - state the review-only boundary. If implementation is already authorized, follow its agreed handoff. Otherwise report findings before implementation.
+   - perform preparation only within its existing authorization and native repository workflow.
    - require context checks before conclusions: cwd, repo root, branch, status, remote, free disk, repo instructions, README/package metadata, CI, and tests;
    - keep repo-instruction discovery bounded to the target repo and ancestors, not broad sibling scans;
-   - if dependencies are missing, verify documented install/test paths in a temp environment outside the checkout and clean it up;
+   - if dependencies are missing, follow the target repository's approved proof route. Report unavailable proof instead of inventing an install route.
    - for package or CLI repos, check the installed artifact path, not just editable/source-checkout tests; editable installs can hide missing package data;
    - ask for findings first with file/line evidence, commands run, pass/fail results, quick wins, strategic risks, and a ship/hold/fix-first recommendation.
-   - when the review finishes, summarize only the top severity, main recommendation, and whether implementation needs a new explicit go-ahead; keep the worker open for follow-up.
+   - when the review finishes, summarize the top severity, recommendation, and next action within existing authority. Keep the worker available for follow-up.
 13. When reallocating active work:
    - name exactly which pane is now the sole coordinator for final integration or push;
    - tell superseded panes to finish only their already-running command, then stop/report branch HEAD, check result, and blockers;
    - preserve useful in-flight Testbox or CI evidence, but do not start duplicate broad gates;
-   - coordinator must re-verify cwd, branch, status, symlinks, drift, cheap checks, and final rebase before pushing.
+   - coordinator must re-verify checkout, branch, status, ownership, exact HEAD, and the target repository's required proof before publication or landing.
 14. When running a multi-job queue:
    - keep a visible queue with job URL/id, assigned pane, worktree, state, and next action;
    - do live metadata before assignment because "merge as-is" can become conflicts, failed checks, or unresolved review comments;
@@ -105,24 +106,17 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
    - report absolute counts plus deltas from baseline, not vibes;
    - verify the tracker process is still alive before relying on it, and restart or sample manually if it died;
    - if new automation is opening work while workers close work, call out the slope honestly.
-17. For secrets and repo settings:
-   - do not print, quote back, or store secrets in prompt files;
-   - prefer setting secrets with `gh secret set <NAME> --repo <owner/repo>` using stdin from a shell variable, then unset the variable;
-   - record only the secret name, repo, and result, never the value;
-   - ask for the narrowest required token permissions when the operator asks.
-   - after repo/workflow setup, verify the full path: local checks, remote CI, workflow registration, live smoke, and external service permissions;
-   - when an external service blocks on namespace/org permission, report the exact error and prefer manual resource creation over widening token permissions;
-   - after the operator changes token or external-service permissions, rerun the exact failed workflow/run/SHA first and pull the fresh log. Do not rebuild the whole setup or broaden permissions until the new failure proves a different boundary.
+17. Secrets, repository settings, provider selection, and credential repair belong to their named owners. Do not print secrets or put them in worker prompts. Report the exact blocked consumer and follow its approved credential/settings workflow only when that action is authorized.
 18. When broadcasting updates to active workers:
    - send the update to every assigned pane, not only the active pane;
    - if Codex shows "tab to queue message" or similar, queue the message, press Enter/CR, and then verify the update appears in that worker's log;
    - for urgent validation policy changes, ask each worker to report any already-started command and whether it was stopped, completed, or moved to the correct surface;
-   - scan processes after the broadcast and stop only the specific disallowed validation commands you own, not the whole worker.
+   - a policy update does not grant interruption authority. Preserve existing workers and paused sessions. Stop a command only within its explicit owner/operator scope.
 19. For watch loops:
    - use the operator's requested cadence;
    - keep the job open and keep messages short, like the L2 operator style;
    - stay silent unless a lane needs attention, finishes, blocks, begins risky external mutation, or the operator asks for a floor read;
-   - stop or replace old local watch loops before starting a new monitoring mode;
+   - stop or replace only current-task watch loops before changing monitoring mode. Preserve other owners' loops.
    - track which evidence is fresh vs memory-derived.
 20. When a worker reports broad test or sweep findings:
    - separate confirmed product/plugin defects from harness, fixture, Testbox, sparse-checkout, dependency, and stale-analysis noise;
@@ -148,14 +142,15 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
 - `tmux_session` (optional): tmux session name; default is the current session.
 - `mission_map` (optional): operator-provided mapping of `L<N>.<pane>` to mission.
 - `snapshot_depth` (optional): capture lines per pane; default `80`.
-- `log_depth` (optional): number of recent Codex logs to scan; default `12`.
+- `log_bytes` / `total_log_bytes` (optional): per-rollout / total byte limits. Defaults `262144` / `1048576`.
+- Exact `--thread PANE=THREAD_ID` declarations and an optional bounded `--cursor-file` path.
 - `mode` (optional): `observe` (default), `summarize`, `intervene`, or `recover`.
 - `scope_override` (optional): explicit permission to inspect another lane.
 
 ## Outputs
 
 - Lane snapshot with panes, cwd, command, pid, active state, and recent output.
-- Codex log hints: session id, cwd, latest user request, recent assistant status, recent tool/check evidence.
+- Exact pane/shell/agent/thread identity, newest-turn activity, byte counts, cursor mode, and truncation status. Unresolved identity remains `unknown`.
 - Worker state table with pane, mission, state, evidence, risk, and next action.
 - Short operator summary suitable for repeated updates.
 - Escalations requiring operator approval, especially process kills, broad test runs, or external mutations.
@@ -165,10 +160,10 @@ Read `references/factory-model.md` when setting up or revising lane responsibili
 - Ignore saved cockpit layout files unless the operator explicitly asks for them. Use live tmux and current logs.
 - Treat the operator's latest lane map as fresher than memory, pane titles, or old logs.
 - Verify current cwd, git branch/status, and long-running command indicators for any pane before declaring it idle.
-- Search today's Codex logs first, then recent dated logs only if today's logs are insufficient.
+- Read only rollouts resolved through exact pane/process/thread identity. A shared checkout or recent timestamp does not establish ownership.
 - For log inspection, start with session metadata and user/assistant event messages. Raw tool output is supporting evidence only after a targeted question; dumping tool logs makes the manager slower and noisier.
 - Log evidence is advisory when stale. Prefer live tmux output for current blocking state.
-- Snapshot output may include the manager's own current session when keywords overlap. Ignore self-referential lines unless they explain the active management task.
+- A captured line is supporting evidence, not permission to resume, interrupt, or replace a worker.
 - If the manager is recovering after a crash, summarize task, status, pending work, and next step before taking action.
 
 ## Manager Summary Format
