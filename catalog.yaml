@@ -20,11 +20,12 @@ skills:
     name: anthropics/skill-creator
     path: vendor/anthropics/skill-creator
     source: upstream
+    format: skill_md
     upstream:
       type: git
-      repo: https://github.com/anthropics/skills.git
-      ref: main
-      commit: 1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563
+      repo: "https://github.com/anthropics/skills.git"
+      ref: "main"
+      commit: "ca45fc496a3436251f191354091d557da31c15b5"
     tags: [upstream, imported]
 
   - id: steipete-sectriage-reference
@@ -42,9 +43,9 @@ skills:
     source: upstream
     upstream:
       type: git
-      repo: https://github.com/steipete/agent-scripts
-      ref: main
-      commit: 4e28dd5bd7caa5ba142c20f80325ac63d42ecf0e
+      repo: "https://github.com/steipete/agent-scripts"
+      ref: "main"
+      commit: "d210c0a77c8f9ae5e1d939b13238a75e87cdb69a"
     tags: [upstream, imported, slash-command]
 
   - id: technical-deslop
