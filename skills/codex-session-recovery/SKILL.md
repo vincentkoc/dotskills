@@ -23,7 +23,7 @@ Recover crashed, detached, or confusing agent sessions while preserving the best
 
 1. Preserve evidence before writing state.
    - Do not create a new snapshot until the restore candidate is known.
-   - Do not run repair commands that overwrite history.
+   - Preserve [Codex and Claude history](../operations-worktree/references/task-artifacts.md#agent-history-is-not-task-scratch); never delete or overwrite it during recovery or cleanup.
    - Set a recovery pane title when possible.
 2. Inspect live tmux state.
    - `tmux display-message -p '#S:#I.#P #{pane_current_command} #{pane_current_path}'`

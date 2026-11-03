@@ -90,6 +90,9 @@ Do not add a new approval requirement for dependency work already authorized by 
 
 ## Closeout
 
+Preserve [Codex and Claude history](references/task-artifacts.md#agent-history-is-not-task-scratch);
+task closeout never makes it disposable.
+
 Report the exact task-owned path, branch, HEAD, owner, and remaining work.
 Give each task checkout an explicit outcome:
 
