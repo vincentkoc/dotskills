@@ -4,6 +4,19 @@ Use the task's existing state or result channel. Do not add a supervisor,
 telemetry daemon, or persistent receipt tree merely to say that nothing was
 retained.
 
+## Agent History Is Not Task Scratch
+
+Codex and Claude history is off limits to deletion. Preserve conversations,
+transcripts, sessions, thread-history databases, history indexes, and associated
+WAL/SHM files needed to preserve that history. Active or idle state, age, size,
+task finalization, and general cleanup or task-discard authorization do not
+change this boundary. Do not truncate, purge, reset, destructively rotate or
+compact, or drop history as a cleanup or recovery workaround.
+
+Independently proven separate disposable task caches remain eligible under
+their existing lifecycle. If history or state cannot be distinguished from
+cache, preserve it. The artifact-disposal rules below do not override this rule.
+
 ## Default
 
 - Return ordinary audit and discovery results through stdout, stderr, structured
