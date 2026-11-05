@@ -201,3 +201,15 @@ skills:
     source: local
     tags: [openclaw, bun, runtime, deployment]
     version: 0.1.0
+
+  - id: morluto-reverse-engineer-anything
+    name: "morluto/reverse-engineer-anything"
+    path: "vendor/morluto/reverse-engineer-anything"
+    format: skill_md
+    source: upstream
+    upstream:
+      type: git
+      repo: "https://github.com/morluto/rea.git"
+      ref: "main"
+      commit: "92f332652d352e60b550567adf2399d83d8ebe78"
+    tags: [upstream, imported]
