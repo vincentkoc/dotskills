@@ -113,6 +113,23 @@ command. Installing the skill does not install a network guard or change its mod
 
 Default sync targets are managed automatically by vercel skills.
 
+## External skill references
+
+- [Reverse Engineer Anything (REA)](https://github.com/morluto/rea) — upstream
+  skill for investigating shipped applications, binaries, firmware, and recorded
+  protocol traffic. [Skill listing](https://skills.sh/morluto/rea/reverse-engineer-anything).
+  The unmodified skill and its references are retained under
+  `vendor/morluto/reverse-engineer-anything`; `catalog.yaml` pins the upstream
+  commit. Install directly with:
+
+  ```bash
+  npx skills add morluto/rea --skill reverse-engineer-anything -g -y
+  ```
+
+  The skill supplies instructions only. REA's CLI/MCP server and optional
+  analysis engines are separate installations; follow the upstream setup guide
+  when a concrete investigation requires them.
+
 ## Codex slash commands
 
 This repo can also mirror Codex slash-command prompts from `vendor/` and sync them to `~/.codex/prompts`.
