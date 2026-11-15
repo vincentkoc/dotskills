@@ -5,7 +5,6 @@ import argparse
 import json
 import os
 import pathlib
-import re
 import shlex
 import shutil
 import sqlite3
@@ -37,9 +36,7 @@ HELPER_REAP_TIMEOUT = 10
 # Keep an unreaped owned handle available to the caller; never kill a process
 # group or claim that a local SSH exit proves remote collector cleanup.
 UNREAPED_HELPERS: list[subprocess.Popen] = []
-GOAL_EVENT_MARKER = '"type":"event_msg","payload":{"type":"thread_goal_updated"'
-GOAL_EVENT_PATTERN = r'^\{"timestamp":"[^"]+","type":"event_msg","payload":\{"type":"thread_goal_updated"'
-TIMESTAMP_PATTERN = re.compile(r'^\{"timestamp":"([^"]+)"')
+GOAL_EVENT_TYPE = "thread_goal_updated"
 
 
 def parse_timestamp(value: str | None) -> datetime | None:
@@ -102,8 +99,9 @@ def candidate_goal_files(sessions_root: pathlib.Path) -> list[pathlib.Path]:
     if not sessions_root.exists():
         return []
     if shutil.which("rg"):
+        # Discovery is only a hint; the reader validates the JSON event envelope.
         result = subprocess.run(
-            ["rg", "-l", "--glob", "*.jsonl", GOAL_EVENT_PATTERN, str(sessions_root)],
+            ["rg", "-l", "-F", "--glob", "*.jsonl", "--", GOAL_EVENT_TYPE, str(sessions_root)],
             text=True,
             capture_output=True,
             check=False,
@@ -302,20 +300,29 @@ def collect_local_goals(
         try:
             with path.open(errors="replace") as handle:
                 for line in handle:
-                    timestamp_match = TIMESTAMP_PATTERN.match(line)
-                    timestamp = parse_timestamp(timestamp_match.group(1)) if timestamp_match else None
-                    if timestamp is not None:
-                        file_start = min(file_start, timestamp) if file_start else timestamp
-                        file_end = max(file_end, timestamp) if file_end else timestamp
-                    if GOAL_EVENT_MARKER not in line:
+                    if not line.strip():
                         continue
                     try:
                         event = json.loads(line)
                     except json.JSONDecodeError:
                         parse_errors += 1
                         continue
-                    payload = event.get("payload") or {}
-                    goal = payload.get("goal") or {}
+                    if not isinstance(event, dict):
+                        continue
+                    # Every event contributes to session bounds, regardless of JSON formatting.
+                    raw_timestamp = event.get("timestamp")
+                    timestamp = parse_timestamp(raw_timestamp) if isinstance(raw_timestamp, str) else None
+                    if timestamp is not None:
+                        file_start = min(file_start, timestamp) if file_start else timestamp
+                        file_end = max(file_end, timestamp) if file_end else timestamp
+                    if event.get("type") != "event_msg":
+                        continue
+                    payload = event.get("payload")
+                    if not isinstance(payload, dict) or payload.get("type") != GOAL_EVENT_TYPE:
+                        continue
+                    goal = payload.get("goal")
+                    if not isinstance(goal, dict):
+                        continue
                     objective = str(goal.get("objective") or "").strip()
                     if not objective:
                         continue
