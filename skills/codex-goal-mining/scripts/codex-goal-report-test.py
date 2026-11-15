@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import pathlib
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -253,6 +254,132 @@ class CodexGoalReportTest(unittest.TestCase):
         self.assertIn("**2 runs** — retest beta", output)
         self.assertIn("**offline**: connection timed out", output)
         self.assertIn("Lifetime goal-time snapshots: 2m", output)
+
+
+class JsonlFallbackTest(unittest.TestCase):
+    def collect(self, lines, use_rg, **kwargs):
+        rg = shutil.which("rg") if use_rg else None
+        if use_rg and rg is None:
+            self.skipTest("rg is required for the discovery regression")
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            session = root / "nested" / "session.jsonl"
+            session.parent.mkdir()
+            session.write_text("\n".join(lines) + "\n")
+            write_session(root / "unrelated.jsonl", [
+                {"timestamp": "2026-06-01T00:00:00Z", "type": "session_meta", "payload": {}},
+            ])
+            with mock.patch.object(MODULE.shutil, "which", return_value=rg), \
+                    mock.patch.object(MODULE.subprocess, "run", wraps=subprocess.run) as search:
+                report = MODULE.collect_local_goals("fixture", root, **kwargs)
+            if use_rg:
+                search.assert_called_once()
+                self.assertEqual(report["files_scanned"], 1)
+            else:
+                search.assert_not_called()
+                self.assertEqual(report["files_scanned"], 2)
+        return report
+
+    def test_json_whitespace_key_order_and_native_ordinal(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        reordered = {
+            "payload": dict(reversed(list(event["payload"].items()))),
+            "type": event["type"],
+            "timestamp": event["timestamp"],
+        }
+        # Codex's paginated rollout writer emits ordinal before the flattened event.
+        ordinal = {"timestamp": event["timestamp"], "ordinal": 7,
+                   "type": event["type"], "payload": event["payload"]}
+        compact = json.dumps(event, separators=(",", ":"))
+        variants = {
+            "compact": compact,
+            "spaced": json.dumps(event),
+            "reordered": json.dumps(reordered, separators=(",", ":")),
+            "leading-whitespace": " \t" + compact,
+            "native-ordinal": json.dumps(ordinal, separators=(",", ":")),
+        }
+        for name, line in variants.items():
+            for use_rg in (True, False):
+                with self.subTest(format=name, use_rg=use_rg):
+                    report = self.collect([line], use_rg)
+                    self.assertEqual(report["parse_errors"], 0)
+                    self.assertEqual(len(report["goals"]), 1)
+                    goal = report["goals"][0]
+                    self.assertEqual(goal["thread_id"], "thread-1")
+                    self.assertEqual(goal["objective"], "Synthetic goal")
+                    self.assertEqual(goal["tokens_used"], 7)
+                    self.assertEqual(goal["goal_time_seconds"], 3)
+                    self.assertEqual(goal["session_started_at"], "2026-06-01T00:01:00Z")
+                    self.assertEqual(goal["session_ended_at"], "2026-06-01T00:01:00Z")
+
+    def test_mixed_format_session_boundaries(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        lines = [
+            json.dumps({"type": "session_meta", "payload": {}, "timestamp": "2026-06-01T00:00:00Z"}),
+            json.dumps(event, separators=(",", ":")),
+            json.dumps({"timestamp": "2026-06-01T00:10:00Z", "type": "event_msg",
+                        "payload": {"type": "done"}}),
+        ]
+        for use_rg in (True, False):
+            with self.subTest(use_rg=use_rg):
+                goal = self.collect(lines, use_rg)["goals"][0]
+                self.assertEqual(goal["session_started_at"], "2026-06-01T00:00:00Z")
+                self.assertEqual(goal["session_ended_at"], "2026-06-01T00:10:00Z")
+                self.assertEqual(goal["session_span_seconds"], 600)
+
+    def test_only_structural_goal_events_count(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        nested_marker = {"type": "event_msg", "payload": {"type": "thread_goal_updated"}}
+        wrong_envelope = {**event, "type": "response_item", "metadata": nested_marker}
+        wrong_payload_type = {**event, "payload": {**event["payload"], "type": "user_message"},
+                              "metadata": nested_marker}
+        text_only = {"timestamp": event["timestamp"], "type": "event_msg",
+                     "payload": {"type": "user_message", "message": json.dumps(event)}}
+        lines = [json.dumps(value, separators=(",", ":"))
+                 for value in (wrong_envelope, wrong_payload_type, text_only)]
+        for use_rg in (True, False):
+            with self.subTest(use_rg=use_rg):
+                report = self.collect(lines, use_rg)
+                self.assertEqual(report["goals"], [])
+                self.assertEqual(report["parse_errors"], 0)
+
+    def test_malformed_lines_are_counted_and_valid_later_goal_survives(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        lines = [
+            "", " \t",
+            "{broken JSON",
+            json.dumps(["thread_goal_updated"]),
+            "null",
+            json.dumps({**event, "payload": []}),
+            json.dumps({**event, "payload": {**event["payload"], "goal": []}}),
+            json.dumps(event),
+        ]
+        for use_rg in (True, False):
+            with self.subTest(use_rg=use_rg):
+                report = self.collect(lines, use_rg)
+                self.assertEqual(report["parse_errors"], 1)
+                self.assertEqual(len(report["goals"]), 1)
+                self.assertEqual(report["goals"][0]["objective"], "Synthetic goal")
+
+    def test_search_error_falls_back_to_jsonl_discovery(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "session.jsonl").write_text(json.dumps(event) + "\n")
+            with mock.patch.object(MODULE.shutil, "which", return_value="rg"), \
+                    mock.patch.object(MODULE.subprocess, "run",
+                                      return_value=subprocess.CompletedProcess([], 2, "", "search failed")):
+                report = MODULE.collect_local_goals("fixture", root)
+        self.assertEqual(report["files_scanned"], 1)
+        self.assertEqual(len(report["goals"]), 1)
+
+    def test_sqlite_result_short_circuits_jsonl(self):
+        expected = {"machine": "fixture", "storage": "sqlite", "goals": []}
+        with mock.patch.object(MODULE, "collect_sqlite_goals", return_value=expected), \
+                mock.patch.object(MODULE, "candidate_goal_files") as discover:
+            report = MODULE.collect_local_goals("fixture", pathlib.Path("/fixture/sessions"))
+        self.assertIs(report, expected)
+        discover.assert_not_called()
 
 
 class TransportTest(unittest.TestCase):
