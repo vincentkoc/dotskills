@@ -40,7 +40,7 @@ Do not use it to post, schedule, or reply on X. Posting is a separate action tha
 <emoji> <highlight 3>
 <emoji> <optional highlights 4-6>
 
-<one-line call to action> <release or repo link>
+<one-line call to action> <main repo link>
 ```
 
 Optional reply, posted as a thread under the main post:
@@ -60,7 +60,7 @@ Rules:
 - Lead with the strongest line. A short metaphor that explains the value ("Ozempic for your shell toolcalling") works better than a feature name.
 - Group integrations into one line of @-mentions plus "and more". Do not list a long series of names in prose.
 - Casual first person, lowercase is fine, exclamation in the hook only. No hashtags. Spell-check: the source posts contain typos; the drafts should not.
-- One link, at the end. Prefer the release page for a version post and the repo for a launch.
+- One link, at the end: the main repository URL (for example `https://github.com/vincentkoc/tokenjuice`), not the release page, because the repository has the better link preview image. Use another link only when the user asks.
 - Milestone posts (installs, downloads, stars) are separate from version posts: one or two sentences, the number, the project age, and an image of the chart if the user has one.
 
 ## Inputs
