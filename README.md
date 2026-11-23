@@ -70,6 +70,7 @@ second configuration generator competing with those owners.
 | `technical-skill-finder` | Turn real agent pain into new skills: mine logs, rank wins, draft next steps. | `npx skills add vincentkoc/dotskills --skill technical-skill-finder -y` |
 | `tmux-agent-lane-orchestrator` | Monitor tmux coding-agent lanes and produce evidence-backed manager summaries. | `npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y` |
 | `tmux-lane-orchestrator` | Coordinate one tmux worker lane from its matching manager pane. | `npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y` |
+| `x-release-post` | Draft an X release announcement from verified release notes, with a length check. | `npx skills add vincentkoc/dotskills --skill x-release-post -y` |
 
 Local-only skills may live under ignored `private-skills/`, but must never be tracked in this public repository.
 
@@ -100,6 +101,7 @@ npx skills add vincentkoc/dotskills --skill github-airplane-mode -y
 npx skills add vincentkoc/dotskills --skill semantic-slicing -y
 npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y
 npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y
+npx skills add vincentkoc/dotskills --skill x-release-post -y
 ```
 
 List available public skills:
