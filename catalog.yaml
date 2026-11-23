@@ -201,3 +201,10 @@ skills:
     source: local
     tags: [openclaw, bun, runtime, deployment]
     version: 0.1.0
+
+  - id: x-release-post
+    name: X Release Post
+    path: skills/x-release-post
+    source: local
+    tags: [x, twitter, release, announcement, writing]
+    version: 0.1.0
