@@ -21,7 +21,7 @@ Do not use it to post, schedule, or reply on X. Posting is a separate action tha
 
 ## Workflow
 
-1. Confirm the release exists. Read the GitHub release, `CHANGELOG.md` entry, or tag, and note the version and link. If the release is not published, draft only on request and mark the draft unreleased.
+1. Confirm the release exists. Read the GitHub release, `CHANGELOG.md` entry, or tag, and note the version and the main repository URL. If the release is not published, draft only on request and mark the draft unreleased.
 2. Read the full delta: `git log --oneline <previous-tag>..<tag>` or the compare view. A version jump that spans several releases (for example 0.4 to 0.6.1) gets the range in the hook.
 3. Pick 3-6 user-facing highlights. Prefer new integrations, platforms, and visible fixes or speedups. Drop refactors, CI, dependency bumps, and internal tests. Merge small related items into one line.
 4. Collect facts for numbers. Use only figures from the release, benchmarks in the repo, or registry counts the user supplies. Do not estimate downloads, savings, or speedups.
