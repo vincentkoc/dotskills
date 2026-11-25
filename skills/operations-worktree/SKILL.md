@@ -190,6 +190,7 @@ the owning checkout after the merge or holder condition clears; do not describe
 that retry as scheduled.
 
 If a checkout expected to be finish-managed reports `not-enrolled`, retain it and diagnose the discrepancy.
+The creation-lock exception below applies only after that diagnosis.
 Do not call managed finish on ordinary or repository-native checkouts or retrofit enrollment.
 Missing enrollment alone does not block their ordinary authorized closeout.
 Verify the exact path and registration, task ownership, clean Git state, no live
@@ -204,13 +205,36 @@ When the qualified wrapper advertises finalized manual removal, use
 Unenrolled tasks use ordinary `gwt rm`. Name only
 known disposable ignored roots with repeated `--discard-ignored <relative-root>`
 when needed. This owner-managed route is separate from automatic host
-qualification; never manually unlock or edit its lifecycle state.
+qualification; never edit its lifecycle state.
 
-Unfinished or unknown source, active owners, unknown commits, locks, active
+For a stranded GWT creation-only lock, prefer the native owner's recovery command.
+If none exists, explicit user approval for that exact lock permits one
+`git -C <owner> worktree unlock <literal-path>` followed by ordinary non-force
+`gwt rm <literal-path>`, only after current proof establishes all of the following:
+
+- Current `gwt finish-status` confirms `not-enrolled`; the task-owned checkout
+  is finalized, its source is clean and merged or superseded, and no unfinished
+  work or shared consumer needs it.
+- The canonical owner, registration, and exact lock identity match the known
+  GWT creation operation. `not-enrolled` alone does not prove this.
+- No active creator, lifecycle operation, checkout/admin holder, or recovery pin
+  remains.
+
+Recheck the exact lock reason/identity and holder visibility immediately before
+unlock; changed identity/reason, live activity, or incomplete visibility retains
+the checkout.
+Existing approval for that exact recovery remains valid across turns; do not ask
+again unless the target or approved scope changes. Verify checkout and admin
+registration absence plus preservation of the owner and other worktrees after
+removal. A refusal retains the checkout; an uncertain removal
+stays `unknown` and must not be retried automatically. This exception permits no
+manual lockfile/ledger edits, force removal, adoption, or blanket unlocks.
+
+Unfinished or unknown source, active owners, unknown commits, other locks, active
 recovery pins, or unresolved ownership require retention. Routine finalized
 task artifacts do not, even when ignored or untracked. Native non-force removal
 preserves branches unless its explicitly authorized contract says otherwise.
-Do not start broad maintenance, clear locks, or remove other sessions' checkouts.
+Do not start broad maintenance, clear other locks, or remove other sessions' checkouts.
 Never retry an uncertain removal automatically or label an unknown result retained.
 
 ## Inputs
@@ -257,7 +281,11 @@ stateDiagram-v2
     EvaluateRelease --> ReportRemoved: qualified native removal verified
     EvaluateRelease --> ReportUnknown: incomplete removal or missing readback
     RecordFinish --> NativeCloseout: explicit finalized manual closeout
-    DoTask --> ReportRetained: expected finish enrollment missing
+    DoTask --> ReportRetained: expected enrollment missing and recovery gates unmet
+    DoTask --> RecoverCreationLock: unenrolled creation lock, exact approval and proof
+    RecoverCreationLock --> ReportRemoved: recovery and non-force removal verified
+    RecoverCreationLock --> ReportRetained: unsafe lock or concrete refusal
+    RecoverCreationLock --> ReportUnknown: incomplete removal
     DoTask --> NativeCloseout: ordinary or repository-native checkout
     DoTask --> NativeCloseout: authorized finalized task, including disposable artifacts
     NativeCloseout --> ReportCheckout: native lifecycle and current ownership checks
