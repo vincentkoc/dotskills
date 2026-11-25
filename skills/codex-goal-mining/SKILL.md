@@ -52,7 +52,11 @@ Recover structured Codex goal history and convert free-form runs into evidence-b
 2. Treat the data sources correctly.
    - Prefer `goals_1.sqlite` for objective, status, tokens, and Codex-recorded active goal time.
    - Join `state_5.sqlite` for thread timestamps and rollout paths.
-   - Use JSONL only as a fallback for older installations.
+   - The collector uses JSONL when its SQLite source is unavailable. A successful
+     SQLite report contains current goal rows, not a complete goal history;
+     replaced or cleared goals may be absent. For historical audits, follow the
+     coverage checks in [Goal Suite Patterns](references/goal-suite-patterns.md).
+     Do not describe collector output alone as complete history.
    - Wall-clock thread span includes idle and resume gaps; never describe it as active labor.
    - Goal database counters are lifetime snapshots. Only cursor deltas have an
      observation interval, and a reset is unknown rather than zero.
@@ -62,11 +66,18 @@ Recover structured Codex goal history and convert free-form runs into evidence-b
    - List reached and unreachable machines.
    - Give the date range, goal count, statuses, total active goal time, and median goal time.
    - Preserve exact transport blockers instead of silently shrinking the fleet.
+   - Separate machine coverage, retained-history coverage, and outcome evidence.
+     `coverage.complete` reports machine collection success, not historical
+     completeness. State uninspected sources, parse errors, missing records,
+     and uncertain identity explicitly.
 4. Mine patterns semantically.
    - Exact duplicate text is weak evidence because operators rephrase goals.
    - Cluster by intended test surface, matrix, exit criteria, and repeated operating contract.
    - Prioritize unfinished goals and recurring high-time campaigns.
    - Separate product beta suites from operational queues such as contributor PR sweeps.
+   - Treat status, tokens, and active time as recorded activity. Verify
+     effectiveness against the requested outcome and its evidence; a recorded
+     `complete` status is not independent proof of delivery.
 5. Produce reusable reruns.
    - Use `[suite:<name>] [baseline:<sha-or-date>] [matrix:<targets>] [exit:<criteria>]`.
    - Include a fixed matrix, evidence requirements, blocker rules, and definition of done.
