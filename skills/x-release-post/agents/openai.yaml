@@ -1,0 +1,10 @@
+interface:
+  display_name: "X Release Post"
+  short_description: "Draft an X release announcement from verified release notes."
+  icon_small: "./assets/icon.jpg"
+  icon_large: "./assets/icon.jpg"
+  brand_color: "#111827"
+  default_prompt: "Draft an X release post for the latest release of this project, check its length, and return the text for my approval."
+
+policy:
+  allow_implicit_invocation: true

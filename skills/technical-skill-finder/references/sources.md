@@ -4,7 +4,7 @@ Use this order unless user overrides:
 
 1. `~/.codex/history.jsonl`
 2. `~/.codex/archived_sessions/*.jsonl`
-3. `~/.codex/sessions/*.jsonl`
+3. `*.jsonl` files discovered recursively under `~/.codex/sessions/`, including `YYYY/MM/DD/rollout-*.jsonl`
 4. `~/.codex/log/*`
 5. Repository-local telemetry and instructions (`AGENTS.md`, existing skills)
 6. MCP-exposed resources (only when explicitly authorized)

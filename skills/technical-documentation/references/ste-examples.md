@@ -61,9 +61,9 @@ Before (34 words, marketing adjectives, semicolon):
 
 After:
 
-> A normal cache matches requests by exact text, so a small change in wording causes a cache miss. This cache compares the meaning of a new prompt against the prompts it already holds. It runs alongside your current stack and stores no data outside it.
+> This caching layer is designed to work with your existing stack without vendor lock-in. It uses semantic similarity to reduce cache misses in LLM workloads.
 
-Flavored mode kept the explanatory rhythm and did not force one fixed term per concept. It still cut the marketing adjectives, the semicolon, and the length.
+Flavored mode removed marketing phrases and the semicolon. It preserved the source's integration and vendor claims without adding a storage or privacy guarantee.
 
 ## Part 3: Docs-tree cases
 

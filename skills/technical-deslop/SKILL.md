@@ -21,7 +21,7 @@ Clean branch/staged diffs by removing AI-style slop and restoring repo-consisten
 
 ## Workflow
 
-1. Capture scope with `git diff --cached` and `git diff $(git merge-base origin/main HEAD)..HEAD`.
+1. Capture staged and branch scope as described in `references/playbook.md`.
 2. Focus only on changed hunks (or user-scoped files).
 3. Apply the cleanup sequence in `references/playbook.md`.
 4. Remove slop patterns: redundant comments, unnecessary defensive branches, non-idiomatic casts, and style drift.

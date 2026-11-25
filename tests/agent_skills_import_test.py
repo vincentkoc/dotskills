@@ -66,6 +66,295 @@ class AgentSkillsImportTests(unittest.TestCase):
         IMPORT.import_selected(self.consumer, 'fixture', 'https://example.invalid/skills.git',
                                'main', self.git('rev-parse', 'HEAD'), [self.skill], checkout=self.upstream, **kwargs)
 
+    def reference(self, text='reference one\n'):
+        path = self.upstream / 'docs/commands/triage.md'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        path.chmod(0o755)
+        self.commit('skill\n')
+        return path
+
+    def import_file_cli(self, *extra, check=True):
+        return self.cli('import', '--source', 'fixture', '--repo', str(self.upstream),
+                        '--file', 'docs/commands/triage.md', '--destination', 'commands/triage.md',
+                        *extra, check=check)
+
+    def import_file_direct(self, **kwargs):
+        IMPORT.import_selected(self.consumer, 'fixture', 'https://example.invalid/skills.git',
+                               'main', self.git('rev-parse', 'HEAD'),
+                               [self.upstream / 'docs/commands/triage.md'], checkout=self.upstream,
+                               file_destination='commands/triage.md', **kwargs)
+
+    def test_expected_commit_rejects_moved_ref_before_publication(self):
+        self.import_cli('--expected-commit', self.first)
+        before = (IMPORT.snapshot(self.catalog), IMPORT.snapshot(self.target))
+        self.commit('moved\n')
+        result = self.import_cli('--expected-commit', self.first, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('nothing published', result.stderr)
+        self.assertEqual((IMPORT.snapshot(self.catalog), IMPORT.snapshot(self.target)), before)
+        self.assertFalse((self.consumer / IMPORT.RECOVERY).exists())
+        result = self.import_cli('--expected-commit', 'short-id', check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('Cloning ', result.stdout)
+
+    def test_explicit_empty_or_missing_import_selectors_stop_before_clone(self):
+        self.reference()
+        self.import_cli()
+        recovery = self.consumer / IMPORT.RECOVERY
+        paths = (self.catalog, self.consumer / 'vendor', recovery)
+        before = tuple(IMPORT.snapshot(path) for path in paths)
+        for arguments in (('--expected-commit', ''),
+                          ('--file', '', '--destination', ''),
+                          ('--file', '', '--destination', 'commands/triage.md'),
+                          ('--file', 'docs/commands/triage.md', '--destination', ''),
+                          ('--expected-commit',), ('--file',), ('--destination',)):
+            with self.subTest(arguments=arguments):
+                result = self.cli('import', '--source', 'fixture', '--repo', str(self.upstream),
+                                  *arguments, check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('requires a non-empty value', result.stderr)
+                self.assertNotIn('Cloning', result.stdout + result.stderr)
+                self.assertEqual(tuple(IMPORT.snapshot(path) for path in paths), before)
+
+    def test_file_reimport_preserves_catalog_identity_annotations_and_unselected_content(self):
+        reference = self.reference()
+        self.import_cli()
+        unselected = IMPORT.snapshot(self.target)
+        self.import_file_cli('--expected-commit', self.git('rev-parse', 'HEAD'))
+        target = self.consumer / 'vendor/fixture/commands/triage.md'
+        self.assertEqual(target.read_bytes(), reference.read_bytes())
+        self.assertEqual(target.stat().st_mode & 0o777, 0o755)
+        annotated = self.catalog.read_text().replace('name: "fixture/commands/triage.md"',
+                                                    'name: "My command" # keep name')
+        annotated = annotated.replace('  - id: fixture-triage\n', '  - id: fixture-triage # stable id\n')
+        annotated += '    notes: "Keep annotation"\n'
+        self.catalog.write_text(annotated)
+        reference.write_bytes(b'updated reference\x00\n')
+        second = self.commit('updated skill\n')
+        self.import_file_cli('--expected-commit', second)
+        self.assertEqual(target.read_bytes(), reference.read_bytes())
+        self.assertEqual(IMPORT.snapshot(self.target), unselected)
+        catalog = self.catalog.read_text()
+        self.assertIn('name: "My command" # keep name', catalog)
+        self.assertIn('  - id: fixture-triage # stable id', catalog)
+        self.assertIn('    notes: "Keep annotation"', catalog)
+        self.assertIn(f'commit: "{second}"', catalog)
+        self.assertEqual(catalog.count('fixture-triage'), 1)
+        self.assertNotIn('format:', catalog.split('  - id: fixture-triage')[1])
+        self.assertFalse((self.consumer / IMPORT.RECOVERY).exists())
+
+    def test_file_dry_run_and_invalid_paths_do_not_publish(self):
+        self.reference()
+        before = IMPORT.snapshot(self.catalog)
+        self.import_file_cli('--dry-run')
+        for option, value in (('--file', '../escape.md'), ('--file', '/absolute.md'),
+                              ('--file', '.git/config'), ('--file', '.GIT/config'),
+                              ('--destination', '../escape.md'),
+                              ('--destination', '/absolute.md'), ('--destination', 'nested/.git/config'),
+                              ('--destination', 'nested/.GiT/config'),
+                              ('--destination', '.'), ('--skills', 'demo')):
+            with self.subTest(option=option, value=value):
+                self.assertNotEqual(self.import_file_cli(option, value, check=False).returncode, 0)
+        self.assertEqual(IMPORT.snapshot(self.catalog), before)
+        self.assertFalse((self.consumer / 'vendor').exists())
+        self.assertFalse((self.consumer / IMPORT.RECOVERY).exists())
+
+    def test_file_metadata_case_variants_are_rejected_before_resolution(self):
+        for spelling in ('.git', '.GIT', '.GiT'):
+            with self.subTest(spelling=spelling):
+                with self.assertRaisesRegex(IMPORT.sync.SyncError, 'invalid import file path'):
+                    IMPORT.import_selected(self.consumer, 'fixture', 'repo', 'main', self.first,
+                                           [self.upstream / spelling / 'config'], checkout=self.upstream,
+                                           file_destination='config')
+        self.assertFalse((self.consumer / 'vendor').exists())
+
+    def test_file_destination_cannot_alias_another_catalog_owner_on_case_insensitive_volume(self):
+        self.reference()
+        self.import_cli()
+        alias = self.target.with_name('DEMO')
+        if not alias.exists():
+            self.skipTest('fixture volume has case-sensitive names')
+        self.assertTrue(alias.samefile(self.target))
+        before = (IMPORT.snapshot(self.catalog), IMPORT.snapshot(self.target))
+        result = self.import_file_cli('--destination', 'DEMO/docs/triage.md', check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('another owner', result.stderr)
+        self.assertEqual((IMPORT.snapshot(self.catalog), IMPORT.snapshot(self.target)), before)
+        self.assertFalse((self.consumer / IMPORT.RECOVERY).exists())
+
+    def test_file_destination_rejects_another_content_owner_but_preserves_webpage_reference(self):
+        self.reference()
+        self.catalog.write_text(self.catalog.read_text() + (
+            '  - id: fixture-triage-reference\n'
+            '    path: vendor/fixture/commands/triage.md\n'
+            '    source: upstream\n    upstream:\n      type: webpage\n'
+            '      url: https://example.invalid/triage\n    notes: Keep reference\n'))
+        self.import_file_cli()
+        target = self.consumer / 'vendor/fixture/commands/triage.md'
+        self.assertIn('notes: Keep reference', self.catalog.read_text())
+        other = self.upstream / 'docs/commands/other.md'
+        other.write_text('different owner\n')
+        for catalog in (self.catalog.read_text(), self.catalog.read_text().replace(
+                '  - id: fixture-triage\n', '  - id: local-owner\n').replace(
+                '    source: upstream\n', '    source: local\n')):
+            with self.subTest(catalog=catalog):
+                self.catalog.write_text(catalog)
+                before = (IMPORT.snapshot(self.catalog), IMPORT.snapshot(target))
+                with self.assertRaisesRegex(IMPORT.sync.SyncError, 'another owner'):
+                    IMPORT.import_selected(self.consumer, 'fixture', 'repo', 'main', self.first,
+                                           [other], checkout=self.upstream,
+                                           file_destination='commands/triage.md')
+                self.assertEqual((IMPORT.snapshot(self.catalog), IMPORT.snapshot(target)), before)
+                self.assertFalse((self.consumer / IMPORT.RECOVERY).exists())
+
+    def test_file_sources_and_destinations_reject_symlinks_and_type_conflicts(self):
+        reference = self.reference()
+        original = reference.read_bytes()
+        reference.unlink()
+        reference.symlink_to(self.skill / 'SKILL.md')
+        with self.assertRaisesRegex(IMPORT.sync.SyncError, 'symlinks'):
+            self.import_file_direct()
+        reference.unlink()
+        reference.write_bytes(original)
+        alias = self.upstream / 'alias'
+        alias.symlink_to(reference.parent, target_is_directory=True)
+        with self.assertRaisesRegex(IMPORT.sync.SyncError, 'symlinks'):
+            IMPORT.import_selected(self.consumer, 'fixture', 'repo', 'main', self.first,
+                                   [alias / reference.name], checkout=self.upstream,
+                                   file_destination='commands/triage.md')
+        target = self.consumer / 'vendor/fixture/commands/triage.md'
+        target.parent.mkdir(parents=True)
+        target.mkdir()
+        with self.assertRaisesRegex(IMPORT.sync.SyncError, 'target must be regular'):
+            self.import_file_direct()
+        target.rmdir()
+        target.parent.rmdir()
+        target.parent.symlink_to(reference.parent, target_is_directory=True)
+        with self.assertRaisesRegex(IMPORT.sync.SyncError, 'parents must be real'):
+            self.import_file_direct()
+        self.assertEqual(reference.read_bytes(), original)
+        self.assertFalse((self.consumer / IMPORT.RECOVERY).exists())
+
+    def test_file_and_directory_catalog_ownership_cannot_overlap_in_either_import_order(self):
+        reference = self.reference()
+        for file_first in (False, True):
+            with self.subTest(file_first=file_first):
+                self.catalog.write_text('version: 1\nskills:\n')
+                if (self.consumer / 'vendor').exists():
+                    shutil.rmtree(self.consumer / 'vendor')
+                if file_first:
+                    self.import_file_cli('--destination', 'demo/docs/triage.md')
+                else:
+                    self.import_cli()
+                before = (IMPORT.snapshot(self.catalog), IMPORT.snapshot(self.consumer / 'vendor'))
+                with self.assertRaisesRegex(IMPORT.sync.SyncError, 'another owner'):
+                    if file_first:
+                        self.import_direct()
+                    else:
+                        IMPORT.import_selected(self.consumer, 'fixture', 'repo', 'main', self.first,
+                                               [reference], checkout=self.upstream,
+                                               file_destination='demo/docs/triage.md')
+                self.assertEqual((IMPORT.snapshot(self.catalog), IMPORT.snapshot(self.consumer / 'vendor')), before)
+                self.assertFalse((self.consumer / IMPORT.RECOVERY).exists())
+
+    def test_file_copy_and_catalog_failure_restore_exact_pair(self):
+        self.reference()
+        target = self.consumer / 'vendor/fixture/commands/triage.md'
+        for existing in (False, True):
+            with self.subTest(existing=existing):
+                if existing:
+                    self.import_file_cli()
+                    self.reference('replacement\n')
+                before = (IMPORT.snapshot(self.catalog), IMPORT.snapshot(target))
+                with mock.patch.object(IMPORT.shutil, 'copy2', side_effect=OSError('copy failed')):
+                    with self.assertRaisesRegex(OSError, 'copy failed'):
+                        self.import_file_direct()
+                original = IMPORT.sync.rename_noreplace
+
+                def fail_catalog(source, destination):
+                    if source.name == 'new-catalog':
+                        raise OSError('catalog publication failed')
+                    return original(source, destination)
+
+                with mock.patch.object(IMPORT.sync, 'rename_noreplace', side_effect=fail_catalog):
+                    with self.assertRaisesRegex(OSError, 'catalog publication failed'):
+                        self.import_file_direct()
+                self.assertEqual((IMPORT.snapshot(self.catalog), IMPORT.snapshot(target)), before)
+                self.assertFalse((self.consumer / IMPORT.RECOVERY).exists())
+                if not existing:
+                    self.assertFalse((self.consumer / 'vendor').exists())
+
+    def test_file_special_sources_and_targets_are_rejected(self):
+        reference = self.reference()
+        reference.unlink()
+        os.mkfifo(reference)
+        with self.assertRaisesRegex(IMPORT.sync.SyncError, 'regular file'):
+            self.import_file_direct()
+        reference.unlink()
+        reference.write_text('regular source\n')
+        target = self.consumer / 'vendor/fixture/commands/triage.md'
+        target.parent.mkdir(parents=True)
+        for kind in ('fifo', 'symlink'):
+            with self.subTest(kind=kind):
+                if kind == 'fifo':
+                    os.mkfifo(target)
+                else:
+                    target.symlink_to(reference)
+                before = target.lstat()
+                with self.assertRaisesRegex(IMPORT.sync.SyncError, 'unsupported import target'):
+                    self.import_file_direct()
+                self.assertEqual(target.lstat(), before)
+                target.unlink()
+        self.assertFalse((self.consumer / IMPORT.RECOVERY).exists())
+
+    def test_file_concurrent_edit_is_preserved_with_recovery(self):
+        self.reference()
+        self.import_file_cli()
+        target = self.consumer / 'vendor/fixture/commands/triage.md'
+        original_bytes = target.read_bytes()
+        self.reference('replacement\n')
+        original = IMPORT.sync.rename_noreplace
+
+        def late_edit(source, destination):
+            if source.name == 'new-catalog':
+                target.write_text('concurrent local edit\n')
+                raise OSError('catalog failure')
+            return original(source, destination)
+
+        with mock.patch.object(IMPORT.sync, 'rename_noreplace', side_effect=late_edit):
+            with self.assertRaisesRegex(IMPORT.sync.SyncError, 'recovery retained'):
+                self.import_file_direct()
+        self.assertEqual(target.read_text(), 'concurrent local edit\n')
+        self.assertEqual((self.consumer / IMPORT.RECOVERY / 'old-0').read_bytes(), original_bytes)
+        self.assertNotEqual(self.cli('list', check=False).returncode, 0)
+
+    def test_file_parent_race_preserves_both_owners_and_retains_recovery(self):
+        self.reference()
+        self.import_file_cli()
+        target = self.consumer / 'vendor/fixture/commands/triage.md'
+        original_bytes = target.read_bytes()
+        before_catalog = IMPORT.snapshot(self.catalog)
+        self.reference('replacement\n')
+        original = IMPORT.sync.rename_noreplace
+        moved = target.parent.with_name('moved-commands')
+
+        def move_parent(source, destination):
+            result = original(source, destination)
+            if source.name == 'new-0':
+                target.parent.rename(moved)
+                target.parent.mkdir()
+                target.write_text('another owner\n')
+            return result
+
+        with mock.patch.object(IMPORT.sync, 'rename_noreplace', side_effect=move_parent):
+            with self.assertRaisesRegex(IMPORT.sync.SyncError, 'recovery retained'):
+                self.import_file_direct()
+        self.assertEqual(target.read_text(), 'another owner\n')
+        self.assertEqual((moved / target.name).read_text(), 'replacement\n')
+        self.assertEqual((self.consumer / IMPORT.RECOVERY / 'old-0').read_bytes(), original_bytes)
+        self.assertEqual(IMPORT.snapshot(self.catalog), before_catalog)
+
     def test_reimport_moving_ref_updates_files_and_commit(self):
         self.import_cli()
         second = self.commit('two\n')

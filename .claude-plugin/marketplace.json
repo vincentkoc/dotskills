@@ -63,6 +63,12 @@
       "description": "Maintain `graincrawl`, the Go CLI that archives Granola notes, transcripts,"
     },
     {
+      "name": "openclaw-bun-upgrade",
+      "source": "./skills/openclaw-bun-upgrade",
+      "skills": "./",
+      "description": "Move an authorized Linux OpenClaw service to one verified Bun artifact while preserving"
+    },
+    {
       "name": "openclaw-github-dedupe",
       "source": "./skills/openclaw-github-dedupe",
       "skills": "./",
@@ -79,18 +85,6 @@
       "source": "./skills/operations-worktree",
       "skills": "./",
       "description": "Create and manage worktrees safely and consistently across projects while avoiding stale branch bases."
-    },
-    {
-      "name": "opik-integrations-auditor",
-      "source": "./skills/opik-integrations-auditor",
-      "skills": "./",
-      "description": "Audit, compare, and document Opik integrations across Python, TypeScript, and backend OTEL/API surfaces with a repeatable evidence-first workflow."
-    },
-    {
-      "name": "opik-optimizer",
-      "source": "./skills/opik-optimizer",
-      "skills": "./",
-      "description": "Design, run, and interpret Opik Optimizer workflows for prompts, tools, and model parameters with consistent dataset/metric wiring and reproducible evaluation."
     },
     {
       "name": "org-branch-cleanup",
@@ -145,6 +139,12 @@
       "source": "./skills/tmux-lane-orchestrator",
       "skills": "./",
       "description": "Act as the manager for one tmux worker lane. Keep visibility over the lane's panes, infer what each worker is doing from tmux and Codex logs, surface blockers, and give the operator short status summaries with concrete next actions."
+    },
+    {
+      "name": "x-release-post",
+      "source": "./skills/x-release-post",
+      "skills": "./",
+      "description": "Turn a shipped release into a short X post, with an optional install reply, that matches the format of Vincent Koc's tokenjuice launch posts. Every claim comes from the release itself."
     }
   ]
 }

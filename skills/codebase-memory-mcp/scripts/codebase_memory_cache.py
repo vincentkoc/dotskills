@@ -31,6 +31,8 @@ LSOF_TIMEOUT_MIN_SECONDS = 30
 LSOF_TIMEOUT_MAX_SECONDS = 900
 DELETE_BATCH_MAX_CANDIDATES = 8
 DELETE_BATCH_TIMEOUT_SECONDS = 600
+PROJECT_PAGE_SIZE = 100
+PROJECT_MAX_PAGES = 1000
 HOST_BLOCKING_REASONS = {
     "canonical_clone_not_full",
     "empty_root",
@@ -461,15 +463,76 @@ def cbm_binary(value: str | None) -> str:
     return candidate
 
 
-def list_projects(binary: str) -> list[dict[str, Any]]:
-    result = run([binary, "cli", "list_projects"])
+def project_page(binary: str, offset: int, *, include_stats: bool) -> dict[str, Any]:
+    arguments = json.dumps(
+        {"format": "json", "detail": "stats" if include_stats else "identity",
+         "include_details": include_stats,
+         "limit": PROJECT_PAGE_SIZE, "offset": offset},
+        separators=(",", ":"),
+    )
+    result = run([binary, "cli", "list_projects", arguments, "--json"])
     try:
         payload = json.loads(result.stdout)
+        if isinstance(payload, dict) and "content" in payload:
+            content = payload["content"]
+            if (payload.get("isError") or not isinstance(content, list)
+                    or len(content) != 1 or not isinstance(content[0], dict)
+                    or content[0].get("type") != "text"
+                    or not isinstance(content[0].get("text"), str)):
+                raise SafetyError("list_projects returned an invalid MCP result")
+            payload = json.loads(content[0]["text"])
     except json.JSONDecodeError as error:
         raise SafetyError(f"list_projects returned invalid JSON: {error}") from error
-    projects = payload.get("projects")
-    if not isinstance(projects, list):
+    if not isinstance(payload, dict) or not isinstance(payload.get("projects"), list):
         raise SafetyError("list_projects response has no projects array")
+    return payload
+
+
+def list_projects(binary: str, *, include_stats: bool = True) -> list[dict[str, Any]]:
+    projects: list[Any] = []
+    total: int | None = None
+    offset = 0
+    precise_offsets = False
+    for _ in range(PROJECT_MAX_PAGES):
+        page = project_page(binary, offset, include_stats=include_stats)
+        rows = page["projects"]
+        if not any(key in page for key in ("offset", "limit", "returned", "has_more", "next_offset")):
+            if offset or ("total" in page and page["total"] != len(rows)):
+                raise SafetyError("list_projects returned an incomplete legacy inventory")
+            projects.extend(rows)
+            break
+        page_total = page.get("total")
+        page_limit = page.get("limit")
+        if (type(page_total) is not int or page_total < 0
+                or type(page.get("offset")) is not int or page["offset"] != offset
+                or type(page_limit) is not int or not 1 <= page_limit <= PROJECT_PAGE_SIZE
+                or type(page.get("returned")) is not int or page["returned"] != len(rows)
+                or len(rows) > page_limit or offset + len(rows) > page_total
+                or type(page.get("has_more")) is not bool
+                or (total is not None and page_total != total)):
+            raise SafetyError("list_projects returned inconsistent pagination")
+        total = page_total
+        projects.extend(rows)
+        if not page["has_more"]:
+            if (page.get("next_offset") is not None or offset + page_limit < total
+                    or (precise_offsets and offset + len(rows) != total)):
+                raise SafetyError("list_projects returned an incomplete inventory")
+            if offset + len(rows) < total:
+                version = run([binary, "--version"], timeout=10).stdout.strip()
+                if version != "codebase-memory-mcp 0.10.8":
+                    raise SafetyError("list_projects returned an incomplete inventory")
+            break
+        # 0.10.8 pages filenames before filtering unreadable/ghost databases.
+        # Its empty pages still advance by limit; 0.12.1 supplies next_offset.
+        next_offset = page.get("next_offset", offset + page_limit)
+        if (type(next_offset) is not int or not offset < next_offset < total
+                or (precise_offsets and "next_offset" not in page)
+                or ("next_offset" in page and next_offset != offset + len(rows))):
+            raise SafetyError("list_projects returned a nonadvancing page")
+        precise_offsets = "next_offset" in page
+        offset = next_offset
+    else:
+        raise SafetyError("list_projects exceeded the inventory page limit")
     normalized: list[dict[str, Any]] = []
     names: set[str] = set()
     for project in projects:
@@ -484,23 +547,29 @@ def list_projects(binary: str) -> list[dict[str, Any]]:
             or "/" in name
             or "\0" in name
             or not isinstance(root_path, str)
-            or not isinstance(size_bytes, int)
-            or size_bytes < 0
+            or (include_stats and (type(size_bytes) is not int or size_bytes < 0))
         ):
             raise SafetyError(f"invalid project record: {project!r}")
         if name in names:
             raise SafetyError(f"duplicate project name: {name}")
         names.add(name)
-        normalized.append(
-            {
-                "name": name,
-                "root_path": root_path,
+        item = {"name": name, "root_path": root_path}
+        if include_stats:
+            item.update({
                 "size_bytes": size_bytes,
                 "nodes": project.get("nodes"),
                 "edges": project.get("edges"),
-            }
-        )
+            })
+        normalized.append(item)
     return sorted(normalized, key=lambda item: item["name"])
+
+
+def project_name(binary: str, root: str) -> str:
+    physical_root = os.path.realpath(root)
+    for project in list_projects(binary, include_stats=False):
+        if os.path.realpath(project["root_path"]) == physical_root:
+            return project["name"]
+    raise SafetyError(f"no indexed project for canonical repository: {root}")
 
 
 def project_snapshot(projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -2785,6 +2854,10 @@ def parser() -> argparse.ArgumentParser:
     resolve_index = subparsers.add_parser("resolve-index")
     resolve_index.add_argument("repo")
 
+    name = subparsers.add_parser("project-name")
+    name.add_argument("repo")
+    name.add_argument("--cbm-bin")
+
     audit_parser = subparsers.add_parser("audit")
     audit_parser.add_argument("--manifest", required=True)
     audit_parser.add_argument("--ephemeral-prefix", action="append", default=[])
@@ -2814,6 +2887,9 @@ def main() -> int:
             return 0
         if args.command == "resolve-index":
             print(json.dumps(resolve_index_repository(args.repo), sort_keys=True))
+            return 0
+        if args.command == "project-name":
+            print(project_name(cbm_binary(args.cbm_bin), args.repo))
             return 0
         if args.command == "audit":
             return audit(args)

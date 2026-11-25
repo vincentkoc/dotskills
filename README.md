@@ -57,11 +57,10 @@ second configuration generator competing with those owners.
 | `graincrawl` | Maintain and release the local-first Granola archive CLI. | `npx skills add vincentkoc/dotskills --skill graincrawl -y` |
 | `github-airplane-mode` | Switch an already-installed compatible local Git/GitHub download guard. | `npx skills add vincentkoc/dotskills --skill github-airplane-mode -y` |
 | `ghcrawl-cluster-operator` | Operate ghcrawl local sync, clustering, and cluster inspection from the CLI. | `npx skills add vincentkoc/dotskills --skill ghcrawl-cluster-operator -y` |
+| `openclaw-bun-upgrade` | Qualify and promote pinned Bun fork builds through the existing service owner. | `npx skills add vincentkoc/dotskills --skill openclaw-bun-upgrade -y` |
 | `openclaw-github-dedupe` | Triage GitHub issue/PR clusters across repositories, preserving contributor credit while selecting canonical fixes and safe closures. | `npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y` |
 | `openclaw-pr-batch-sweep` | Select and land bounded batches of low-risk OpenClaw contributor pull requests. | `npx skills add vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y` |
 | `org-branch-cleanup` | Audit and safely prune stale merged branches across a GitHub organization. | `npx skills add vincentkoc/dotskills --skill org-branch-cleanup -y` |
-| `opik-integrations-auditor` | Audit Opik integration coverage across SDK and OTEL/API surfaces. | `npx skills add vincentkoc/dotskills --skill opik-integrations-auditor -y` |
-| `opik-optimizer` | Optimize prompts, tools, agents, and parameters through Opik workflows. | `npx skills add vincentkoc/dotskills --skill opik-optimizer -y` |
 | `operations-worktree` | Create safe git worktrees from fresh remote defaults instead of stale local branches. | `npx skills add vincentkoc/dotskills --skill operations-worktree -y` |
 | `semantic-slicing` | Build local feature, threat, issue, and support maps for focused repo review. | `npx skills add vincentkoc/dotskills --skill semantic-slicing -y` |
 | `technical-deslop` | Ship clean diffs fast: remove AI noise and keep behavior unchanged. | `npx skills add vincentkoc/dotskills --skill technical-deslop -y` |
@@ -71,6 +70,7 @@ second configuration generator competing with those owners.
 | `technical-skill-finder` | Turn real agent pain into new skills: mine logs, rank wins, draft next steps. | `npx skills add vincentkoc/dotskills --skill technical-skill-finder -y` |
 | `tmux-agent-lane-orchestrator` | Monitor tmux coding-agent lanes and produce evidence-backed manager summaries. | `npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y` |
 | `tmux-lane-orchestrator` | Coordinate one tmux worker lane from its matching manager pane. | `npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y` |
+| `x-release-post` | Draft an X release announcement from verified release notes, with a length check. | `npx skills add vincentkoc/dotskills --skill x-release-post -y` |
 
 Local-only skills may live under ignored `private-skills/`, but must never be tracked in this public repository.
 
@@ -93,8 +93,7 @@ npx skills add vincentkoc/dotskills --skill technical-skill-finder -y
 npx skills add vincentkoc/dotskills --skill openclaw-github-dedupe -y
 npx skills add vincentkoc/dotskills --skill openclaw-pr-batch-sweep -y
 npx skills add vincentkoc/dotskills --skill org-branch-cleanup -y
-npx skills add vincentkoc/dotskills --skill opik-integrations-auditor -y
-npx skills add vincentkoc/dotskills --skill opik-optimizer -y
+npx skills add vincentkoc/dotskills --skill openclaw-bun-upgrade -y
 npx skills add vincentkoc/dotskills --skill operations-worktree -y
 npx skills add vincentkoc/dotskills --skill crawlkit -y
 npx skills add vincentkoc/dotskills --skill graincrawl -y
@@ -102,6 +101,7 @@ npx skills add vincentkoc/dotskills --skill github-airplane-mode -y
 npx skills add vincentkoc/dotskills --skill semantic-slicing -y
 npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y
 npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y
+npx skills add vincentkoc/dotskills --skill x-release-post -y
 ```
 
 List available public skills:
@@ -128,6 +128,42 @@ adopted when all content and modes match the current source. Different copies,
 extra local files, and foreign links require reconciliation before sync. Failed
 publication never overwrites an intervening destination; the error names any
 retained recovery directory that needs review before retrying.
+
+### Move one managed skill to a new source
+
+Ordinary sync never infers a source change from a skill name. After verifying
+both sources' ownership and revisions, transition one unchanged managed copy:
+
+```bash
+python3 scripts/managed_sync.py install-directory \
+  --source /absolute/new-source/skill \
+  --previous-source /absolute/old-source/skill \
+  --destination /absolute/installed/skill --mode copy
+```
+
+The old source must still exist and match the installed marker's binding.
+The installed content and modes must still match its recorded digest. Unmarked
+copies, symlinks, missing destinations, local edits, extra files, and wrong old
+bindings are refused. This operation copies the complete new skill, including
+relative resources, and publishes its new source binding using the same staging,
+no-replace, and recovery checks as ordinary sync. It does not alter either source
+or sibling skills. No bulk-sync option, marker reset, or trust decision is implied.
+
+On success, the command reports the retained `.agent-skills-stage-*` directory
+on stderr. Its `previous/` directory holds the old installed copy and marker.
+An open file descriptor can still write to that old copy after final validation;
+another digest check cannot make deletion safe. Only explicit source transitions
+retain successful recovery this way; ordinary sync cleanup is unchanged. Inspect
+and reconcile the retained copy through the existing recovery owner, after old
+writers have finished. Success does not authorize deleting that recovery.
+
+Record the old and new source revisions in the existing task/change record before
+running it. Keep immutable release sources intact; do not edit or repin a whole
+release to update one skill. After success, use the new source for ordinary sync;
+replaying the old binding is refused. A failed publication may also retain recovery
+as described above: inspect that recovery before any retry, never remove markers
+to force adoption. Source trust or release-ownership changes still require their
+own authorization; this explicit operation is not a bypass.
 
 ## Repository layout
 

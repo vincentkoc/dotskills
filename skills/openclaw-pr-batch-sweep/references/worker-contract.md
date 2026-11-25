@@ -64,8 +64,9 @@ Requirements:
 - Repair the existing contributor branch when allowed and clean.
 - Keep unrelated user changes intact.
 - Add focused regression proof; avoid broad suites locally.
-- Never execute contributor-controlled code on the maintainer host. Run tests, builds, package-manager commands, scripts, E2E, Docker, and live checks for a contributor head only in Testbox/Crabbox.
-- Local execution is allowed only after the coordinator has reviewed and reconstructed a trusted maintainer-owned patch that excludes contributor-controlled setup and hooks; remote proof remains the default.
+- Follow the trusted repository's source-trust and testing policy for all contributor-head execution.
+- Untrusted source requires secretless fork CI or sanitized direct AWS. Never run it locally or on credential-hydrated Testbox.
+- Explicit maintainer approval may authorize trusted execution under that policy. A remote provider name alone does not establish isolation.
 - Run fresh autoreview after the final diff.
 - When the coordinator delegates editable-fork synchronization, keep it inside OpenClaw's native PR wrapper. If GraphQL exceeds its payload limit after a rebase, use the wrapper's lease-checked git mode only with explicit coordinator delegation.
 - Do not comment, push, close, or merge unless the coordinator explicitly delegates that mutation.
@@ -97,10 +98,15 @@ GitHub mutations performed:
 - On `EMFILE`, `Too many open files`, or equivalent process-launch failure, stop spawning workers and parallel shells immediately. Let retained lanes finish, then continue with one coordinator shell call at a time.
 - Keep qualification read-only.
 - Serialize comments, branch pushes, closes, and merges.
-- For terminal current-task PR closeout, follow `$operations-worktree` and the repository-native lifecycle. `gwt finish` applies only to opted-in finish-managed jobs and records actual local sign-off; existing cleanup authorization and all eligibility checks still apply, with no age floor after owner release.
-- Retain blocked or carried worktrees and stack, proof, handoff, or recovery dependencies. An unqualified holder backend or incomplete proof retains the tree; never force removal, clear locks, or remove another session’s checkout.
+- For terminal current-task PR closeout, follow the applicable `$operations-worktree` or repository-native lifecycle.
+  Let that skill and the installed native helper own completion/release semantics.
+  Supported manual finalized closeout uses its own native guards, not the automatic backend's qualification.
+- Retention needs a named unfinished consumer, requirement, or native blocker, with a responsible owner and release condition.
+  Preserve active stack, handoff, proof-consumer, and recovery dependencies. Routine finalized proof needs no archive.
+  Unknown holders or incomplete removal intents block the applicable route.
+  Never force removal, clear locks, or remove another session's checkout.
 - Report each task checkout as `retained`, `blocked`, or verified `removed`, with its exact path, branch/HEAD, owner, reason, and next action.
 - For editable-fork sync, use `${OPENCLAW_ROOT}/scripts/pr prepare-sync-head`. A GraphQL payload-limit fallback may set `OPENCLAW_PR_PUSH_MODE=git OPENCLAW_ALLOW_UNSIGNED_GIT_PUSH=1`; never replace the wrapper with a raw push.
-- When a Testbox starts from `main`, reconstruct the exact contributor head with `pull/<PR>/head` before gates and overlay only reviewed maintainer repair files. Never fill sparse omissions from a newer `main` tree onto the contributor head.
+- For an approved trusted Testbox route starting from `main`, reconstruct the exact contributor head with `pull/<PR>/head` before gates and overlay only reviewed maintainer repair files. Never fill sparse omissions from a newer `main` tree onto the contributor head.
 - Recheck live state immediately before every mutation.
 - Do not merge a result based only on a worker summary; inspect the final diff and proof.

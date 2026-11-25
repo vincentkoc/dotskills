@@ -7,6 +7,11 @@
       "ssh_target": "desktop-ssh-alias",
       "python": "python3"
     },
+    "server": {
+      "transport": "fleet-credentials",
+      "ssh_target": "server-registered-target",
+      "python": "python3"
+    },
     "windows": {
       "ssh_target": "windows-ssh-alias",
       "python": "py -3",

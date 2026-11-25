@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Report the X weighted length of each post in a draft; exit 1 when one is too long."""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+import unicodedata
+
+LIMIT = 280
+URL_WEIGHT = 23
+URL_RE = re.compile(r"https?://\S+")
+# twitter-text v3 counts these code point ranges as 1; everything else counts as 2.
+LIGHT_RANGES = ((0x0000, 0x10FF), (0x2000, 0x200D), (0x2010, 0x201F), (0x2032, 0x2037))
+# Joiners, variation selectors, skin tones, and tag characters belong to the emoji before them.
+JOINED_RANGES = ((0xFE00, 0xFE0F), (0x1F3FB, 0x1F3FF), (0xE0020, 0xE007F))
+ZWJ = 0x200D
+
+
+def in_ranges(code: int, ranges: tuple[tuple[int, int], ...]) -> int:
+    return any(low <= code <= high for low, high in ranges)
+
+
+def text_weight(text: str) -> int:
+    weight = 0
+    after_zwj = False
+    for char in text:
+        code = ord(char)
+        if code == ZWJ:
+            after_zwj = True
+            continue
+        if after_zwj or in_ranges(code, JOINED_RANGES):
+            after_zwj = False
+            continue
+        weight += 1 if in_ranges(code, LIGHT_RANGES) else 2
+    return weight
+
+
+def post_weight(post: str) -> int:
+    post = unicodedata.normalize("NFC", post)
+    urls = URL_RE.findall(post)
+    return text_weight(URL_RE.sub("", post)) + URL_WEIGHT * len(urls)
+
+
+def split_posts(draft: str) -> list[str]:
+    posts = [part.strip("\n") for part in re.split(r"^---[ \t]*$", draft, flags=re.M)]
+    return [post for post in posts if post.strip()]
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("file", nargs="?", help="draft file; reads stdin when omitted")
+    parser.add_argument("--limit", type=int, default=LIMIT, help="per-post limit (default 280)")
+    args = parser.parse_args(argv)
+
+    draft = open(args.file, encoding="utf-8").read() if args.file else sys.stdin.read()
+    posts = split_posts(draft)
+    if not posts:
+        print("no post text found", file=sys.stderr)
+        return 2
+
+    over = 0
+    for index, post in enumerate(posts, start=1):
+        weight = post_weight(post)
+        status = "ok" if weight <= args.limit else "OVER"
+        over += weight > args.limit
+        print(f"post {index}: {weight}/{args.limit} {status}")
+    return 1 if over else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

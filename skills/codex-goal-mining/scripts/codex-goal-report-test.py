@@ -2,7 +2,9 @@
 import importlib.util
 import json
 import pathlib
+import shutil
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -252,6 +254,357 @@ class CodexGoalReportTest(unittest.TestCase):
         self.assertIn("**2 runs** — retest beta", output)
         self.assertIn("**offline**: connection timed out", output)
         self.assertIn("Lifetime goal-time snapshots: 2m", output)
+
+
+class JsonlFallbackTest(unittest.TestCase):
+    def collect(self, lines, use_rg, **kwargs):
+        rg = shutil.which("rg") if use_rg else None
+        if use_rg and rg is None:
+            self.skipTest("rg is required for the discovery regression")
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            session = root / "nested" / "session.jsonl"
+            session.parent.mkdir()
+            session.write_text("\n".join(lines) + "\n")
+            write_session(root / "unrelated.jsonl", [
+                {"timestamp": "2026-06-01T00:00:00Z", "type": "session_meta", "payload": {}},
+            ])
+            with mock.patch.object(MODULE.shutil, "which", return_value=rg), \
+                    mock.patch.object(MODULE.subprocess, "run", wraps=subprocess.run) as search:
+                report = MODULE.collect_local_goals("fixture", root, **kwargs)
+            if use_rg:
+                search.assert_called_once()
+                self.assertEqual(report["files_scanned"], 1)
+            else:
+                search.assert_not_called()
+                self.assertEqual(report["files_scanned"], 2)
+        return report
+
+    def test_json_whitespace_key_order_and_native_ordinal(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        reordered = {
+            "payload": dict(reversed(list(event["payload"].items()))),
+            "type": event["type"],
+            "timestamp": event["timestamp"],
+        }
+        # Codex's paginated rollout writer emits ordinal before the flattened event.
+        ordinal = {"timestamp": event["timestamp"], "ordinal": 7,
+                   "type": event["type"], "payload": event["payload"]}
+        compact = json.dumps(event, separators=(",", ":"))
+        variants = {
+            "compact": compact,
+            "spaced": json.dumps(event),
+            "reordered": json.dumps(reordered, separators=(",", ":")),
+            "leading-whitespace": " \t" + compact,
+            "native-ordinal": json.dumps(ordinal, separators=(",", ":")),
+        }
+        for name, line in variants.items():
+            for use_rg in (True, False):
+                with self.subTest(format=name, use_rg=use_rg):
+                    report = self.collect([line], use_rg)
+                    self.assertEqual(report["parse_errors"], 0)
+                    self.assertEqual(len(report["goals"]), 1)
+                    goal = report["goals"][0]
+                    self.assertEqual(goal["thread_id"], "thread-1")
+                    self.assertEqual(goal["objective"], "Synthetic goal")
+                    self.assertEqual(goal["tokens_used"], 7)
+                    self.assertEqual(goal["goal_time_seconds"], 3)
+                    self.assertEqual(goal["session_started_at"], "2026-06-01T00:01:00Z")
+                    self.assertEqual(goal["session_ended_at"], "2026-06-01T00:01:00Z")
+
+    def test_mixed_format_session_boundaries(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        lines = [
+            json.dumps({"type": "session_meta", "payload": {}, "timestamp": "2026-06-01T00:00:00Z"}),
+            json.dumps(event, separators=(",", ":")),
+            json.dumps({"timestamp": "2026-06-01T00:10:00Z", "type": "event_msg",
+                        "payload": {"type": "done"}}),
+        ]
+        for use_rg in (True, False):
+            with self.subTest(use_rg=use_rg):
+                goal = self.collect(lines, use_rg)["goals"][0]
+                self.assertEqual(goal["session_started_at"], "2026-06-01T00:00:00Z")
+                self.assertEqual(goal["session_ended_at"], "2026-06-01T00:10:00Z")
+                self.assertEqual(goal["session_span_seconds"], 600)
+
+    def test_only_structural_goal_events_count(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        nested_marker = {"type": "event_msg", "payload": {"type": "thread_goal_updated"}}
+        wrong_envelope = {**event, "type": "response_item", "metadata": nested_marker}
+        wrong_payload_type = {**event, "payload": {**event["payload"], "type": "user_message"},
+                              "metadata": nested_marker}
+        text_only = {"timestamp": event["timestamp"], "type": "event_msg",
+                     "payload": {"type": "user_message", "message": json.dumps(event)}}
+        lines = [json.dumps(value, separators=(",", ":"))
+                 for value in (wrong_envelope, wrong_payload_type, text_only)]
+        for use_rg in (True, False):
+            with self.subTest(use_rg=use_rg):
+                report = self.collect(lines, use_rg)
+                self.assertEqual(report["goals"], [])
+                self.assertEqual(report["parse_errors"], 0)
+
+    def test_malformed_lines_are_counted_and_valid_later_goal_survives(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        lines = [
+            "", " \t",
+            "{broken JSON",
+            json.dumps(["thread_goal_updated"]),
+            "null",
+            json.dumps({**event, "payload": []}),
+            json.dumps({**event, "payload": {**event["payload"], "goal": []}}),
+            json.dumps(event),
+        ]
+        for use_rg in (True, False):
+            with self.subTest(use_rg=use_rg):
+                report = self.collect(lines, use_rg)
+                self.assertEqual(report["parse_errors"], 1)
+                self.assertEqual(len(report["goals"]), 1)
+                self.assertEqual(report["goals"][0]["objective"], "Synthetic goal")
+
+    def test_search_error_falls_back_to_jsonl_discovery(self):
+        event = goal_event("2026-06-01T00:01:00Z", "Synthetic goal", "active", 3, 7, 1780272060)
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "session.jsonl").write_text(json.dumps(event) + "\n")
+            with mock.patch.object(MODULE.shutil, "which", return_value="rg"), \
+                    mock.patch.object(MODULE.subprocess, "run",
+                                      return_value=subprocess.CompletedProcess([], 2, "", "search failed")):
+                report = MODULE.collect_local_goals("fixture", root)
+        self.assertEqual(report["files_scanned"], 1)
+        self.assertEqual(len(report["goals"]), 1)
+
+    def test_sqlite_result_short_circuits_jsonl(self):
+        expected = {"machine": "fixture", "storage": "sqlite", "goals": []}
+        with mock.patch.object(MODULE, "collect_sqlite_goals", return_value=expected), \
+                mock.patch.object(MODULE, "candidate_goal_files") as discover:
+            report = MODULE.collect_local_goals("fixture", pathlib.Path("/fixture/sessions"))
+        self.assertIs(report, expected)
+        discover.assert_not_called()
+
+
+class TransportTest(unittest.TestCase):
+    def setUp(self):
+        self.helper = "/fixture/bin/fleet-credentials"
+        self.which = mock.patch.object(MODULE.shutil, "which", return_value=self.helper).start()
+        self.addCleanup(mock.patch.stopall)
+        mock.patch.object(MODULE, "UNREAPED_HELPERS", []).start()
+
+    def reply(self, registered=False):
+        return subprocess.CompletedProcess([], 0, json.dumps({"version": 1, "registered": registered}).encode(), b"")
+
+    def payload(self, machine="desktop"):
+        return json.dumps({"machine": machine, "goals": []}).encode()
+
+    def collect(self, **kwargs):
+        return MODULE.collect_remote(b"fixture script", "desktop", "desktop-alias", None, None, False, 8, **kwargs)
+
+    def child(self, status=0, data=None):
+        child = mock.Mock(pid=12345, returncode=status)
+        child.communicate.return_value = (self.payload() if data is None else data, b"private diagnostic")
+        return child
+
+    def test_registered_legacy_ssh_uses_helper_once_and_preserves_argv(self):
+        child = self.child()
+        with mock.patch.object(MODULE.subprocess, "run", return_value=self.reply(True)) as run, \
+                mock.patch.object(MODULE.subprocess, "Popen", return_value=child) as spawn:
+            result = self.collect(interpreter="'/fixture/Python Runtime/python3' -I")
+        self.assertEqual(result["machine"], "desktop")
+        run.assert_called_once_with([self.helper, "ssh-target", "desktop-alias"],
+                                    stdin=subprocess.DEVNULL, capture_output=True, timeout=5)
+        self.assertEqual(spawn.call_args.args[0], [self.helper, "ssh", "desktop-alias", "--",
+                         "/fixture/Python Runtime/python3", "-I", "-", "--collect-local", "--machine-name", "desktop", "--json"])
+        child.communicate.assert_called_once_with(input=b"fixture script", timeout=180)
+
+    def test_registered_refusal_and_bad_payload_never_fall_back(self):
+        for child in (self.child(9), self.child(data=b"not JSON"), self.child(data=b"[]"),
+                      self.child(data=b'{"machine":"other","goals":[]}')):
+            with self.subTest(child=child), \
+                    mock.patch.object(MODULE.subprocess, "run", return_value=self.reply(True)) as run, \
+                    mock.patch.object(MODULE.subprocess, "Popen", return_value=child) as spawn:
+                result = self.collect()
+            self.assertIn("error", result)
+            self.assertNotIn("private diagnostic", json.dumps(result))
+            self.assertEqual(run.call_count, 1)
+            self.assertEqual(spawn.call_count, 1)
+
+    def test_unknown_registration_never_starts_any_transport(self):
+        invalid = [
+            subprocess.CompletedProcess([], 2, b"", b"unsupported command"),
+            subprocess.CompletedProcess([], 0, b'{"version":1,"registered":false}', b"private warning"),
+            subprocess.CompletedProcess([], 0, b"x" * 1025, b""),
+        ]
+        for raw in (b"[]", b"{}", b'{"version":true,"registered":false}',
+                    b'{"version":2,"registered":false}', b'{"version":1,"registered":0}',
+                    b'{"version":1,"registered":false,"extra":0}',
+                    b'{"version":1,"registered":true,"registered":false}', b"\xff"):
+            invalid.append(subprocess.CompletedProcess([], 0, raw, b""))
+        for reply in invalid:
+            with self.subTest(reply=reply), mock.patch.object(MODULE.subprocess, "run", return_value=reply) as run, \
+                    mock.patch.object(MODULE.subprocess, "Popen") as spawn:
+                result = self.collect()
+                self.assertIn("route_lookup", result["error"])
+                self.assertNotIn("private warning", json.dumps(result))
+                run.assert_called_once()
+                spawn.assert_not_called()
+        self.which.return_value = None
+        with mock.patch.object(MODULE.subprocess, "run") as run:
+            self.assertEqual(self.collect()["error"], "route_lookup_unavailable")
+            run.assert_not_called()
+
+    def test_lookup_timeout_cancel_and_os_error_never_connect(self):
+        for error in (subprocess.TimeoutExpired("query", 5), KeyboardInterrupt(), FileNotFoundError()):
+            with self.subTest(error=error), mock.patch.object(MODULE.subprocess, "run", side_effect=error) as run, \
+                    mock.patch.object(MODULE.subprocess, "Popen") as spawn:
+                result = self.collect()
+                self.assertIn("route_lookup", result["error"])
+                self.assertEqual(result["stop_fleet"], not isinstance(error, OSError))
+                run.assert_called_once()
+                spawn.assert_not_called()
+
+    def test_registration_reply_byte_boundary(self):
+        raw = self.reply(True).stdout
+        for size in (1024, 1025):
+            reply = subprocess.CompletedProcess([], 0, raw.ljust(size), b"")
+            with self.subTest(size=size), mock.patch.object(MODULE.subprocess, "run", return_value=reply), \
+                    mock.patch.object(MODULE.subprocess, "Popen", return_value=self.child()) as spawn:
+                result = self.collect()
+            if size == 1024:
+                self.assertNotIn("error", result)
+                spawn.assert_called_once()
+            else:
+                self.assertEqual(result["error"], "route_lookup_failed")
+                spawn.assert_not_called()
+
+    def test_unregistered_native_rechecks_before_each_interpreter(self):
+        replies = [self.reply(), subprocess.CompletedProcess([], 127, b"", b"missing interpreter"),
+                   self.reply(), subprocess.CompletedProcess([], 0, self.payload(), b"")]
+        with mock.patch.object(MODULE.subprocess, "run", side_effect=replies) as run, \
+                mock.patch.object(MODULE.subprocess, "Popen") as spawn:
+            self.assertEqual(self.collect()["machine"], "desktop")
+        self.assertEqual([call.args[0][0] for call in run.call_args_list], [self.helper, "ssh", self.helper, "ssh"])
+        self.assertIn("python3 -", run.call_args_list[1].args[0][-1])
+        self.assertIn("python -", run.call_args_list[3].args[0][-1])
+        spawn.assert_not_called()
+
+    def test_registration_change_switches_to_helper_without_further_native_attempt(self):
+        replies = [self.reply(), subprocess.CompletedProcess([], 127, b"", b"missing interpreter"), self.reply(True)]
+        with mock.patch.object(MODULE.subprocess, "run", side_effect=replies) as run, \
+                mock.patch.object(MODULE.subprocess, "Popen", return_value=self.child()) as spawn:
+            self.collect()
+        self.assertEqual([call.args[0][0] for call in run.call_args_list], [self.helper, "ssh", self.helper])
+        self.assertEqual(spawn.call_args.args[0][4], "python3")
+
+    def test_recheck_failure_stops_before_native_retry(self):
+        replies = [self.reply(), subprocess.CompletedProcess([], 127, b"", b"missing interpreter"),
+                   subprocess.CompletedProcess([], 1, b"", b"private refusal")]
+        with mock.patch.object(MODULE.subprocess, "run", side_effect=replies) as run:
+            self.assertEqual(self.collect()["error"], "route_lookup_failed")
+        self.assertEqual(run.call_count, 3)
+
+    def test_explicit_helper_ownership_survives_removed_or_renamed_registration(self):
+        for reply in (self.reply(False), subprocess.CompletedProcess([], 1, b"", b"private refusal"),
+                      subprocess.CompletedProcess([], 0, b"{}", b"")):
+            with self.subTest(reply=reply), mock.patch.object(MODULE.subprocess, "run", return_value=reply) as run, \
+                    mock.patch.object(MODULE.subprocess, "Popen") as spawn:
+                result = self.collect(transport="fleet-credentials")
+            self.assertIn("error", result)
+            run.assert_called_once()
+            spawn.assert_not_called()
+        self.which.return_value = None
+        with mock.patch.object(MODULE.subprocess, "run") as run:
+            self.assertEqual(self.collect(transport="fleet-credentials")["error"], "route_lookup_unavailable")
+            run.assert_not_called()
+
+    def test_policy_preserves_independent_required_helper_modes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy = pathlib.Path(directory) / "policy.json"
+            policy.write_text(json.dumps({"systems": {"desktop": {
+                "ssh_target": "native", "transport": "ssh", "wsl_target": "registered", "wsl_transport": "fleet-credentials",
+            }, "server": {"ssh_target": "server", "transport": "fleet-credentials"}}}))
+            targets = MODULE.fleet_targets(policy)
+        self.assertEqual([item["transport"] for item in targets], ["ssh", "fleet-credentials", "fleet-credentials"])
+
+    def test_helper_timeout_cancel_or_io_error_cleans_up_only_owned_helper(self):
+        for error in (subprocess.TimeoutExpired("helper", 180), KeyboardInterrupt(),
+                      BrokenPipeError("private diagnostic")):
+            for reaped in (True, False):
+                with self.subTest(error=error, reaped=reaped):
+                    child = self.child()
+                    child.poll.return_value = None
+                    child.communicate.side_effect = [error, (b"", b"") if reaped else subprocess.TimeoutExpired("helper", 10)]
+                    with mock.patch.object(MODULE.subprocess, "run", return_value=self.reply(True)), \
+                            mock.patch.object(MODULE.subprocess, "Popen", return_value=child):
+                        result = self.collect()
+                    child.terminate.assert_called_once()
+                    child.kill.assert_not_called()
+                    self.assertEqual(child.communicate.call_args.kwargs, {"timeout": 10})
+                    self.assertTrue(result["stop_fleet"])
+                    self.assertEqual(result["local_helper_custody"], "reaped" if reaped else "unknown")
+                    self.assertEqual(result["remote_collector_custody"], "unknown")
+                    self.assertNotIn("private diagnostic", json.dumps(result))
+                    if isinstance(error, OSError):
+                        self.assertEqual(result["error"], "registered_transport_io_error")
+
+    def test_invalid_fleet_routes_never_become_local_collection(self):
+        systems = {"missing": {"transport": "fleet-credentials"},
+                   "null": {"transport": "fleet-credentials", "ssh_target": None},
+                   "empty": {"transport": "fleet-credentials", "ssh_target": ""},
+                   "unsupported": {"transport": "unknown", "ssh_target": None},
+                   "local": {"ssh_target": None}}
+        with tempfile.TemporaryDirectory() as directory:
+            policy = pathlib.Path(directory) / "policy.json"
+            policy.write_text(json.dumps({"systems": systems}))
+            with mock.patch.object(MODULE, "collect_local_goals", return_value={"machine": "local", "goals": []}) as local, \
+                    mock.patch.object(MODULE, "collect_remote") as remote:
+                result = MODULE.collect_fleet(policy, None, None, None, False, 8)
+        local.assert_called_once()
+        self.assertEqual(local.call_args.args[0], "local")
+        remote.assert_not_called()
+        self.assertEqual(result["coverage"]["failed"], ["missing", "null", "empty", "unsupported"])
+        self.assertEqual(result["coverage"]["reached"], ["local"])
+        self.assertFalse(result["coverage"]["complete"])
+
+    def test_native_timeout_does_not_retry(self):
+        with mock.patch.object(MODULE.subprocess, "run", side_effect=[self.reply(), subprocess.TimeoutExpired("ssh", 28)]) as run:
+            self.assertTrue(self.collect()["stop_fleet"])
+        self.assertEqual(run.call_count, 2)
+
+    def test_timeout_stops_fleet_with_unattempted_coverage(self):
+        targets = [{"machine": name, "ssh_target": name, "transport": "ssh"} for name in ("first", "second")]
+        stopped = MODULE.remote_failure("first", "registered_transport_timeout", stop_fleet=True)
+        with mock.patch.object(MODULE, "fleet_targets", return_value=targets), \
+                mock.patch.object(MODULE, "collect_remote", return_value=stopped) as remote:
+            result = MODULE.collect_fleet(pathlib.Path("unused"), None, None, None, False, 8)
+        remote.assert_called_once()
+        self.assertEqual(result["coverage"]["failed"], ["first", "second"])
+        self.assertEqual(result["machines"][1]["error"], "not_attempted_after_transport_stop")
+
+    def test_windows_and_wsl_are_classified_independently(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy = pathlib.Path(directory) / "policy.json"
+            policy.write_text(json.dumps({"version": 2, "systems": {"desktop": {
+                "transport": "ssh", "ssh_target": "windows-alias", "python": "py -3",
+                "wsl_target": "wsl-alias", "wsl_python": "/usr/bin/python3",
+            }}}))
+            child = self.child(data=self.payload("desktop/wsl"))
+            replies = [self.reply(), subprocess.CompletedProcess([], 0, self.payload(), b""), self.reply(True)]
+            with mock.patch.object(MODULE.subprocess, "run", side_effect=replies) as run, \
+                    mock.patch.object(MODULE.subprocess, "Popen", return_value=child) as spawn:
+                result = MODULE.collect_fleet(policy, None, None, None, False, 8)
+        self.assertTrue(result["coverage"]["complete"])
+        self.assertEqual(run.call_args_list[0].args[0][-1], "windows-alias")
+        self.assertIn("py -3 -", run.call_args_list[1].args[0][-1])
+        self.assertEqual(run.call_args_list[2].args[0][-1], "wsl-alias")
+        self.assertEqual(spawn.call_args.args[0][2:5], ["wsl-alias", "--", "/usr/bin/python3"])
+
+    def test_local_only_never_queries_helper(self):
+        with mock.patch.object(sys, "argv", ["reporter", "--local", "--json"]), \
+                mock.patch.object(sys, "stdout"), \
+                mock.patch.object(MODULE, "collect_local_goals", return_value={"machine": "local", "goals": []}), \
+                mock.patch.object(MODULE.subprocess, "run") as run:
+            self.assertEqual(MODULE.main(), 0)
+        run.assert_not_called()
+        self.which.assert_not_called()
 
 
 if __name__ == "__main__":

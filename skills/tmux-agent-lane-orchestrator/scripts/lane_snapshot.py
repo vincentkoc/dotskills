@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import datetime as dt
 import json
 import os
@@ -88,50 +89,102 @@ def capture_pane(session: str, lane: int, pane: str, lines: int) -> str:
     return "\n".join(line.rstrip() for line in output.splitlines()).strip()
 
 
-def process_table() -> dict[int, tuple[int, str]]:
-    output = run_command(["ps", "-axo", "pid=,ppid=,command="])
-    processes: dict[int, tuple[int, str]] = {}
+def process_executable(pid: int) -> str:
+    try:
+        if sys.platform.startswith("linux"):
+            return os.readlink(f"/proc/{pid}/exe")
+        if sys.platform == "darwin":
+            # libproc.h / proc_info.h define this path-only API and 4096-byte
+            # maximum. Do not read process argv/environment through flat ps.
+            function = ctypes.CDLL("/usr/lib/libproc.dylib").proc_pidpath
+            function.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
+            function.restype = ctypes.c_int
+            buffer = ctypes.create_string_buffer(4096)
+            length = function(pid, buffer, len(buffer))
+            if 0 < length < len(buffer) and buffer.raw[length] == 0:
+                return os.fsdecode(buffer.raw[:length])
+    except (OSError, AttributeError):
+        pass
+    return ""
+
+
+def process_argv(pid: int) -> list[str] | None:
+    if not sys.platform.startswith("linux"):
+        return None
+    try:
+        with Path(f"/proc/{pid}/cmdline").open("rb") as handle:
+            data = handle.read(65_536)
+    except OSError:
+        return None
+    # A full buffer cannot prove that argv ended. Reject it instead of parsing
+    # a truncated argument list as a supported resume command.
+    if not data or len(data) == 65_536 or not data.endswith(b"\0"):
+        return None
+    return [os.fsdecode(value) for value in data[:-1].split(b"\0")]
+
+
+def process_table(root_pids: list[int]) -> dict[int, tuple[int, str, list[str] | None]]:
+    output = run_command(["ps", "-axo", "pid=,ppid="])
+    processes: dict[int, tuple[int, str, list[str] | None]] = {}
     for line in output.splitlines():
-        parts = line.strip().split(None, 2)
-        if len(parts) < 2:
+        parts = line.split()
+        if len(parts) != 2:
             continue
         try:
-            pid = int(parts[0])
-            ppid = int(parts[1])
+            pid, ppid = map(int, parts)
         except ValueError:
             continue
-        processes[pid] = (ppid, parts[2] if len(parts) == 3 else "")
+        processes[pid] = (ppid, "", None)
+    selected = {pid for root_pid in root_pids for pid in descendant_processes(root_pid, processes)}
+    for pid in selected:
+        executable = process_executable(pid)
+        argv = process_argv(pid) if Path(executable).name in {"codex", "codex.exe"} else None
+        processes[pid] = (processes[pid][0], executable, argv)
     return processes
 
 
-def descendant_processes(root_pid: int, processes: dict[int, tuple[int, str]]) -> list[tuple[int, str]]:
+def descendant_processes(
+    root_pid: int, processes: dict[int, tuple[int, str, list[str] | None]],
+) -> list[int]:
     children: dict[int, list[int]] = {}
-    for pid, (ppid, _command) in processes.items():
-        children.setdefault(ppid, []).append(pid)
+    for pid, info in processes.items():
+        children.setdefault(info[0], []).append(pid)
     pending = list(children.get(root_pid, []))
-    descendants: list[tuple[int, str]] = []
+    descendants: list[int] = []
     while pending:
         pid = pending.pop(0)
-        descendants.append((pid, processes.get(pid, (0, ""))[1]))
+        descendants.append(pid)
         pending.extend(children.get(pid, []))
     return descendants
 
 
-def thread_candidates(root_pid: int, processes: dict[int, tuple[int, str]]) -> list[dict[str, Any]]:
+def thread_candidates(
+    root_pid: int, processes: dict[int, tuple[int, str, list[str] | None]],
+) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
-    for pid, command in descendant_processes(root_pid, processes):
-        if "codex" not in command.lower():
+    for pid in codex_descendants(root_pid, processes):
+        argv = processes[pid][2]
+        if not argv or not argv[0]:
             continue
-        for thread_id in sorted({match.lower() for match in THREAD_ID_RE.findall(command)}):
-            candidates.append({"pid": pid, "thread_id": thread_id, "command": command})
+        args = argv[1:]
+        # Codex CLI/exec Resume SESSION_ID has different semantics from a fresh
+        # prompt, fork source, or --last prompt. Support only these exact forms.
+        thread_id = (
+            args[1] if len(args) == 2 and args[0] == "resume"
+            else args[2] if len(args) == 3 and args[:2] == ["exec", "resume"]
+            else ""
+        )
+        if THREAD_ID_RE.fullmatch(thread_id):
+            candidates.append({"pid": pid, "thread_id": thread_id.lower()})
     return candidates
 
 
-def codex_descendants(root_pid: int, processes: dict[int, tuple[int, str]]) -> list[tuple[int, str]]:
+def codex_descendants(
+    root_pid: int, processes: dict[int, tuple[int, str, list[str] | None]],
+) -> list[int]:
     return [
-        (pid, command)
-        for pid, command in descendant_processes(root_pid, processes)
-        if "codex" in command.lower()
+        pid for pid in descendant_processes(root_pid, processes)
+        if Path(processes[pid][1]).name in {"codex", "codex.exe"}
     ]
 
 
@@ -252,6 +305,8 @@ def read_log(
     path: Path,
     byte_limit: int,
     cursor_entry: dict[str, Any] | None,
+    *,
+    record_limit: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     try:
         stat = path.stat()
@@ -262,6 +317,14 @@ def read_log(
     same_file = previous.get("device") == stat.st_dev and previous.get("inode") == stat.st_ino
     previous_offset = int(previous.get("offset") or 0)
     incremental = same_file and 0 <= previous_offset <= stat.st_size
+    if byte_limit == 0:
+        return [], {
+            **previous,
+            "path": str(path),
+            "bytes_read": 0,
+            "mode": "budget-exhausted",
+            "truncated": True,
+        }
     if incremental:
         start = previous_offset
         requested = min(byte_limit, stat.st_size - start)
@@ -278,37 +341,38 @@ def read_log(
     except OSError as error:
         return [], {"path": str(path), "error": str(error), "bytes_read": 0, "truncated": False}
 
-    discarded_prefix = False
+    bytes_read = len(data)
+    discarding_record = (
+        bool(previous.get("discarding_record")) if incremental else start > 0
+    )
+    discarded_prefix = discarding_record and bool(data)
     parse_start = start
-    if mode == "tail" and start > 0 and data:
+    if discarding_record:
         newline = data.find(b"\n")
-        if newline < 0:
-            return [], {
-                "path": str(path),
-                "bytes_read": len(data),
-                "file_size": stat.st_size,
-                "mode": mode,
-                "truncated": True,
-                "partial_record": True,
-                "device": stat.st_dev,
-                "inode": stat.st_ino,
-                "offset": stat.st_size,
-            }
-        parse_start += newline + 1
-        data = data[newline + 1 :]
-        discarded_prefix = True
+        prefix_length = newline + 1 if newline >= 0 else len(data)
+        parse_start += prefix_length
+        data = data[prefix_length:]
+        discarding_record = newline < 0
 
     records, next_offset, partial = _json_records(data, parse_start, parse_start + len(data) == stat.st_size)
-    if mode == "unchanged":
-        next_offset = stat.st_size
-    truncated = discarded_prefix or start + requested < stat.st_size or partial
+    if record_limit is None:
+        record_limit = byte_limit
+    if partial and next_offset == parse_start and len(data) == record_limit:
+        # Only the configured cap proves a record cannot be retried intact; a
+        # smaller shared budget must leave it for the next poll. Skip oversized
+        # records through their newline so suffixes cannot become events.
+        next_offset += len(data)
+        discarding_record = True
+    partial = partial or discarding_record
+    truncated = discarded_prefix or start + bytes_read < stat.st_size or partial
     return records, {
         "path": str(path),
-        "bytes_read": requested,
+        "bytes_read": bytes_read,
         "file_size": stat.st_size,
         "mode": mode,
         "truncated": truncated,
         "partial_record": partial,
+        "discarding_record": discarding_record,
         "device": stat.st_dev,
         "inode": stat.st_ino,
         "offset": next_offset,
@@ -411,7 +475,7 @@ def project_activity(summary: dict[str, Any], show_content: bool) -> dict[str, A
 
 def resolve_pane_identity(
     pane: dict[str, str],
-    processes: dict[int, tuple[int, str]],
+    processes: dict[int, tuple[int, str, list[str] | None]],
     explicit_threads: dict[str, str],
     thread_rows: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
@@ -425,23 +489,25 @@ def resolve_pane_identity(
     if explicit:
         agents = codex_descendants(root_pid, processes) if root_pid else []
         matching = [candidate for candidate in candidates if candidate["thread_id"] == explicit]
-        agent_pids = sorted({pid for pid, _command in agents})
-        agent_pid = matching[0]["pid"] if len(matching) == 1 else agent_pids[0] if len(agent_pids) == 1 else None
+        agent_pids = sorted(agents)
+        agent_pid = agent_pids[0] if len(agent_pids) == 1 else None
         source = (
-            "explicit"
-            if agent_pid and (not candidates or len(matching) == 1)
-            else "conflict"
-            if candidates
-            else "agent-pid-ambiguous"
-            if agent_pids
-            else "agent-pid-unproven"
+            "agent-pid-unproven" if not agent_pids
+            else "agent-pid-ambiguous" if len(agent_pids) != 1
+            else "conflict" if candidates and len(matching) != 1
+            else "explicit"
         )
         thread_ids = [explicit]
     else:
         unique = sorted({candidate["thread_id"] for candidate in candidates})
-        matching = [candidate for candidate in candidates if len(unique) == 1]
-        agent_pid = matching[0]["pid"] if matching else None
-        source = "process-lineage" if len(unique) == 1 else "ambiguous" if unique else "unmatched"
+        agents = codex_descendants(root_pid, processes) if root_pid else []
+        agent_pid = agents[0] if len(agents) == 1 else None
+        source = (
+            "structured-resume" if len(unique) == 1 and len(agents) == 1
+            else "ambiguous" if unique or len(agents) > 1
+            else "thread-binding-required" if agents
+            else "unmatched"
+        )
         thread_ids = unique
     if source in {
         "conflict",
@@ -449,12 +515,17 @@ def resolve_pane_identity(
         "unmatched",
         "agent-pid-ambiguous",
         "agent-pid-unproven",
+        "thread-binding-required",
     }:
         return {
             "status": "unknown",
             "reason": source,
             "agent_pid": agent_pid,
             "thread_ids": thread_ids,
+            "next_action": (
+                f"Verify the pane/thread binding independently, then pass --thread {pane['pane']}=THREAD_ID"
+                if source == "thread-binding-required" else "Resolve the missing or conflicting process identity"
+            ),
         }
     thread_id = thread_ids[0]
     row = thread_rows.get(thread_id)
@@ -491,7 +562,7 @@ def build_snapshot(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, 
         raise RuntimeError(f"no panes found for {session}:L{lane}")
 
     explicit_threads = dict(args.thread or [])
-    processes = process_table()
+    processes = process_table([int(pane["pid"]) for pane in panes if pane["pid"].isdigit()])
     candidate_ids = set(explicit_threads.values())
     for pane in panes:
         try:
@@ -528,7 +599,10 @@ def build_snapshot(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, 
             path = Path(identity["rollout_path"])
             previous_entry = cursor["files"].get(str(path), {})
             byte_limit = min(args.log_bytes, remaining)
-            records, io = read_log(path, byte_limit, previous_entry if args.cursor_file else None)
+            records, io = read_log(
+                path, byte_limit, previous_entry if args.cursor_file else None,
+                record_limit=min(args.log_bytes, args.total_log_bytes),
+            )
             remaining -= io["bytes_read"]
             total_bytes += io["bytes_read"]
             summary = summarize_records(records, previous_entry.get("summary"))
@@ -588,6 +662,8 @@ def render_text(snapshot: dict[str, Any], show_content: bool) -> str:
             )
         else:
             lines.append(f"  identity_reason={identity['reason']}")
+            if identity.get("next_action"):
+                lines.append(f"  next: {identity['next_action']}")
         if pane["last"]:
             lines.append(f"  last: {pane['last']}")
     io = snapshot["io"]
@@ -614,7 +690,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         type=parse_assignment,
         metavar="PANE=THREAD_ID",
-        help="Declare exact pane/thread identity when the descendant command does not contain the thread id.",
+        help="Declare an independently verified pane/thread binding when structured resume identity is unavailable.",
     )
     parser.add_argument(
         "--cursor-file",

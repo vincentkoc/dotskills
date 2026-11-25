@@ -32,7 +32,8 @@ Find recurring pain points from local agent logs and convert them into actionabl
 1. Initialize source set
    - `~/.codex/history.jsonl`
    - `~/.codex/archived_sessions/*.jsonl`
-   - `~/.codex/sessions/*.jsonl` and `~/.codex/log/*` if present
+   - Recursively discover `*.jsonl` under `~/.codex/sessions/`, including dated `YYYY/MM/DD/rollout-*.jsonl` paths
+   - `~/.codex/log/*` if present
    - Repository-specific telemetry in `AGENTS.md`/local docs when available
    - `Cursor` / `Codex` agent logs detected under known dotfiles directories
 2. Normalize extraction signals

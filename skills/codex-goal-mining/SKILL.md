@@ -3,7 +3,6 @@ name: codex-goal-mining
 description: Mine structured Codex /goal history locally or across a configured machine fleet, measure active goal time and resumed thread spans, identify unfinished and recurring semantic runs, and turn them into stable copy-paste rerun suites. Use when the user asks to inspect goal history, summarize goal commands, find repeated goals, recover large beta campaigns, compare goal duration or token usage, or prepare reusable /goal prompts and privacy-scrubbed reports.
 license: MIT
 metadata:
-  workflow-exemption: "Ordered collection, coverage accounting, analysis, and reporting; no separate action-routing lifecycle."
   source: "https://github.com/vincentkoc/dotskills"
 ---
 
@@ -21,7 +20,7 @@ Recover structured Codex goal history and convert free-form runs into evidence-b
 
 ## Workflow
 1. Collect structured data with `scripts/codex-goal-report.py`.
-   - Fleet report: `scripts/codex-goal-report.py --policy ~/.config/codex-goal-mining/fleet-policy.json --json --output ~/.codex/reports/codex-fleet-goals.json`
+   - Fleet report: `scripts/codex-goal-report.py --policy ~/.config/codex-goal-mining/fleet-policy.json --json`
    - Local only: `scripts/codex-goal-report.py --local --json`
    - Recent window: add `--since YYYY-MM-DD`.
    - Exact activity window: add `--activity-overlap --since <ISO> --until <ISO>`.
@@ -33,11 +32,31 @@ Recover structured Codex goal history and convert free-form runs into evidence-b
      and returns nonzero instead of silently reporting success.
    - Use `--one-attempt` for a single configured/first interpreter attempt per
      host. Policy entries may declare `python` and `wsl_python`.
+   - Remote collection requires `fleet-credentials ssh-target TARGET`. Its
+     token-free reply selects the registered helper or an unregistered native
+     SSH alias. A missing helper, unsupported query, or invalid reply stops that
+     target; it never authorizes native SSH.
+   - Set `transport: "fleet-credentials"` for a helper-owned target, and
+     `wsl_transport` separately for a WSL target. Removing its registration then
+     remains an error. Omitted transport or `"ssh"` performs automatic lookup
+     before each native interpreter attempt; it does not remember past ownership.
+   - Registered targets use one helper invocation with the configured interpreter
+     or `python3`. Helper refusals never retry another interpreter or use raw SSH.
+     The helper needs its own enrolled context and Python 3.11+; the reporter
+     remains compatible with Python 3.9. Local-only collection needs no helper.
+   - A registered collection has a 180-second observation bound. On timeout,
+     cancellation or pipe I/O failure, signal only its owned helper with TERM and allow ten seconds
+     for cleanup. Stop the fleet pass, retain unresolved custody, and report
+     remaining targets as unattempted. Local reaping does not prove remote exit.
    - Start fleet configuration from `references/fleet-policy.example.json`; never commit a real private inventory.
 2. Treat the data sources correctly.
    - Prefer `goals_1.sqlite` for objective, status, tokens, and Codex-recorded active goal time.
    - Join `state_5.sqlite` for thread timestamps and rollout paths.
-   - Use JSONL only as a fallback for older installations.
+   - The collector uses JSONL when its SQLite source is unavailable. A successful
+     SQLite report contains current goal rows, not a complete goal history;
+     replaced or cleared goals may be absent. For historical audits, follow the
+     coverage checks in [Goal Suite Patterns](references/goal-suite-patterns.md).
+     Do not describe collector output alone as complete history.
    - Wall-clock thread span includes idle and resume gaps; never describe it as active labor.
    - Goal database counters are lifetime snapshots. Only cursor deltas have an
      observation interval, and a reset is unknown rather than zero.
@@ -47,11 +66,18 @@ Recover structured Codex goal history and convert free-form runs into evidence-b
    - List reached and unreachable machines.
    - Give the date range, goal count, statuses, total active goal time, and median goal time.
    - Preserve exact transport blockers instead of silently shrinking the fleet.
+   - Separate machine coverage, retained-history coverage, and outcome evidence.
+     `coverage.complete` reports machine collection success, not historical
+     completeness. State uninspected sources, parse errors, missing records,
+     and uncertain identity explicitly.
 4. Mine patterns semantically.
    - Exact duplicate text is weak evidence because operators rephrase goals.
    - Cluster by intended test surface, matrix, exit criteria, and repeated operating contract.
    - Prioritize unfinished goals and recurring high-time campaigns.
    - Separate product beta suites from operational queues such as contributor PR sweeps.
+   - Treat status, tokens, and active time as recorded activity. Verify
+     effectiveness against the requested outcome and its evidence; a recorded
+     `complete` status is not independent proof of delivery.
 5. Produce reusable reruns.
    - Use `[suite:<name>] [baseline:<sha-or-date>] [matrix:<targets>] [exit:<criteria>]`.
    - Include a fixed matrix, evidence requirements, blocker rules, and definition of done.
@@ -75,3 +101,25 @@ Recover structured Codex goal history and convert free-form runs into evidence-b
 - Ranked active, paused, blocked, and long-running goals.
 - Semantic campaign summary with timing and reachability caveats.
 - Stable copy-paste `/goal` suite prompts and rerun priority order.
+
+## Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Select
+    Select --> Local: local only
+    Select --> Lookup: remote target
+    Lookup --> Helper: registered
+    Lookup --> Native: unregistered and automatic mode
+    Lookup --> Blocked: unknown or required registration absent
+    Lookup --> StopFleet: timeout or cancellation
+    Helper --> Report: completed or refused
+    Helper --> StopFleet: timeout cancellation or I/O failure
+    Native --> Report: completed or terminal refusal
+    Native --> Lookup: interpreter failed and retry allowed
+    Native --> StopFleet: timeout or cancellation
+    Local --> Report
+    Blocked --> Report
+    StopFleet --> Report: include unattempted targets
+    Report --> [*]
+```
