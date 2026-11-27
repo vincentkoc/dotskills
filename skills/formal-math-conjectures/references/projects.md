@@ -17,7 +17,7 @@ and in the workflow step in `SKILL.md`.
 
 Lean 4 + Mathlib statement repository for open conjectures (literature, OEIS, Erdős problems, Millennium problems, and similar lists). Almost every problem is `sorry`; this is not a general proof repository.
 
-Useful contributions include new formalisations, fixes to misformalisations, tagging and references, and *short* proofs of solved variants or test values (for example OEIS-style `a(n)` checks). Proofs longer than about 25–50 lines should be hosted outside this repo and linked with the `formal_proof` attribute.
+Useful contributions include new formalisations, fixes to misformalisations, tagging and references, and *short* proofs of solved variants or test values (for example OEIS-style `a(n)` checks). Host proofs longer than about 25–50 lines externally. For a proof covering a research declaration, follow the project’s Palomar registry and `formal_proof` requirements. A partial bound or a conditional theorem belongs in the notebook with its actual hypotheses. [Contribution guide](https://github.com/google-deepmind/formal-conjectures/blob/main/CONTRIBUTING.md)
 
 - Sign the [Google CLA](https://cla.developers.google.com/) once.
 - AI use follows [Mathlib's policy](https://mathlib.org/contribute/index.html): disclose which tools were used and how in the PR body; add the `LLM-generated` label when a substantial amount of code is model-generated (comment `LLM-generated`); the author must understand and be able to justify every change without AI; do not write GitHub or Zulip comments with an LLM.
