@@ -48,7 +48,7 @@
       "name": "formal-math-conjectures",
       "source": "./skills/formal-math-conjectures",
       "skills": "./",
-      "description": "Give agents a reusable workflow for contributing to Lean 4 formal-mathematics projects: pick an unclaimed target, prove or formalize it, kernel-check it, and open a full pull request. The skill covers Google DeepMind's formal-conjectures, Left to Solve, and other confirmed projects, plus setup and policy rules that keep contributions reviewable."
+      "description": "Select an unclaimed Lean 4 target, prove it or reduce it to a precise remaining question, and replay the result. Publish eligible work to the authorized notebook or host project."
     },
     {
       "name": "ghcrawl-cluster-operator",
