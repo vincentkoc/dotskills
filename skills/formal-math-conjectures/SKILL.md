@@ -38,7 +38,8 @@ Do not use this skill to open unsupervised PRs against Mathlib. Do not use it to
    - For Left to Solve, run `tools/oma.sh check` and beat the lease; release honestly (`too_hard` or the matching reason) rather than sitting on a stuck problem.
    - For a large lemma, split it with `tools/oma.sh reduce` (or the project's equivalent). Each reduction hypothesis must be self-contained: the Left to Solve linter forbids one hypothesis referencing another. Keep a `NOTES.md` per deep target. Prepare the proof file for each hypothesis before the reduction PR merges, so it can be submitted as soon as the steps exist.
 9. Repeat the pre-claim check immediately before opening or submitting the PR; other agents race. Then open a **full** (non-draft) pull request. Disclose AI assistance the way that project requires. Do not write AI-authored review comments or Zulip messages. Track review and respond; do not open a second PR for the same target.
-10. After each merged or skipped item, stop when the batch cap is reached and report PR links, skips and reasons, and any desk or CI blockers.
+10. **Update the contribution catalogue.** After opening or merging a pull request, closing one, or posting a dead-end note, update [vincentkoc/solved-conjectures](https://github.com/vincentkoc/solved-conjectures). Pull the local clone with `git pull --ff-only`. Verify the status with `gh pr view` (or the Left to Solve note id) immediately before writing it. Run the catalogue's add-entry script to upsert the index and regenerate the README (columns: Project, Problem/step, Status, PR). Copy Lean files into the proofs directory for merged or open proofs (and for a superseded proof that is still ours). Do not put names, emails, timezone, location, or local paths in the catalogue; the public GitHub handle is enough, and dates are plain `YYYY-MM-DD`. Commit with signed commits and push `main`. The exact command is in [the catalogue update procedure](https://github.com/vincentkoc/solved-conjectures/blob/main/scripts/README.md).
+11. After each merged or skipped item, stop when the batch cap is reached and report PR links, catalogue updates, skips and reasons, and any desk or CI blockers.
 
 ### Setup
 
@@ -54,6 +55,7 @@ Do not use this skill to open unsupervised PRs against Mathlib. Do not use it to
 - Cap the batch; hold at most 2 Left to Solve problems at once (tighter than the desk's cap of 5).
 - Respect each project's AI policy and CLA. Mathlib bans unsupervised AI PRs — skip it. formal-conjectures follows Mathlib's disclosure rules; first-time contributors may wait on maintainer CI approval.
 - Use the owner's GitHub noreply address and signed commits, set per repository only. Never disable `gpgsign` globally.
+- After a public contribution (a PR opened, merged, or closed, or a dead-end note), update and push [vincentkoc/solved-conjectures](https://github.com/vincentkoc/solved-conjectures) the same day.
 
 ## Inputs
 
@@ -66,6 +68,7 @@ Do not use this skill to open unsupervised PRs against Mathlib. Do not use it to
 - Full pull request URLs for checked contributions, or a clear skip with the conflicting PR or solved-list entry.
 - A short batch report: what was attempted, what was skipped and why, Left to Solve desk status, and anything waiting on a maintainer.
 - Honest lease releases when a Left to Solve problem is too hard.
+- An updated, pushed entry in [vincentkoc/solved-conjectures](https://github.com/vincentkoc/solved-conjectures) for each opened, merged, or closed PR and each dead-end note.
 
 ## Flow
 
@@ -87,8 +90,11 @@ stateDiagram-v2
     KernelCheck --> PreSubmitCheck: checks pass
     PreSubmitCheck --> SkipTarget: raced; already solved or claimed
     PreSubmitCheck --> OpenFullPR: still unclaimed
-    OpenFullPR --> TrackReview
-    TrackReview --> PickProject: cap not reached
-    TrackReview --> Report: cap reached
+    OpenFullPR --> UpdateCatalogue
+    UpdateCatalogue --> TrackReview
+    TrackReview --> UpdateCatalogue: PR merged or closed
+    ReleaseHonestly --> UpdateCatalogue: dead-end note posted
+    UpdateCatalogue --> PickProject: cap not reached
+    UpdateCatalogue --> Report: cap reached
     Report --> [*]
 ```

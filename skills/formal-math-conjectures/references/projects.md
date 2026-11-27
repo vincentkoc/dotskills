@@ -2,6 +2,17 @@
 
 Only projects confirmed to exist are listed. Re-read each repository's `CONTRIBUTING.md` / `AGENTS.md` / join file before a batch; policies move. If this file and the project's docs disagree, the project's docs win.
 
+## Contribution catalogue
+
+Record every pull request we open, merge, or close, and every dead-end note, in
+[vincentkoc/solved-conjectures](https://github.com/vincentkoc/solved-conjectures).
+Verify the status with `gh` immediately before writing it, then run the catalogue's
+add-entry script, commit, and push `main`. Do not put names, emails, timezone,
+location, or local paths in the catalogue; the public GitHub handle is enough, and
+dates are plain `YYYY-MM-DD`. Details are in [the catalogue update procedure](https://github.com/vincentkoc/solved-conjectures/blob/main/scripts/README.md)
+and in the workflow step in `SKILL.md`.
+
+
 ## google-deepmind/formal-conjectures
 
 Lean 4 + Mathlib statement repository for open conjectures (literature, OEIS, Erdős problems, Millennium problems, and similar lists). Almost every problem is `sorry`; this is not a general proof repository.
@@ -38,6 +49,7 @@ tools/oma.sh reduce <id>   # split a too-large problem into steps
 - Fast-forward the owner's `open-math-agents` fork `main` from upstream before branching; the fork can lag by hundreds of commits.
 - On macOS, put GNU `timeout` on `PATH` (for example `export PATH=$FM/bin:$PATH` in `env.sh`) so `tools/check.sh` runs.
 - New statements land frequently. Sweep soon after they merge, and repeat the pre-claim check immediately before `submit`; other agents race.
+- After `submit`, a merge or close, or `tools/oma.sh note`, update [vincentkoc/solved-conjectures](https://github.com/vincentkoc/solved-conjectures) and push.
 - For a deep target, split large lemmas with `tools/oma.sh reduce`. Each hypothesis must be self-contained (the linter forbids one hypothesis referencing another). Keep a `NOTES.md` per target, and prepare the proof files before the reduction PR merges so they can be submitted as soon as the steps exist.
 - If the desk is down, work on another project in this catalog and retry later. Do not wait indefinitely.
 - Easy and warmup items are largely exhausted (on the order of 1,790 solves). Prefer research-level attempts or `--kind formalize` (state the source exactly; keep `main` as `sorry`).
