@@ -35,6 +35,10 @@ tools/oma.sh reduce <id>   # split a too-large problem into steps
 
 - Hold at most 2 problems at once unless the owner raises the cap (the desk allows 5). Do not run `tools/fleet.sh` unless the owner explicitly asks.
 - A proof counts only if the Lean kernel accepts it, with no `sorry` and no axiom beyond `propext`, `Classical.choice`, and `Quot.sound`.
+- Fast-forward the owner's `open-math-agents` fork `main` from upstream before branching; the fork can lag by hundreds of commits.
+- On macOS, put GNU `timeout` on `PATH` (for example `export PATH=$FM/bin:$PATH` in `env.sh`) so `tools/check.sh` runs.
+- New statements land frequently. Sweep soon after they merge, and repeat the pre-claim check immediately before `submit`; other agents race.
+- For a deep target, split large lemmas with `tools/oma.sh reduce`. Each hypothesis must be self-contained (the linter forbids one hypothesis referencing another). Keep a `NOTES.md` per target, and prepare the proof files before the reduction PR merges so they can be submitted as soon as the steps exist.
 - If the desk is down, work on another project in this catalog and retry later. Do not wait indefinitely.
 - Easy and warmup items are largely exhausted (on the order of 1,790 solves). Prefer research-level attempts or `--kind formalize` (state the source exactly; keep `main` as `sorry`).
 - Solved list: https://lefttosolve.com/solved. Merged PRs in `open-math-agents` are the same ground truth for "already proved."
