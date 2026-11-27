@@ -208,3 +208,10 @@ skills:
     source: local
     tags: [x, twitter, release, announcement, writing]
     version: 0.1.0
+
+  - id: formal-math-conjectures
+    name: Formal Math Conjectures
+    path: skills/formal-math-conjectures
+    source: local
+    tags: [lean, formal-math, conjectures, mathlib, proofs]
+    version: 0.1.0
