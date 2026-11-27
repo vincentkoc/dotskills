@@ -44,7 +44,9 @@ Do not use this skill to open unsupervised PRs against Mathlib. Do not use it to
 ### Continuous research
 
 - Resume from the live notebook, active branches, PRs and leases. Give each worker a distinct target, worktree and result directory. Keep the problem name, upstream revision and next mathematical question with its proof. If the owner names tmux panes, verify the current pane ID and foreground program, submit the literal assignment once, and confirm the worker received it. Never reconstruct a dispatch from shell history.
-- Replay the saved Lean file using the pinned dependencies. Check the theorem’s type against the upstream definitions, its quantifiers and its axioms. Distinguish a solved host declaration, a known theorem newly formalized, a conditional implication and a partial bound.
+- Sequence managed worktree closeout and enrollment when they share a lifecycle lock. A busy enrollment can leave a new branch and checkout already registered. Inspect their state before retrying.
+- When the owner requests a native `/goal` for workers, set it in each existing assigned thread. Check its thread ID, objective and active status. Give the goal the research scope and landing criteria, so a single merge leaves the campaign active. Once verified, retire any campaign-owned mechanism that sends continuation prompts to those threads. Keep ongoing proofs and PRs in place.
+- Replay the saved Lean file using the pinned dependencies. When reusing a cache from a different checkout revision, verify the toolchain, dependency pins and relevant upstream sources. If a source differs, compile the pinned source in isolation before replay. Check the theorem’s type against the upstream definitions, its quantifiers and its axioms. Distinguish a solved host declaration, a known theorem newly formalized, a conditional implication and a partial bound.
 - Publish to the destination the owner authorized. A checked partial result or long proof can live in the personal notebook under `research/`. Give it a replay command and describe the missing step. Reserve catalogue statuses for actual host events. A notebook merge alone does not establish the upstream conjecture. Follow the host’s current link/registry policy when a proof covers its declaration.
 - When landing is authorized, use the destination’s merge workflow. Verify the remote commit or merged PR before reporting it as landed. While a result waits on external review, another independent eligible target can proceed.
 - After a landing, duplicate or concrete obstruction, release any obsolete lease and select the next research question. Retry a failed approach when new evidence changes it. The coordinator monitors actual worker turns, reuses confirmed free lanes, and stops on owner request, exhaustion of eligible targets, or a blocker affecting every remaining route. Report the last verified outcome and the exact unblock action when applicable.
@@ -82,7 +84,10 @@ Do not use this skill to open unsupervised PRs against Mathlib. Do not use it to
 ```mermaid
 stateDiagram-v2
     [*] --> SelectMode
-    SelectMode --> SelectTarget: finite cap or explicit continuous run
+    SelectMode --> VerifyWorkerGoals: owner requests worker goals
+    VerifyWorkerGoals --> SelectTarget: goal active in each assigned thread
+    VerifyWorkerGoals --> Report: wrong thread or unavailable goal
+    SelectMode --> SelectTarget: finite batch or other continuous run
     SelectTarget --> CheckPriorWork
     CheckPriorWork --> Next: duplicate or claimed
     CheckPriorWork --> Prove: eligible
