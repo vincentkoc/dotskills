@@ -71,6 +71,7 @@ second configuration generator competing with those owners.
 | `tmux-agent-lane-orchestrator` | Monitor tmux coding-agent lanes and produce evidence-backed manager summaries. | `npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y` |
 | `tmux-lane-orchestrator` | Coordinate one tmux worker lane from its matching manager pane. | `npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y` |
 | `x-release-post` | Draft an X release announcement from verified release notes, with a length check. | `npx skills add vincentkoc/dotskills --skill x-release-post -y` |
+| `formal-math-conjectures` | Contribute checked Lean 4 proofs to formal-conjectures, Left to Solve, and similar projects. | `npx skills add vincentkoc/dotskills --skill formal-math-conjectures -y` |
 
 Local-only skills may live under ignored `private-skills/`, but must never be tracked in this public repository.
 
@@ -102,6 +103,7 @@ npx skills add vincentkoc/dotskills --skill semantic-slicing -y
 npx skills add vincentkoc/dotskills --skill tmux-agent-lane-orchestrator -y
 npx skills add vincentkoc/dotskills --skill tmux-lane-orchestrator -y
 npx skills add vincentkoc/dotskills --skill x-release-post -y
+npx skills add vincentkoc/dotskills --skill formal-math-conjectures -y
 ```
 
 List available public skills:

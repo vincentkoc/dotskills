@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -145,19 +145,46 @@ for (const [args, error] of [
   });
 }
 
-test("pipefail preserves map failures when the downstream consumer succeeds", (t) => {
+test("pipefail preserves map failures when the downstream consumer succeeds", async (t) => {
   const directory = fixture(t);
   const before = footprint(directory);
-  const result = spawnSync("bash", [
-    "-c",
-    'set -o pipefail\n"$1" "$2" --format invalid | "$1" -e "process.stdin.resume()"',
-    "semantic-map-pipeline",
-    process.execPath,
-    scriptPath,
-  ], { cwd: directory, encoding: "utf8" });
-  assert.equal(result.status, 2);
-  assert.equal(result.stdout, "");
-  assert.match(result.stderr, /invalid --format/u);
+  const producer = spawn(process.execPath, [scriptPath, "--format", "invalid"], {
+    cwd: directory,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const consumer = spawn(process.execPath, ["-e", "process.stdin.resume()"], {
+    cwd: directory,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let stdout = "";
+  let stderr = "";
+  producer.stderr.setEncoding("utf8");
+  consumer.stdout.setEncoding("utf8");
+  consumer.stderr.setEncoding("utf8");
+  producer.stderr.on("data", (chunk) => {
+    stderr += chunk;
+  });
+  consumer.stdout.on("data", (chunk) => {
+    stdout += chunk;
+  });
+  consumer.stderr.on("data", (chunk) => {
+    stderr += chunk;
+  });
+  producer.stdout.pipe(consumer.stdin);
+  const [producerStatus, consumerStatus] = await Promise.all([
+    new Promise((resolve, reject) => {
+      producer.on("error", reject);
+      producer.on("close", (code) => resolve(code ?? 1));
+    }),
+    new Promise((resolve, reject) => {
+      consumer.on("error", reject);
+      consumer.on("close", (code) => resolve(code ?? 1));
+    }),
+  ]);
+  const status = producerStatus !== 0 ? producerStatus : consumerStatus;
+  assert.equal(status, 2);
+  assert.equal(stdout, "");
+  assert.match(stderr, /invalid --format/u);
   assert.deepEqual(footprint(directory), before);
 });
 
