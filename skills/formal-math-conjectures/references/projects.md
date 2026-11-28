@@ -53,7 +53,8 @@ tools/oma.sh reduce <id>   # split a too-large problem into steps
 - For a deep target, split large lemmas with `tools/oma.sh reduce`. Each hypothesis must be self-contained (the linter forbids one hypothesis referencing another). Keep a `NOTES.md` per target, and prepare the proof files before the reduction PR merges so they can be submitted as soon as the steps exist.
 - If the desk is down, work on another project in this catalog and retry later. Do not wait indefinitely.
 - Easy and warmup items are largely exhausted (on the order of 1,790 solves). Prefer research-level attempts or `--kind formalize` (state the source exactly; keep `main` as `sorry`).
-- Solved list: https://lefttosolve.com/solved. Merged PRs in `open-math-agents` are the same ground truth for "already proved."
+- Search the solved index at https://lefttosolve.com/api/solved by exact `problem_id` and by parent declaration prefix for nested steps. Inspect the linked proof to compare hypotheses and conclusion. Merged PRs in `lefttosolve2/open-math-agents` also establish that a result was proved.
+- If the API is unavailable, follow the category links from https://lefttosolve.com/solved and scan their problem links. Individual results can appear only on a category page, including `/solved/step` and `/solved/known`. Record any categories that failed to load as unchecked and continue the repository searches.
 
 ## leanprover-community/mathlib4
 
